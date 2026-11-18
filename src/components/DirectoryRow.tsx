@@ -41,7 +41,7 @@ export function DirectoryRow({
           onClick={add.onClick}
           aria-label={add.label}
           disabled={add.disabled || add.busy}
-          className="group/left flex-1 min-h-0 bg-gradient-to-r from-transparent to-transparent hover:from-cyber-text/15 hover:to-transparent transition-[background-image] duration-200 disabled:opacity-50"
+          className="group/left flex-1 min-h-0 bg-gradient-to-r from-transparent to-transparent hover:from-cyber-text/15 hover:to-transparent transition-[background-image] duration-200"
         />
       )}
       <button
@@ -53,9 +53,7 @@ export function DirectoryRow({
       />
       <div className="pointer-events-none absolute inset-0 flex items-center gap-3 px-3">
         {add && (
-          <span
-            className={`flex-shrink-0 text-cyber-text-muted ${add.disabled ? 'opacity-40' : ''}`}
-          >
+          <span className="flex-shrink-0 text-cyber-text-muted">
             {add.busy ? (
               <LoaderCircle size={22} className="animate-spin" aria-hidden="true" />
             ) : (

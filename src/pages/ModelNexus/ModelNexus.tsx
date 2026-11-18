@@ -107,6 +107,7 @@ export function ModelNexusTitleActions() {
           icon={RefreshCw}
           spinning={isRefreshingUsage}
           onClick={refreshAllUsage}
+          pending={isRefreshingUsage}
           disabled={isRefreshingUsage}
           className="font-mono"
         >

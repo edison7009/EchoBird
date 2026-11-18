@@ -101,7 +101,7 @@ export function AccountProxyPanel({
               openAccountModelForm(provider.id, context, voice ? 'voiceInput' : 'freeRouter');
           }}
           aria-label={`${t(voice ? 'voice.accountInput' : 'freeModels.addToRouter')}: ${provider.name}`}
-          className="w-full h-14 shrink-0 flex items-center gap-3 px-[11px] border-2 border-transparent bg-cyber-surface/60 rounded-card text-left enabled:hover:bg-cyber-elevated/70 disabled:opacity-40 disabled:grayscale transition-colors"
+          className="w-full h-14 shrink-0 flex items-center gap-3 px-[11px] border-2 border-transparent bg-cyber-surface/60 rounded-card text-left enabled:hover:bg-cyber-elevated/70 transition-colors"
         >
           <img
             src={accountProviderIconSrc(provider.icon)}

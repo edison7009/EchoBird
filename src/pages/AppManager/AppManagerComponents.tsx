@@ -1237,7 +1237,7 @@ export const AppManagerPanel: React.FC = () => {
               aria-label={t('agent.warmUpAccount')}
               disabled={selectedToolAction !== null || isRefreshingSelectedTool}
               onClick={() => void warmUpSelectedTool()}
-              className="account-icon-button flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-cyber-elevated/45 disabled:opacity-40"
+              className="account-icon-button flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-cyber-elevated/45"
             >
               <Zap size={12} className={selectedToolAction === 'warmUp' ? 'animate-pulse' : ''} />
             </button>
@@ -1248,7 +1248,7 @@ export const AppManagerPanel: React.FC = () => {
               aria-label={t('accountCenter.claimAll')}
               disabled={selectedToolAction !== null || isRefreshingSelectedTool}
               onClick={() => void claimSelectedTool()}
-              className="account-icon-button flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-cyber-elevated/45 disabled:opacity-40"
+              className="account-icon-button flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-cyber-elevated/45"
             >
               <Gift size={12} className={selectedToolAction === 'claim' ? 'animate-pulse' : ''} />
             </button>
@@ -1261,7 +1261,7 @@ export const AppManagerPanel: React.FC = () => {
                 !selectedToolData || isRefreshingSelectedTool || selectedToolAction !== null
               }
               onClick={() => void refreshSelectedTool()}
-              className="account-icon-button flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-cyber-elevated/45 disabled:opacity-40"
+              className={`account-icon-button flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-cyber-elevated/45 ${!selectedToolData ? 'disabled:opacity-40' : ''}`}
             >
               <RefreshCw size={12} className={isRefreshingSelectedTool ? 'animate-spin' : ''} />
             </button>
@@ -1620,7 +1620,7 @@ export const AppManagerBottom: React.FC = () => {
               aria-label={t('cliLaunch.title')}
               disabled={isLaunching}
               onClick={() => setCliSettingsOpen(true)}
-              className="-mr-5 flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-lg text-cyber-text-secondary transition-colors enabled:hover:text-cyber-text disabled:opacity-40"
+              className="-mr-5 flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-lg text-cyber-text-secondary transition-colors enabled:hover:text-cyber-text"
             >
               <Settings size={28} aria-hidden="true" />
             </button>
@@ -1631,7 +1631,7 @@ export const AppManagerBottom: React.FC = () => {
               <DesktopPrimaryButton
                 onClick={handlePrimaryClick}
                 disabled={buttonDisabled || acquiring}
-                muted={buttonDisabled}
+                muted={!selectedToolData || (!isUninstalled && !willApply && !willLaunch)}
               >
                 {isInstallAction
                   ? bundled

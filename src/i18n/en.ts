@@ -489,13 +489,10 @@ const en: Translations = {
   'backup.setPassword': 'Set backup password',
   'backup.enterPassword': 'Enter backup password',
   'backup.password': 'Backup password',
-  'backup.confirmPassword': 'Confirm password',
   'backup.scope':
     'Back up model configurations and general settings. Signed-in accounts are excluded.',
   'backup.passwordHint':
-    'Use at least 8 characters. Keep this password; it is required to restore.',
-  'backup.passwordLength': 'Use at least 8 characters.',
-  'backup.passwordMismatch': 'The passwords do not match.',
+    'Leave blank for an unencrypted backup. If set, this password is required to restore.',
   'backup.passwordInvalid': 'Incorrect password or damaged backup file.',
   'backup.invalidConfiguration': 'The local configuration is invalid and could not be backed up.',
   'backup.invalidFile': 'Unrecognized backup file or unsupported version.',
@@ -506,8 +503,8 @@ const en: Translations = {
   'backup.backingUp': 'Backing up…',
   'backup.restoring': 'Restoring…',
   'backup.saved': 'Backed up {count} items.',
-  'backup.restored':
-    'Restored {count} items; {duplicates} duplicates and {skipped} items skipped. Reopen the app to apply all settings.',
+  'backup.restored': 'Restored: {count} · Already present: {duplicates} · Not restored: {skipped}',
+  'backup.restartRequired': 'Takes effect after restart.',
   'backup.deviceBound': '{count} items work only on the original machine.',
   'autoImport.title': 'Configuration backup and migration',
   'autoImport.description':

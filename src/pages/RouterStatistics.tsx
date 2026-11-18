@@ -380,6 +380,7 @@ export function RouterStatisticsMain() {
                 spinning={state.loading}
                 aria-label={t('btn.refresh')}
                 onClick={state.refreshAll}
+                pending={state.loading}
                 disabled={state.loading}
               />
             </div>

@@ -31,6 +31,17 @@ pub(super) fn encode(bytes: &[u8], password: &str) -> Result<Vec<u8>, String> {
     if bytes.len() as u64 > LIMIT / 2 {
         return Err("backupError.size".into());
     }
+    if password.is_empty() {
+        return serde_json::to_vec(&Envelope {
+            format: "echobird-configuration-backup".into(),
+            version: 1,
+            kdf: "none".into(),
+            salt: String::new(),
+            nonce: String::new(),
+            data: STANDARD.encode(bytes),
+        })
+        .map_err(|_| "backupError.format".into());
+    }
     let mut salt = [0; 16];
     let mut nonce = [0; 12];
     rand::rngs::OsRng.fill_bytes(&mut salt);
@@ -62,9 +73,21 @@ pub(super) fn decode(bytes: &[u8], password: &str) -> Result<Vec<u8>, String> {
     let envelope: Envelope = serde_json::from_slice(bytes).map_err(|_| "backupError.format")?;
     if envelope.format != "echobird-configuration-backup"
         || envelope.version != 1
-        || envelope.kdf != "pbkdf2-sha256-600000"
+        || !matches!(envelope.kdf.as_str(), "pbkdf2-sha256-600000" | "none")
     {
         return Err("backupError.version".into());
+    }
+    if envelope.kdf == "none" {
+        if !envelope.salt.is_empty() || !envelope.nonce.is_empty() {
+            return Err("backupError.format".into());
+        }
+        let data = STANDARD
+            .decode(envelope.data)
+            .map_err(|_| "backupError.format")?;
+        if data.len() as u64 > LIMIT / 2 {
+            return Err("backupError.size".into());
+        }
+        return Ok(data);
     }
     let salt = STANDARD
         .decode(envelope.salt)
@@ -81,6 +104,9 @@ pub(super) fn decode(bytes: &[u8], password: &str) -> Result<Vec<u8>, String> {
         || cipher.len() as u64 > LIMIT / 2 + 16
     {
         return Err("backupError.format".into());
+    }
+    if password.is_empty() {
+        return Err("backupError.passwordRequired".into());
     }
     let secret = key(password, &salt)?;
     Aes256Gcm::new(&secret.into())
@@ -128,5 +154,37 @@ mod tests {
             "backupError.version"
         );
         assert!(decode(b"truncated", "fixture").is_err());
+    }
+}
+
+#[cfg(test)]
+mod optional_password_tests {
+    use super::*;
+    #[test]
+    fn empty_password_is_explicitly_unencrypted_and_rejects_inconsistent_metadata() {
+        let bytes = encode(b"portable API configuration", "").unwrap();
+        let mut envelope: Envelope = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(envelope.kdf, "none");
+        assert!(envelope.salt.is_empty() && envelope.nonce.is_empty());
+        assert_eq!(decode(&bytes, "").unwrap(), b"portable API configuration");
+        envelope.nonce = "not-plain".into();
+        assert_eq!(
+            decode(&serde_json::to_vec(&envelope).unwrap(), "").unwrap_err(),
+            "backupError.format"
+        );
+    }
+    #[test]
+    fn one_character_password_remains_encrypted_and_empty_probe_cannot_restore_it() {
+        let encrypted = encode(b"private-api-key", "1").unwrap();
+        assert_eq!(
+            decode(&encrypted, "").unwrap_err(),
+            "backupError.passwordRequired"
+        );
+        assert_eq!(decode(&encrypted, "1").unwrap(), b"private-api-key");
+        assert_eq!(decode(&encrypted, "2").unwrap_err(), "backupError.password");
+        assert_eq!(
+            serde_json::from_slice::<Envelope>(&encrypted).unwrap().kdf,
+            "pbkdf2-sha256-600000"
+        );
     }
 }

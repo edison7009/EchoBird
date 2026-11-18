@@ -85,7 +85,7 @@ export const AccountSectionButton: React.FC<{
       <div
         className={`account-pill ${colorClassName} ${className} relative flex h-12 w-full items-center justify-center rounded-card pl-3 pr-10`}
       >
-        <span className="pointer-events-none flex min-w-0 items-center gap-2.5 opacity-50">
+        <span className="pointer-events-none flex min-w-0 items-center gap-2.5">
           {iconSrc && <img src={iconSrc} alt="" className="h-6 w-6 flex-shrink-0" />}
           <span className="flex min-w-0 flex-col items-center text-center">
             <span className={`${secondary ? 'text-[14px]' : 'text-[17px]'} font-bold leading-5`}>
@@ -115,7 +115,7 @@ export const AccountSectionButton: React.FC<{
   if (secondary) {
     return (
       <div
-        className={`account-pill ${colorClassName} ${className} relative flex h-12 w-full items-center justify-center rounded-card px-3 transition-opacity ${disabled || busy ? 'opacity-50' : 'hover:opacity-90'}`}
+        className={`account-pill ${colorClassName} ${className} relative flex h-12 w-full items-center justify-center rounded-card px-3 transition-opacity hover:opacity-90`}
       >
         <button
           type="button"
@@ -149,7 +149,7 @@ export const AccountSectionButton: React.FC<{
     // The "?" sits outside the click target, so reading it never starts the action.
     return (
       <div
-        className={`account-pill ${colorClassName} ${className} relative flex h-12 w-full items-center justify-center rounded-card px-3 text-[17px] font-bold leading-6 transition-opacity ${disabled ? 'opacity-50' : 'hover:opacity-90'}`}
+        className={`account-pill ${colorClassName} ${className} relative flex h-12 w-full items-center justify-center rounded-card px-3 text-[17px] font-bold leading-6 transition-opacity hover:opacity-90`}
       >
         <button
           type="button"
@@ -171,7 +171,7 @@ export const AccountSectionButton: React.FC<{
       type="button"
       onClick={onClick}
       disabled={disabled || busy}
-      className={`account-pill ${colorClassName} ${className} flex h-12 w-full items-center justify-center rounded-card px-3 text-[17px] font-bold leading-6 transition-opacity hover:opacity-90 disabled:opacity-50`}
+      className={`account-pill ${colorClassName} ${className} flex h-12 w-full items-center justify-center rounded-card px-3 text-[17px] font-bold leading-6 transition-opacity hover:opacity-90`}
     >
       <span className="flex translate-y-px items-center gap-2.5">
         {iconSrc && <img src={iconSrc} alt="" className="h-6 w-6" />}
@@ -198,7 +198,7 @@ export const AccountSectionRewardButton: React.FC<{
         event.stopPropagation();
         onClaim();
       }}
-      className="account-icon-button flex h-5 w-5 items-center justify-center rounded-full disabled:opacity-40"
+      className={`account-icon-button flex h-5 w-5 items-center justify-center rounded-full ${claimed ? 'disabled:opacity-40' : ''}`}
     >
       {claimed ? <Check size={12} aria-hidden="true" /> : <Gift size={12} aria-hidden="true" />}
     </button>
@@ -222,7 +222,7 @@ export const AccountSectionWarmUpButton: React.FC<{
           aria-label={`${t('agent.warmUpAccount')} ${hidden ? ACCOUNT_NAME_MASK : email}`}
           disabled={disabled}
           onClick={onWarmUp}
-          className="account-icon-button flex h-5 w-5 items-center justify-center rounded-full disabled:opacity-40"
+          className="account-icon-button flex h-5 w-5 items-center justify-center rounded-full"
         >
           <Zap size={12} aria-hidden="true" />
         </button>
@@ -252,7 +252,7 @@ export const AccountSectionActions: React.FC<{
             event.stopPropagation();
             onRefresh();
           }}
-          className="account-icon-button flex h-5 w-5 items-center justify-center rounded-full disabled:opacity-40"
+          className="account-icon-button flex h-5 w-5 items-center justify-center rounded-full"
         >
           {refreshing ? (
             <LoaderCircle size={12} className="animate-spin" aria-hidden="true" />
@@ -269,7 +269,7 @@ export const AccountSectionActions: React.FC<{
           event.stopPropagation();
           onDelete();
         }}
-        className="account-icon-button flex h-5 w-5 items-center justify-center rounded-full disabled:opacity-40"
+        className="account-icon-button flex h-5 w-5 items-center justify-center rounded-full"
       >
         <Trash2 size={11} aria-hidden="true" />
       </button>

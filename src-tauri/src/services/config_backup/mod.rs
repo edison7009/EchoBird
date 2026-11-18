@@ -45,6 +45,7 @@ struct Backup {
 #[serde(rename_all = "camelCase")]
 pub struct Outcome {
     pub records: usize,
+    pub restart_required: bool,
     pub duplicates: usize,
     pub device_bound: usize,
     pub skipped: usize,
@@ -282,9 +283,6 @@ pub fn backup(
     ui_preferences: BTreeMap<String, String>,
 ) -> Result<Outcome, String> {
     let _guard = guard()?;
-    if password.chars().count() < 8 {
-        return Err("backupError.passwordLength".into());
-    }
     let backup = collect(
         &crate::utils::platform::echobird_dir(),
         "portable-api-models".into(),
@@ -320,7 +318,7 @@ pub fn backup(
         return Err("backupError.write".into());
     }
     Ok(Outcome {
-        records: backup.records.len(),
+        records: backup.records.len() + usize::from(!backup.ui_preferences.is_empty()),
         device_bound: backup.records.iter().filter(|r| r.device_bound).count(),
         file_name: name,
         ..Default::default()
@@ -522,6 +520,7 @@ fn prepare(
             .transpose()
             .map_err(|_| "backupError.format")?
             .unwrap_or_default();
+        let before = order.clone();
         for id in record.data["ids"].as_array().ok_or("backupError.format")? {
             let id = id.as_str().ok_or("backupError.format")?;
             let mapped = model_map.get(id).map(String::as_str).unwrap_or(id);
@@ -529,8 +528,12 @@ fn prepare(
                 order.push(mapped.into());
             }
         }
-        add_plan(root, path, &json!(order), &mut plan)?;
-        outcome.records += 1;
+        if order == before {
+            outcome.duplicates += 1;
+        } else {
+            add_plan(root, path, &json!(order), &mut plan)?;
+            outcome.records += 1;
+        }
     }
     let registry_path = root.join("config/smart-routers.json");
     let mut registry =
@@ -576,12 +579,18 @@ fn prepare(
     for record in backup.records.iter().filter(|r| r.kind == "preferences") {
         let path = root.join("settings.json");
         let mut settings = records::json_at(&path)?.unwrap_or(json!({}));
+        let before = settings.clone();
         settings
             .as_object_mut()
             .ok_or("backupError.format")?
             .extend(record.data.as_object().ok_or("backupError.format")?.clone());
-        add_plan(root, path, &settings, &mut plan)?;
-        outcome.records += 1;
+        if settings == before {
+            outcome.duplicates += 1;
+        } else {
+            add_plan(root, path, &settings, &mut plan)?;
+            outcome.records += 1;
+            outcome.restart_required = true;
+        }
     }
     Ok((plan, outcome))
 }

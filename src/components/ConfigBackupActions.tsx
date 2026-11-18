@@ -7,7 +7,6 @@ import { useAutoImportStore } from '../stores/autoImportStore';
 import type { TKey } from '../i18n';
 
 function errorKey(error: string, mode: BackupMode | null): TKey {
-  if (error.includes('passwordLength')) return 'backup.passwordLength';
   if (error.includes('password')) return 'backup.passwordInvalid';
   if (/format|version|size/.test(error))
     return mode === 'backup' ? 'backup.invalidConfiguration' : 'backup.invalidFile';
@@ -20,7 +19,6 @@ function BackupPasswordDialog() {
   const { t } = useI18n();
   const { challenge, error, cancel, run } = useConfigBackupStore();
   const [password, setPassword] = useState('');
-  const [confirmation, setConfirmation] = useState('');
   const [invalid, setInvalid] = useState<TKey | null>(null);
   const dialog = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -89,17 +87,12 @@ function BackupPasswordDialog() {
         <form
           onSubmit={(event) => {
             event.preventDefault();
-            if (!password || (backingUp && Array.from(password).length < 8)) {
-              setInvalid('backup.passwordLength');
-              return;
-            }
-            if (backingUp && password !== confirmation) {
-              setInvalid('backup.passwordMismatch');
+            if (!backingUp && !password) {
+              setInvalid('backup.passwordInvalid');
               return;
             }
             const secret = password;
             setPassword('');
-            setConfirmation('');
             setInvalid(null);
             void run(secret);
           }}
@@ -123,24 +116,6 @@ function BackupPasswordDialog() {
                 className="mt-1 w-full rounded-button border border-cyber-border bg-cyber-input px-2 py-1.5 font-mono text-xs text-cyber-text focus:border-cyber-border focus:outline-none"
               />
             </label>
-            {backingUp && (
-              <label className="block text-xs text-cyber-text-secondary">
-                {t('backup.confirmPassword')}
-                <input
-                  type="text"
-                  value={confirmation}
-                  maxLength={256}
-                  autoComplete="off"
-                  spellCheck={false}
-                  autoCapitalize="off"
-                  onChange={(event) => {
-                    setConfirmation(event.target.value);
-                    setInvalid(null);
-                  }}
-                  className="mt-1 w-full rounded-button border border-cyber-border bg-cyber-input px-2 py-1.5 font-mono text-xs text-cyber-text focus:border-cyber-border focus:outline-none"
-                />
-              </label>
-            )}
             {backingUp && (
               <p className="text-[12px] text-cyber-text-muted">{t('backup.passwordHint')}</p>
             )}
@@ -183,7 +158,7 @@ export function ConfigBackupActions() {
         type="button"
         disabled={disabled}
         onClick={() => void choose('backup', t('backup.directoryTitle'))}
-        className="rounded bg-cyber-accent/10 px-2.5 py-1 text-[13px] text-cyber-accent transition-colors hover:bg-cyber-accent/15 disabled:opacity-50"
+        className="rounded bg-cyber-accent/10 px-2.5 py-1 text-[13px] text-cyber-accent transition-colors hover:bg-cyber-accent/15"
       >
         {t('backup.action')}
       </button>
@@ -191,7 +166,7 @@ export function ConfigBackupActions() {
         type="button"
         disabled={disabled}
         onClick={() => void choose('restore', t('backup.fileTitle'))}
-        className="rounded bg-cyber-accent/10 px-2.5 py-1 text-[13px] text-cyber-accent transition-colors hover:bg-cyber-accent/15 disabled:opacity-50"
+        className="rounded bg-cyber-accent/10 px-2.5 py-1 text-[13px] text-cyber-accent transition-colors hover:bg-cyber-accent/15"
       >
         {t('backup.restore')}
       </button>
@@ -215,6 +190,7 @@ export function ConfigBackupStatus() {
             .replace('{count}', String(outcome.records))
             .replace('{duplicates}', String(outcome.duplicates))
             .replace('{skipped}', String(outcome.skipped))}
+          {mode === 'restore' && outcome.restartRequired && <> {t('backup.restartRequired')}</>}
           {mode === 'backup' && outcome.deviceBound > 0 && (
             <> {t('backup.deviceBound').replace('{count}', String(outcome.deviceBound))}</>
           )}

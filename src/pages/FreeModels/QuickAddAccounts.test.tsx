@@ -12,7 +12,7 @@ const { context, mount } = vi.hoisted(() => ({
   context: {
     activeRouterId: 'smart-router',
     groupPending: false,
-    activeDragId: null,
+    activeDragId: null as string | null,
     customModels: [] as unknown[],
     selectedIds: new Set<string>(),
     routers: [] as SmartRouterConfig[],
@@ -95,6 +95,8 @@ function deferred<T>() {
 beforeEach(() => {
   vi.clearAllMocks();
   context.activeRouterId = 'smart-router';
+  context.groupPending = false;
+  context.activeDragId = null;
   context.customModels = [];
   context.selectedIds = new Set();
   context.routers = [{ id: 'smart-router' } as SmartRouterConfig];
@@ -427,3 +429,35 @@ it('keeps a loading account collapsed when its directory finishes without reload
       .mock.calls.filter(([source]) => source.provider === 'codex')
   ).toHaveLength(1);
 });
+
+it.each([false, true])(
+  'keeps the entry enabled during unrelated page updates (desktop=%s)',
+  async (desktop) => {
+    const node = desktop ? (
+      <CustomSwitchEntry toolId="copilotdesktop" toolName="Copilot" />
+    ) : (
+      <QuickAddAccounts />
+    );
+    if (desktop) useNavigationStore.setState({ activePage: 'apps' });
+    await render(node);
+    const label = desktop ? 'agent.addCustomSwitch' : 'freeModels.quickAdd';
+    const before = button(label).props.className;
+    context.groupPending = true;
+    context.activeDragId = 'dragging-model';
+    await act(async () =>
+      tree.update(
+        desktop ? (
+          <CustomSwitchEntry toolId="copilotdesktop" toolName="Copilot" />
+        ) : (
+          <QuickAddAccounts />
+        )
+      )
+    );
+    expect(button(label).props.disabled).not.toBe(true);
+    expect(button(label).props.className).toBe(before);
+    expect(accounts.listProxyAccounts).not.toHaveBeenCalled();
+    expect(createCustomRouterGroup).not.toHaveBeenCalled();
+    await click(label);
+    expect(tree.root.findAllByProps({ role: 'dialog' })).toHaveLength(1);
+  }
+);

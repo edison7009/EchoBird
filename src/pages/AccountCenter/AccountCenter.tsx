@@ -175,7 +175,7 @@ export function AccountCard({
                 aria-label={`${t('accountCenter.reauthorize')} ${provider.name}`}
                 disabled={provider.busy || account.pending}
                 onClick={provider.add}
-                className="inline-flex h-7 max-w-full items-center gap-1.5 rounded-button border border-cyber-border px-3 text-xs font-normal text-cyber-text transition-colors enabled:hover:bg-cyber-text/10 disabled:text-cyber-text-muted disabled:opacity-50"
+                className="inline-flex h-7 max-w-full items-center gap-1.5 rounded-button border border-cyber-border px-3 text-xs font-normal text-cyber-text transition-colors enabled:hover:bg-cyber-text/10"
               >
                 <RefreshCw
                   size={13}
@@ -544,6 +544,7 @@ export function AccountCenterTitleActions() {
         icon={running === 'claim' ? LoaderCircle : Gift}
         spinning={running === 'claim'}
         aria-label={t('accountCenter.claimAll')}
+        pending={blocked || running !== null}
         disabled={blocked || running !== null}
         onClick={() => run('claim')}
       />
@@ -551,6 +552,7 @@ export function AccountCenterTitleActions() {
         icon={RefreshCw}
         spinning={running === 'refresh'}
         aria-label={t('accountCenter.refreshAll')}
+        pending={blocked || running !== null}
         disabled={blocked || running !== null}
         onClick={() => run('refresh')}
         className="font-mono"

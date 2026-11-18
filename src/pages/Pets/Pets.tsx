@@ -306,6 +306,7 @@ export function PetsMain() {
           <PageActionButton
             className="pets-upgrade"
             aria-busy={busy}
+            pending={busy && !maxed && balance > 0}
             disabled={busy || maxed || balance <= 0 || renderState !== 'ready'}
             onClick={upgrade}
           >

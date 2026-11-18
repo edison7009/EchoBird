@@ -436,7 +436,7 @@ export function VoiceInputMain() {
             <fieldset
               aria-label={t('voice.shortcutMode')}
               disabled={busy}
-              className="m-0 min-w-0 shrink-0 border-0 p-0 disabled:opacity-40"
+              className="m-0 min-w-0 shrink-0 border-0 p-0"
             >
               <ViewModeTabs
                 value={config.hotkeyMode ?? 'hold'}
@@ -522,7 +522,7 @@ export function VoiceInputMain() {
               <fieldset
                 aria-label={t('voice.selection')}
                 disabled={busy || !selectionModel}
-                className="m-0 min-w-0 shrink-0 border-0 p-0 disabled:opacity-40"
+                className={`m-0 min-w-0 shrink-0 border-0 p-0 ${!selectionModel ? 'disabled:opacity-40' : ''}`}
               >
                 <ViewModeTabs
                   value={config.selectionTranslationEnabled && selectionModel ? 'on' : 'off'}

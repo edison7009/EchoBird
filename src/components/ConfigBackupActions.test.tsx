@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { ConfigBackupActions } from './ConfigBackupActions';
+import { ConfigBackupActions, ConfigBackupStatus } from './ConfigBackupActions';
 import { useConfigBackupStore, type BackupOutcome } from '../stores/configBackupStore';
 import { useAutoImportStore } from '../stores/autoImportStore';
 const mocks = vi.hoisted(() => ({ open: vi.fn(), invoke: vi.fn(), invalidate: vi.fn() }));
@@ -13,6 +13,7 @@ vi.mock('../hooks/useI18n', () => ({ useI18n: () => ({ t: (key: string) => key }
 let view: ReactTestRenderer;
 const outcome: BackupOutcome = {
   records: 4,
+  restartRequired: false,
   duplicates: 1,
   skipped: 0,
   deviceBound: 0,
@@ -21,7 +22,8 @@ const outcome: BackupOutcome = {
 };
 const storage = { getItem: vi.fn(), setItem: vi.fn() };
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
+  mocks.invoke.mockRejectedValue('backupError.passwordRequired');
   vi.stubGlobal('document', { activeElement: null, body: {} });
   vi.stubGlobal('HTMLElement', class {});
   vi.stubGlobal('localStorage', storage);
@@ -66,32 +68,35 @@ it('opens no dialogs on entry and leaves cancellation without a backup or error'
   expect(mocks.invoke).not.toHaveBeenCalled();
   expect(useConfigBackupStore.getState().error).toBeNull();
 });
-it('requires matching backup passwords and never retains the password in shared state', async () => {
-  mocks.open.mockResolvedValue('/fixture/destination');
-  mocks.invoke.mockResolvedValue(outcome);
-  await mount();
-  await act(async () => action('backup.action').props.onClick());
-  input(0, 'fixture-password');
-  input(1, 'different-password');
-  await submit();
-  expect(mocks.invoke).not.toHaveBeenCalled();
-  expect(view.root.findByProps({ role: 'alert' }).props.children).toBe('backup.passwordMismatch');
-  input(1, 'fixture-password');
-  await submit();
-  expect(mocks.invoke).toHaveBeenCalledExactlyOnceWith('create_config_backup', {
-    directory: '/fixture/destination',
-    password: 'fixture-password',
-    uiPreferences: {},
-  });
-  expect(useConfigBackupStore.getState().phase).toBe('idle');
-  expect(JSON.stringify(useConfigBackupStore.getState())).not.toContain('fixture-password');
-});
+it.each(['', '1', 'ab', 'fixture-password'])(
+  'accepts optional backup password %j without retaining it in shared state',
+  async (password) => {
+    mocks.open.mockResolvedValue('/fixture/destination');
+    mocks.invoke.mockResolvedValue(outcome);
+    await mount();
+    await act(async () => action('backup.action').props.onClick());
+    expect(view.root.findAllByType('input')).toHaveLength(1);
+    input(0, password);
+    await submit();
+    expect(mocks.invoke).toHaveBeenCalledExactlyOnceWith('create_config_backup', {
+      directory: '/fixture/destination',
+      password,
+      uiPreferences: {},
+    });
+    expect(useConfigBackupStore.getState().phase).toBe('idle');
+    expect(useConfigBackupStore.getState()).not.toHaveProperty('password');
+    expect(view.root.findAllByType('input')).toHaveLength(0);
+  }
+);
 it('restores only after password input, supports retry, and invalidates only saved data', async () => {
   mocks.open.mockResolvedValue('/fixture/source.ebbackup');
-  mocks.invoke.mockRejectedValueOnce('backupError.password').mockResolvedValueOnce({
-    ...outcome,
-    uiPreferences: { echobird_background: 'none', unrelated: 'not restored' },
-  });
+  mocks.invoke
+    .mockRejectedValueOnce('backupError.passwordRequired')
+    .mockRejectedValueOnce('backupError.password')
+    .mockResolvedValueOnce({
+      ...outcome,
+      uiPreferences: { echobird_background: 'none', unrelated: 'not restored' },
+    });
   await mount();
   await act(async () => action('backup.restore').props.onClick());
   expect(mocks.open).toHaveBeenCalledWith(
@@ -100,7 +105,11 @@ it('restores only after password input, supports retry, and invalidates only sav
       filters: [{ name: 'EchoBird', extensions: ['ebbackup'] }],
     })
   );
-  expect(mocks.invoke).not.toHaveBeenCalled();
+  expect(mocks.invoke).toHaveBeenCalledExactlyOnceWith('restore_config_backup', {
+    filePath: '/fixture/source.ebbackup',
+    password: '',
+  });
+  expect(useConfigBackupStore.getState().error).toBeNull();
   input(0, 'wrong-password');
   await submit();
   expect(useConfigBackupStore.getState().phase).toBe('password');
@@ -149,7 +158,7 @@ it.each(['backup', 'restore'] as const)(
       action(mode === 'backup' ? 'backup.action' : 'backup.restore').props.onClick()
     );
     const inputs = view.root.findAllByType('input');
-    expect(inputs).toHaveLength(mode === 'backup' ? 2 : 1);
+    expect(inputs).toHaveLength(1);
     expect(
       inputs.every((node) => node.props.type === 'text' && node.props.autoComplete === 'off')
     ).toBe(true);
@@ -167,7 +176,7 @@ it.each(['backup', 'restore'] as const)(
     await act(async () => close.props.onClick());
     expect(useConfigBackupStore.getState().phase).toBe('idle');
     expect(useConfigBackupStore.getState().challenge).toBeNull();
-    expect(mocks.invoke).not.toHaveBeenCalled();
+    expect(mocks.invoke).toHaveBeenCalledTimes(mode === 'restore' ? 1 : 0);
   }
 );
 
@@ -178,6 +187,7 @@ it.each([
   'distinguishes %s configuration errors from a malformed restore file',
   async (mode, message) => {
     mocks.open.mockResolvedValue(mode === 'backup' ? '/fixture-backups' : '/fixture.ebbackup');
+    if (mode === 'restore') mocks.invoke.mockRejectedValueOnce('backupError.passwordRequired');
     mocks.invoke.mockRejectedValueOnce('backupError.format');
     await mount();
     await act(async () =>
@@ -189,3 +199,60 @@ it.each([
     expect(useConfigBackupStore.getState().challenge?.mode).toBe(mode);
   }
 );
+
+it('restores an unencrypted file immediately without displaying a password dialog', async () => {
+  mocks.open.mockResolvedValue('/fixture/plain.ebbackup');
+  mocks.invoke.mockResolvedValue(outcome);
+  await mount();
+  await act(async () => action('backup.restore').props.onClick());
+  expect(mocks.invoke).toHaveBeenCalledExactlyOnceWith('restore_config_backup', {
+    filePath: '/fixture/plain.ebbackup',
+    password: '',
+  });
+  expect(view.root.findAllByProps({ role: 'dialog' })).toHaveLength(0);
+  expect(useConfigBackupStore.getState().phase).toBe('idle');
+});
+it.each([false, true])(
+  'reports actual UI setting changes and restart requirement: %s',
+  async (changed) => {
+    mocks.open.mockResolvedValue('/fixture/plain.ebbackup');
+    storage.getItem.mockReturnValue(changed ? 'carbon' : 'none');
+    mocks.invoke.mockResolvedValue({
+      ...outcome,
+      records: 0,
+      duplicates: 16,
+      uiPreferences: { echobird_background: 'none' },
+    });
+    await mount();
+    await act(async () => action('backup.restore').props.onClick());
+    expect(useConfigBackupStore.getState().outcome).toMatchObject({
+      records: changed ? 1 : 0,
+      duplicates: changed ? 16 : 17,
+      restartRequired: changed,
+    });
+    expect(storage.setItem).toHaveBeenCalledTimes(changed ? 1 : 0);
+    await act(async () => view.update(<ConfigBackupStatus />));
+    expect(JSON.stringify(view.toJSON()).includes('backup.restartRequired')).toBe(changed);
+  }
+);
+it('does not claim failed UI settings were already present or restored', async () => {
+  mocks.open.mockResolvedValue('/fixture/plain.ebbackup');
+  storage.getItem.mockReturnValue('carbon');
+  storage.setItem.mockImplementation(() => {
+    throw new Error('storage unavailable');
+  });
+  mocks.invoke.mockResolvedValue({
+    ...outcome,
+    records: 0,
+    duplicates: 16,
+    uiPreferences: { echobird_background: 'none' },
+  });
+  await mount();
+  await act(async () => action('backup.restore').props.onClick());
+  expect(useConfigBackupStore.getState().outcome).toMatchObject({
+    records: 0,
+    duplicates: 16,
+    skipped: 1,
+    restartRequired: false,
+  });
+});

@@ -254,7 +254,7 @@ export function CliLaunchDialog({
             type="button"
             disabled={!drafts || saving}
             onClick={() => void save()}
-            className="flex-1 rounded-br-xl px-4 py-3 text-[14px] font-semibold text-cyber-text transition-all enabled:hover:bg-cyber-text/10 disabled:text-cyber-text-muted"
+            className={`flex-1 rounded-br-xl px-4 py-3 text-[14px] font-semibold text-cyber-text transition-all enabled:hover:bg-cyber-text/10 ${!drafts ? 'disabled:text-cyber-text-muted' : ''}`}
           >
             {t('model.enterSave')}
           </button>

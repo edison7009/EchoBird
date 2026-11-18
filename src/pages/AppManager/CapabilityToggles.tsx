@@ -77,7 +77,7 @@ export function CapabilityToggleButton({
       aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`capability-toggle h-[24px] min-w-[44px] rounded-full px-[10px] text-xs font-medium whitespace-nowrap border outline-none transition-[color,background-color] focus-visible:ring-2 focus-visible:ring-cyber-accent disabled:opacity-50 ${checked ? 'border-transparent text-cyber-text' : 'border-cyber-border text-cyber-text-secondary enabled:hover:border-transparent enabled:hover:bg-cyber-elevated enabled:hover:text-cyber-text'}`}
+      className={`capability-toggle h-[24px] min-w-[44px] rounded-full px-[10px] text-xs font-medium whitespace-nowrap border outline-none transition-[color,background-color] focus-visible:ring-2 focus-visible:ring-cyber-accent ${checked ? 'border-transparent text-cyber-text' : 'border-cyber-border text-cyber-text-secondary enabled:hover:border-transparent enabled:hover:bg-cyber-elevated enabled:hover:text-cyber-text'}`}
     >
       {label}
     </button>

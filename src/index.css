@@ -599,9 +599,6 @@ html.is-macos .usage-island.usage-island-theme-auto {
   background: transparent;
   animation: none;
 }
-.capability-toggles[data-disabled='true'] > .view-mode-canvas {
-  opacity: 0.5;
-}
 .view-mode-canvas-colors {
   position: absolute;
   visibility: hidden;

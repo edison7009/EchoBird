@@ -55,9 +55,7 @@ export function ModelListCard({
   return (
     <div
       aria-disabled={disabled || undefined}
-      className={`relative overflow-hidden ${compact ? 'h-14 px-[11px] py-1' : 'p-[11px]'} rounded-card transition-colors flex items-center gap-3 border-2 ${
-        disabled ? 'opacity-50' : ''
-      } ${selected ? 'border-cyber-accent/70 bg-cyber-accent/10' : 'border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70'}`}
+      className={`relative overflow-hidden ${compact ? 'h-14 px-[11px] py-1' : 'p-[11px]'} rounded-card transition-colors flex items-center gap-3 border-2 ${selected ? 'border-cyber-accent/70 bg-cyber-accent/10' : 'border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70'}`}
     >
       <button
         type="button"

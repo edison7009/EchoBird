@@ -1491,7 +1491,7 @@ function FreeModelsContent({
                 }
                 aria-label={t('btn.pingAll')}
                 aria-busy={responseTests.isTesting || undefined}
-                className="free-model-router-list-button relative rounded-button px-3 font-mono text-xs text-cyber-text-muted disabled:opacity-50"
+                className={`free-model-router-list-button relative rounded-button px-3 font-mono text-xs text-cyber-text-muted ${selectedModels.length === 0 ? 'disabled:opacity-50' : ''}`}
               >
                 <span className={`relative top-px${responseTests.isTesting ? ' invisible' : ''}`}>
                   {t('btn.pingAll')}

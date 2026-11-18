@@ -5,14 +5,18 @@ export function PageActionButton({
   icon: Icon,
   spinning = false,
   children,
+  disabled,
+  pending = spinning,
   className = '',
   ...props
-}: ComponentProps<'button'> & { icon?: LucideIcon; spinning?: boolean }) {
+}: ComponentProps<'button'> & { icon?: LucideIcon; spinning?: boolean; pending?: boolean }) {
   return (
     <button
       type="button"
       {...props}
-      className={`flex h-9 shrink-0 items-center justify-center rounded-button border border-cyber-border text-sm text-cyber-text transition-colors enabled:hover:bg-cyber-text/10 disabled:text-cyber-text-muted disabled:opacity-50 outline-none ${children ? 'gap-1.5 px-3' : 'w-9'} ${className}`}
+      disabled={disabled || pending}
+      aria-busy={pending || props['aria-busy'] || undefined}
+      className={`flex h-9 shrink-0 items-center justify-center rounded-button border border-cyber-border text-sm text-cyber-text transition-colors enabled:hover:bg-cyber-text/10 outline-none ${disabled && !pending ? 'disabled:text-cyber-text-muted disabled:opacity-50' : ''} ${children ? 'gap-1.5 px-3' : 'w-9'} ${className}`}
     >
       {Icon && (
         <Icon

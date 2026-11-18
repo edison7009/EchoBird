@@ -290,6 +290,7 @@ export function AiCareerTitleActions() {
       icon={RefreshCw}
       spinning={refreshing}
       onClick={refresh}
+      pending={refreshing}
       disabled={refreshing}
     >
       {t('btn.refresh')}

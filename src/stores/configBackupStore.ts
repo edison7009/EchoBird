@@ -7,6 +7,7 @@ import { useAutoImportStore } from './autoImportStore';
 export type BackupMode = 'backup' | 'restore';
 export interface BackupOutcome {
   records: number;
+  restartRequired: boolean;
   duplicates: number;
   deviceBound: number;
   skipped: number;
@@ -56,6 +57,7 @@ export const useConfigBackupStore = create<BackupState>((set, get) => ({
         return;
       }
       set({ challenge: { mode, path }, phase: 'password' });
+      if (mode === 'restore') await get().run('');
     } catch {
       if (get().revision === revision) set({ phase: 'idle', error: 'backupError.read' });
     }
@@ -76,7 +78,7 @@ export const useConfigBackupStore = create<BackupState>((set, get) => ({
           if (value !== null) uiPreferences[key] = value;
         }
       }
-      const outcome =
+      const result =
         challenge.mode === 'backup'
           ? await invoke<BackupOutcome>('create_config_backup', {
               directory: challenge.path,
@@ -87,23 +89,38 @@ export const useConfigBackupStore = create<BackupState>((set, get) => ({
               filePath: challenge.path,
               password,
             });
+      const outcome = { ...result };
       if (challenge.mode === 'restore') {
+        let uiFailed = false;
+        let uiChanged = false;
         for (const key of uiKeys) {
           if (outcome.uiPreferences[key] !== undefined) {
             try {
-              localStorage.setItem(key, outcome.uiPreferences[key]);
+              if (localStorage.getItem(key) !== outcome.uiPreferences[key]) {
+                localStorage.setItem(key, outcome.uiPreferences[key]);
+                uiChanged = true;
+              }
             } catch {
-              /* Saved backend data remains restored. */
+              uiFailed = true;
             }
           }
         }
+        if (Object.keys(outcome.uiPreferences).some((key) => uiKeys.includes(key))) {
+          if (uiFailed) outcome.skipped += 1;
+          else if (uiChanged) outcome.records += 1;
+          else outcome.duplicates += 1;
+        }
+        outcome.restartRequired ||= uiChanged;
         modelRepository.invalidate();
         useAutoImportStore.setState((state) => ({ progress: null, revision: state.revision + 1 }));
       }
       set({ phase: 'idle', challenge: null, outcome, error: null });
     } catch (error) {
       // Keep the selected file for a password retry; never persist the password.
-      set({ phase: 'password', error: String(error) });
+      set({
+        phase: 'password',
+        error: String(error).includes('backupError.passwordRequired') ? null : String(error),
+      });
     }
   },
 }));

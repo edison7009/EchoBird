@@ -153,7 +153,7 @@ export function CustomSwitchEntry({ toolId, toolName }: { toolId: string; toolNa
   return <QuickAddAccounts desktopTool={{ id: toolId, name: toolName }} />;
 }
 export function QuickAddAccounts({ desktopTool }: { desktopTool?: DesktopSwitchTarget } = {}) {
-  const { activeRouterId, groupPending, activeDragId, routers = [] } = useFreeModels();
+  const { activeRouterId, routers = [] } = useFreeModels();
   const page = useNavigationStore((state) => state.activePage);
   const tab = useNavigationStore((state) => state.smartAccessTab);
   const appsTab = useNavigationStore((state) => state.appsTab);
@@ -161,18 +161,11 @@ export function QuickAddAccounts({ desktopTool }: { desktopTool?: DesktopSwitchT
   return (
     <QuickAddControl
       key={JSON.stringify([activeRouterId, page, tab, appsTab, desktopTool?.id])}
-      disabled={groupPending || activeDragId != null}
       desktopTool={desktopTool}
     />
   );
 }
-function QuickAddControl({
-  disabled,
-  desktopTool,
-}: {
-  disabled: boolean;
-  desktopTool?: DesktopSwitchTarget;
-}) {
+function QuickAddControl({ desktopTool }: { desktopTool?: DesktopSwitchTarget }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   return (
@@ -180,7 +173,6 @@ function QuickAddControl({
       {desktopTool ? (
         <button
           type="button"
-          disabled={disabled}
           onClick={() => setOpen(true)}
           className="mb-2 flex h-14 w-full items-center justify-center gap-2 rounded-card border border-dashed border-cyber-border text-sm text-cyber-text-secondary enabled:hover:bg-cyber-elevated disabled:opacity-50"
         >
@@ -191,7 +183,6 @@ function QuickAddControl({
         <PageActionButton
           aria-label={t('freeModels.quickAdd')}
           icon={Plus}
-          disabled={disabled}
           onClick={() => setOpen(true)}
         >
           {t('freeModels.quickAdd')}
@@ -472,7 +463,7 @@ function QuickAddDialog({
             disabled={saving}
             onClick={close}
             aria-label={t('btn.close')}
-            className="close-button text-cyber-text-secondary disabled:opacity-50"
+            className="close-button text-cyber-text-secondary"
           >
             <X size={18} />
           </button>
@@ -513,7 +504,7 @@ function QuickAddDialog({
                               return next;
                             })
                           }
-                          className={`flex w-full flex-wrap items-center gap-x-3 gap-y-2 rounded-button text-left text-sm text-cyber-text outline-none focus-visible:ring-2 focus-visible:ring-cyber-accent disabled:opacity-50 ${isCollapsed ? '' : 'mb-3'}`}
+                          className={`flex w-full flex-wrap items-center gap-x-3 gap-y-2 rounded-button text-left text-sm text-cyber-text outline-none focus-visible:ring-2 focus-visible:ring-cyber-accent ${isCollapsed ? '' : 'mb-3'}`}
                         >
                           <span className="flex min-w-0 flex-1 basis-full items-center gap-2">
                             <QuickAddChannelIcon row={row} />
@@ -599,7 +590,7 @@ function QuickAddDialog({
               type="button"
               disabled={saving}
               onClick={close}
-              className="flex-1 border-r border-cyber-border px-4 py-3 text-[14px] font-semibold text-cyber-text-secondary transition-all enabled:hover:bg-cyber-elevated enabled:hover:text-cyber-text disabled:opacity-50"
+              className="flex-1 border-r border-cyber-border px-4 py-3 text-[14px] font-semibold text-cyber-text-secondary transition-all enabled:hover:bg-cyber-elevated enabled:hover:text-cyber-text"
             >
               {t('btn.cancel')}
             </button>
@@ -608,7 +599,7 @@ function QuickAddDialog({
               disabled={saving || selected.size === 0 || catalogsPending}
               aria-busy={saving || undefined}
               onClick={() => void confirm()}
-              className="flex-1 px-4 py-3 text-[14px] font-semibold text-cyber-text transition-all enabled:hover:bg-cyber-text/10 disabled:text-cyber-text-muted"
+              className={`flex-1 px-4 py-3 text-[14px] font-semibold text-cyber-text transition-all enabled:hover:bg-cyber-text/10 ${selected.size === 0 ? 'disabled:text-cyber-text-muted' : ''}`}
             >
               {t(saving ? 'freeModels.quickAdd.saving' : 'common.confirm')}
             </button>

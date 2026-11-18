@@ -293,7 +293,7 @@ export function ModelIdCombobox({
         e.stopPropagation();
         if (!disabled && !refreshing) onRefresh();
       }}
-      className={`${useInlineActions ? 'shrink-0' : `absolute ${hasChevron ? 'right-7' : 'right-1.5'} top-1/2 -translate-y-1/2`} text-cyber-text-muted hover:text-cyber-text disabled:opacity-50`}
+      className={`${useInlineActions ? 'shrink-0' : `absolute ${hasChevron ? 'right-7' : 'right-1.5'} top-1/2 -translate-y-1/2`} text-cyber-text-muted hover:text-cyber-text`}
     >
       <RefreshCw size={14} className={refreshing ? 'animate-spin' : undefined} />
     </button>
@@ -341,7 +341,7 @@ export function ModelIdCombobox({
             setIsOpen(!isOpen);
           }}
           onKeyDown={handleKeyDown}
-          className="inline-flex min-w-0 max-w-full items-center gap-1 text-left text-xs text-cyber-text-secondary hover:text-cyber-text disabled:opacity-50 focus-visible:outline focus-visible:outline-1 focus-visible:outline-cyber-accent"
+          className={`inline-flex min-w-0 max-w-full items-center gap-1 text-left text-xs text-cyber-text-secondary hover:text-cyber-text focus-visible:outline focus-visible:outline-1 focus-visible:outline-cyber-accent ${!hasOptions ? 'disabled:opacity-50' : ''}`}
         >
           <span className="min-w-0 truncate">{label(value) || placeholder}</span>
           {showSelectedFreeLabel && freeIds.has(value) && (

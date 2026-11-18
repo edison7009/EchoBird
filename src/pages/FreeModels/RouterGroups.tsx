@@ -356,7 +356,7 @@ function RouterSettingsModal({
             type="submit"
             disabled={!valid || busy}
             aria-busy={saving || undefined}
-            className="flex-1 px-4 py-3 text-[14px] font-semibold text-cyber-text transition-all enabled:hover:bg-cyber-text/10 disabled:text-cyber-text-muted"
+            className={`flex-1 px-4 py-3 text-[14px] font-semibold text-cyber-text transition-all enabled:hover:bg-cyber-text/10 ${!valid ? 'disabled:text-cyber-text-muted' : ''}`}
           >
             {t('model.enterSave')}
           </button>

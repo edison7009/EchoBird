@@ -133,7 +133,10 @@ fn api_models_round_trip_across_devices_without_reading_or_writing_login_account
     assert!(!target.path().join("config/.encryption_key").exists());
     let (again, repeat) = prepare(target.path(), backup, &encrypt, &decrypt).unwrap();
     publish(&again).unwrap();
-    assert_eq!(repeat.duplicates, 2);
+    assert_eq!(repeat.duplicates, 4);
+    assert_eq!(repeat.records, 0);
+    assert!(!repeat.restart_required);
+    assert!(again.is_empty());
     assert_eq!(
         fs::read(target.path().join("commandcode-accounts.json")).unwrap(),
         b"keep destination login"
@@ -369,4 +372,38 @@ fn colliding_destination_account_model_ids_are_preserved_without_decrypting_acco
         .unwrap()
         .unwrap();
     assert_eq!(router["candidateIds"], json!([models[1]["internalId"]]));
+}
+
+#[test]
+fn same_machine_restore_does_not_count_or_rewrite_unchanged_order_and_settings() {
+    let directory = tempfile::tempdir().unwrap();
+    fixture(directory.path());
+    let backup = collect(
+        directory.path(),
+        "portable-api-models".into(),
+        BTreeMap::new(),
+        &decrypt,
+    )
+    .unwrap();
+    let before_order = fs::read(directory.path().join("config/model-order.json")).unwrap();
+    let before_settings = fs::read(directory.path().join("settings.json")).unwrap();
+    let (plan, result) = prepare(directory.path(), backup.clone(), &encrypt, &decrypt).unwrap();
+    assert!(plan.is_empty());
+    assert_eq!(result.records, 0);
+    assert_eq!(result.duplicates, backup.records.len());
+    assert!(!result.restart_required);
+    publish(&plan).unwrap();
+    assert_eq!(
+        fs::read(directory.path().join("config/model-order.json")).unwrap(),
+        before_order
+    );
+    assert_eq!(
+        fs::read(directory.path().join("settings.json")).unwrap(),
+        before_settings
+    );
+    write(directory.path(), "settings.json", json!({"locale":"ja"}));
+    let (plan, result) = prepare(directory.path(), backup, &encrypt, &decrypt).unwrap();
+    assert_eq!(plan.len(), 1);
+    assert_eq!(result.records, 1);
+    assert!(result.restart_required);
 }
