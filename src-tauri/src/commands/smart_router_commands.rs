@@ -1,3 +1,9 @@
+#[tauri::command]
+pub async fn refresh_smart_router_reference_prices(
+) -> Result<crate::services::smart_router::pricing::Status, String> {
+    crate::services::smart_router::pricing::refresh().await
+}
+
 use crate::models::model::ModelConfig;
 use crate::services::smart_router::{self, PublicActivity, PublicConfig};
 

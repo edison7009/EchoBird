@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { Check, ChevronRight, Eye, EyeOff, GitBranch, RefreshCw, Server } from 'lucide-react';
+import { Check, ChevronRight, Eye, EyeOff, GitBranch, RefreshCw, Server, Star } from 'lucide-react';
 import { ViewModeTabs } from '../components/ViewModeTabs';
 import { MiniSelect } from '../components/MiniSelect';
 import { PageActionButton } from '../components/PageActionButton';
@@ -19,6 +19,15 @@ import { useNavigationStore } from '../stores/navigationStore';
 import * as api from '../api/routerStatistics';
 import { statisticsRows } from './routerStatisticsData';
 import './RouterStatistics.css';
+import {
+  RouterMarketOverview,
+  RouterMarketWatchlist,
+  RouterMarketChart,
+  RouterMarketLedger,
+  RouterMarketPricing,
+} from './RouterMarket';
+import { completionRateChange } from './routerMarketData';
+import type { MarketMetric } from './routerMarketData';
 
 function useStatisticsState() {
   const generation = useNavigationStore((state) => state.developerGeneration);
@@ -34,6 +43,21 @@ function useStatisticsState() {
   const [unused, setUnused] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [selected, setSelected] = useState('');
+  const [favorites, setFavorites] = useState<string[] | null>(() => {
+    try {
+      const saved: unknown = JSON.parse(localStorage.getItem('router-market-favorites') ?? 'null');
+      return Array.isArray(saved) && saved.every((id) => typeof id === 'string')
+        ? [...new Set(saved)].slice(0, 4)
+        : null;
+    } catch {
+      return null;
+    }
+  });
+  const [metric, setMetric] = useState<MarketMetric>('speed');
+  const [modelId, setModelId] = useState('');
+  const [priceLoading, setPriceLoading] = useState(false);
+  const [priceError, setPriceError] = useState(false);
+  const pricePending = useRef(false);
   const [result, setResult] = useState<{
     days: string;
     group: string;
@@ -136,15 +160,78 @@ function useStatisticsState() {
     forceRead.current();
     readCatalog.current();
   }, []);
+  const refreshPrices = useCallback(async () => {
+    if (pricePending.current) return;
+    pricePending.current = true;
+    setPriceLoading(true);
+    setPriceError(false);
+    try {
+      await api.refreshSmartRouterReferencePrices();
+      const navigation = useNavigationStore.getState();
+      if (
+        navigation.developerGeneration === generation &&
+        navigation.developerMode &&
+        navigation.activePage === 'freeModels' &&
+        navigation.smartAccessTab === 'statistics'
+      )
+        forceRead.current();
+    } catch {
+      setPriceError(true);
+    } finally {
+      pricePending.current = false;
+      setPriceLoading(false);
+    }
+  }, [generation]);
   const rows = useMemo(() => statisticsRows(snapshot, catalog, group), [snapshot, catalog, group]);
   const unusedCount = rows.filter((row) => row.enabled && row.counts.attempts === 0).length;
   const shown = unused
     ? rows.filter((row) => row.enabled && row.counts.attempts === 0)
     : rows.filter((row) => row.counts.attempts > 0);
+  // Catalog is global even when a group/date filter hides a source. Only discard
+  // favorites after both local reads succeed, and preserve archived historical accounts.
+  const knownAccounts = new Set([
+    ...(catalog?.sources.map((s) => s.account) ?? []),
+    ...(snapshot?.rows.map((s) => s.account) ?? []),
+  ]);
+  const favoriteIds =
+    favorites === null
+      ? []
+      : catalog && snapshot && !dataError && !catalogError
+        ? favorites.filter((id) => knownAccounts.has(id))
+        : favorites;
+  const focusedRows = favoriteIds.length
+    ? favoriteIds.flatMap((id) => shown.filter((row) => row.id === id))
+    : shown.slice(0, 4);
+  const toggleFavorite = (id: string) => {
+    setFavorites((saved) => {
+      const ids = (saved ?? []).filter((id) => knownAccounts.has(id));
+      const next = ids.includes(id)
+        ? ids.filter((item) => item !== id)
+        : ids.length < 4
+          ? [...ids, id]
+          : ids;
+      try {
+        localStorage.setItem('router-market-favorites', JSON.stringify(next));
+      } catch {
+        /* Keep session selection when storage is unavailable. */
+      }
+      return next;
+    });
+  };
   const current = shown.find((row) => row.id === selected) ?? shown[0];
   return {
+    favoriteIds,
+    focusedRows,
+    toggleFavorite,
     days,
     setDays,
+    metric,
+    setMetric,
+    modelId,
+    setModelId,
+    priceLoading,
+    priceError,
+    refreshPrices,
     group,
     setGroup,
     unused,
@@ -200,6 +287,10 @@ function useStatisticsFormat() {
   const { t, locale } = useI18n();
   const language = locale || 'en';
   const number = (value: number) => value.toLocaleString(language);
+  const compact = (value: number) =>
+    new Intl.NumberFormat(language, { notation: 'compact', maximumFractionDigits: 1 }).format(
+      value
+    );
   const last = (value: number) => {
     if (!value) return '—';
     const seconds = Math.max(0, (Date.now() - value) / 1000);
@@ -214,12 +305,12 @@ function useStatisticsFormat() {
     new Intl.DateTimeFormat(language, { month: '2-digit', day: '2-digit', timeZone: 'UTC' }).format(
       new Date((day - 719163) * 86400000)
     );
-  return { t, number, last, date };
+  return { t, number, compact, last, date };
 }
 
 export function RouterStatisticsMain() {
   const state = useStatistics();
-  const { t, number, last, date } = useStatisticsFormat();
+  const { t, number, last } = useStatisticsFormat();
   const snapshot = state.snapshot;
   const totals = snapshot?.totals;
   const history = Boolean(snapshot && totals && totals.calls > 0);
@@ -227,20 +318,6 @@ export function RouterStatisticsMain() {
     state.hidden ? '******' : row.name || t('statistics.archived');
   const completed = totals?.completed ?? 0;
   const settled = completed + (totals?.failed ?? 0);
-  const count = state.days === '1' ? 24 : Number(state.days);
-  const trend = Array.from({ length: count }, (_, index) => {
-    const records =
-      snapshot?.trend.filter((point) =>
-        state.days === '1'
-          ? point.day === snapshot.today && point.hour === index
-          : point.day === snapshot.today - count + 1 + index
-      ) ?? [];
-    return {
-      calls: records.reduce((sum, item) => sum + item.totals.calls, 0),
-      completed: records.reduce((sum, item) => sum + item.totals.completed, 0),
-    };
-  });
-  const maximum = Math.max(1, ...trend.map((point) => point.calls));
   return (
     <div className="router-statistics">
       <div className="rs-scroll">
@@ -274,6 +351,14 @@ export function RouterStatisticsMain() {
           <p role="alert" className="rs-status">
             {t('statistics.loadError')}
           </p>
+        )}
+        <RouterMarketOverview {...state} rows={state.focusedRows} />
+        {state.rows.length > 0 && (
+          <div className="rm-focus-limit">
+            {t(
+              state.favoriteIds.length ? 'statistics.focusLimit' : 'statistics.focusDefault'
+            ).replace('{count}', String(state.favoriteIds.length))}
+          </div>
         )}
         <section className="rs-summary">
           <div>
@@ -319,51 +404,24 @@ export function RouterStatisticsMain() {
             <small>{t('statistics.durationCaption')}</small>
           </div>
         </section>
-        <section className="rs-trend-section">
-          <div className="rs-heading">
-            <h3>{t('statistics.trend')}</h3>
-            <span className="rs-legend">
-              <i />
-              {t('statistics.completed')}
-              <i />
-              {t('statistics.failed')}
-            </span>
-          </div>
-          <div className="rs-trend" style={{ gridTemplateColumns: `repeat(${count},1fr)` }}>
-            {trend.map((point, index) => (
-              <div
-                className="rs-trend-column"
-                key={index}
-                aria-label={point.calls > 0 ? `${index}: ${number(point.calls)}` : undefined}
-              >
-                {point.calls > 0 && (
-                  <div style={{ height: `${(point.calls / maximum) * 100}%` }}>
-                    <i
-                      style={{
-                        height: `${point.calls ? (point.completed / point.calls) * 100 : 0}%`,
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="rs-trend-labels">
-            {(state.days === '1'
-              ? ['00:00', '06:00', '12:00', '18:00', '23:00']
-              : [
-                  date((snapshot?.today ?? 0) - count + 1),
-                  date((snapshot?.today ?? 0) - Math.floor(count / 2)),
-                  date(snapshot?.today ?? 0),
-                ]
-            ).map((label) => (
-              <span key={label}>{label}</span>
-            ))}
-          </div>
-        </section>
+        <RouterMarketChart {...state} />
         <section className="rs-usage">
           <div className="rs-heading">
             <h3>{t('statistics.distribution')}</h3>
+            <span className="rs-source-legend">
+              <span>
+                <i className="rs-outcomes-completed" />
+                {t('statistics.completed')}
+              </span>
+              <span>
+                <i className="rs-outcomes-failed" />
+                {t('statistics.errors')}
+              </span>
+              <span>
+                <i />
+                {t('statistics.cancelled')} / {t('statistics.unsettled')}
+              </span>
+            </span>
             <div className="rs-actions">
               {state.unusedCount > 0 && (
                 <button aria-pressed={state.unused} onClick={() => state.setUnused(!state.unused)}>
@@ -388,9 +446,6 @@ export function RouterStatisticsMain() {
           <div className="rs-table">
             <div className="rs-table-head">
               <span>{t('statistics.distribution')}</span>
-              <span>{t('statistics.attempts')}</span>
-              <span>{t('statistics.completed')}</span>
-              <span>{t('statistics.errors')}</span>
               <span>{t('statistics.recent')}</span>
             </div>
             {state.rows.length === 0 &&
@@ -401,61 +456,95 @@ export function RouterStatisticsMain() {
                     <small>—</small>
                   </span>
                   <span>—</span>
-                  <span>—</span>
-                  <span>—</span>
-                  <span>—</span>
                 </div>
               ))}
             {state.rows.map((row) => (
-              <button
-                key={row.id}
-                aria-pressed={row.id === state.current?.id}
-                className={`rs-row ${row.id === state.current?.id ? 'rs-selected' : ''}`}
-                onClick={() => state.setSelected(row.id)}
-              >
-                <span className="rs-source">
-                  <SourceIcon provider={row.provider} model={row.model} />
-                  <span className="rs-identity">
-                    <b>{name(row)}</b>
-                    <small>
-                      {row.provider || '—'}
-                      {!row.enabled && !row.archived && <em>{t('statistics.paused')}</em>}
-                    </small>
+              <div className="rs-source-row" key={row.id}>
+                <button
+                  className="rs-favorite"
+                  aria-label={t(
+                    state.favoriteIds.includes(row.id) ? 'statistics.unfollow' : 'statistics.follow'
+                  )}
+                  aria-pressed={state.favoriteIds.includes(row.id)}
+                  disabled={!state.favoriteIds.includes(row.id) && state.favoriteIds.length >= 4}
+                  onClick={() => state.toggleFavorite(row.id)}
+                >
+                  <Star
+                    size={15}
+                    fill={state.favoriteIds.includes(row.id) ? 'currentColor' : 'none'}
+                  />
+                </button>
+                <button
+                  key={row.id}
+                  aria-pressed={row.id === state.current?.id}
+                  className={`rs-row ${row.id === state.current?.id ? 'rs-selected' : ''}`}
+                  onClick={() => state.setSelected(row.id)}
+                >
+                  <span className="rs-source">
+                    <SourceIcon provider={row.provider} model={row.model} />
+                    <span className="rs-identity">
+                      <b>{name(row)}</b>
+                      <small>
+                        {row.provider || '—'}
+                        {!row.enabled && !row.archived && <em>{t('statistics.paused')}</em>}
+                      </small>
+                    </span>
+                    <span className="rs-outcomes">
+                      <i
+                        className="rs-outcomes-completed"
+                        style={{
+                          width: `${(row.counts.completed / Math.max(1, row.counts.attempts, row.counts.completed + row.counts.failed)) * 100}%`,
+                        }}
+                      ></i>
+                      <i
+                        className="rs-outcomes-failed"
+                        style={{
+                          width: `${(row.counts.failed / Math.max(1, row.counts.attempts, row.counts.completed + row.counts.failed)) * 100}%`,
+                        }}
+                      />
+                      <span className="rs-outcome-count">
+                        {row.counts.completed + row.counts.failed
+                          ? `${((row.counts.completed / (row.counts.completed + row.counts.failed)) * 100).toFixed(1)}%`
+                          : '—'}
+                        <span
+                          className={`rs-rate-change ${(completionRateChange(snapshot, row.account, row.counts) ?? 0) < 0 ? 'rs-rate-down' : ''}`}
+                        >
+                          {(() => {
+                            const change = completionRateChange(snapshot, row.account, row.counts);
+                            return change === null
+                              ? ' —'
+                              : ` ${change >= 0 ? '+' : '−'}${Math.abs(change).toFixed(1)} ${t('statistics.percentagePoints')}`;
+                          })()}
+                        </span>
+                      </span>
+                    </span>
                   </span>
-                  <span className="rs-tags">
-                    {row.counts.protections.map(
-                      (value, index) =>
-                        value > 0 && (
-                          <span key={kinds[index]} className={`rs-tag rs-kind-${index}`}>
-                            <i />
-                            {t(kinds[index])} ×{number(value)}
-                          </span>
-                        )
-                    )}
+                  <span className="rs-row-meta">
+                    <span className="rs-last">
+                      {last(row.lastUsedAt)}
+                      <ChevronRight size={12} />
+                    </span>
+                    <span className="rs-tags">
+                      {row.counts.protections.map(
+                        (value, index) =>
+                          value > 0 && (
+                            <span key={kinds[index]} className={`rs-tag rs-kind-${index}`}>
+                              <i />
+                              {t(kinds[index])} ×{number(value)}
+                            </span>
+                          )
+                      )}
+                    </span>
                   </span>
-                </span>
-                <span className="rs-load">
-                  <b>{number(row.counts.attempts)}</b>
-                  <i>
-                    <i
-                      style={{
-                        width: `${(row.counts.attempts / Math.max(1, ...state.rows.map((row) => row.counts.attempts))) * 100}%`,
-                      }}
-                    />
-                  </i>
-                </span>
-                <span>{number(row.counts.completed)}</span>
-                <span className={row.counts.failed ? 'rs-error' : ''}>
-                  {number(row.counts.failed)}
-                </span>
-                <span className="rs-last">
-                  {last(row.lastUsedAt)}
-                  <ChevronRight size={12} />
-                </span>
-              </button>
+                </button>
+              </div>
             ))}
           </div>
         </section>
+        <RouterMarketLedger {...state} />
+        {(snapshot?.market?.capped ?? false) && (
+          <p className="rs-status">{t('statistics.marketCapped')}</p>
+        )}
         <footer className="rs-footer">{t('statistics.privacy')}</footer>
         {(totals?.cancelled ?? 0) > 0 && (
           <p className="rs-status">
@@ -477,7 +566,7 @@ export function RouterStatisticsMain() {
 
 export function RouterStatisticsPanel() {
   const state = useStatistics();
-  const { t, number, last } = useStatisticsFormat();
+  const { t, number, compact, last } = useStatisticsFormat();
   const row = state.current;
   if (!row) {
     return (
@@ -498,6 +587,12 @@ export function RouterStatisticsPanel() {
       .join(' / ') || t('statistics.archived');
   return (
     <div className="rs-detail">
+      <RouterMarketWatchlist
+        {...state}
+        rows={state.focusedRows}
+        showSingle={state.rows.length > 1}
+      />
+      <div className="rs-detail-heading">{t('statistics.sourceDetails')}</div>
       <div className="rs-detail-identity">
         <SourceIcon provider={row.provider} model={row.model} />
         <div>
@@ -512,15 +607,24 @@ export function RouterStatisticsPanel() {
         </strong>
         <span>{t('statistics.attemptRate')}</span>
       </div>
+      <div className="rs-detail-track" aria-hidden="true">
+        <i style={{ width: `${settled ? (row.counts.completed / settled) * 100 : 0}%` }} />
+      </div>
       <div className="rs-detail-counts">
         <div>
           <b>{number(row.counts.attempts)}</b>
           <span>{t('statistics.attempts')}</span>
         </div>
         <div>
-          <b className={row.counts.failed ? 'rs-error' : ''}>{number(row.counts.failed)}</b>
-          <span>{t('statistics.errors')}</span>
+          <b aria-label={row.counts.usage ? number(row.counts.usage.totalTokens) : undefined}>
+            {row.counts.usage ? compact(row.counts.usage.totalTokens) : '—'}
+          </b>
+          <span>{t('statistics.reportedTokens')}</span>
         </div>
+      </div>
+      <div className="rs-meta">
+        <span>{t('statistics.errors')}</span>
+        <b>{number(row.counts.failed)}</b>
       </div>
       <div className="rs-meta">
         <span>{t('statistics.lastUsed')}</span>
@@ -542,6 +646,7 @@ export function RouterStatisticsPanel() {
           <b>{number(pending)}</b>
         </div>
       )}
+      <RouterMarketPricing {...state} />
       <section className="rs-detail-models">
         <h4>{t('statistics.modelsInUse')}</h4>
         {row.models.map((model) => (

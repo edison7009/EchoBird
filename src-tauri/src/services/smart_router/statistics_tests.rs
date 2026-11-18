@@ -582,3 +582,107 @@ fn final_body_error_replaces_success_once_and_cannot_change_a_finished_request()
     );
     assert_eq!(counts.errors, [0, 0, 0, 0, 0, 1]);
 }
+
+#[tokio::test]
+async fn market_records_measured_stream_and_attributes_restoration_failure_without_double_counting()
+{
+    for restoration_failed in [false, true] {
+        let (root, collector) = fixture();
+        collector.configure(true);
+        let request = collector.begin("group").unwrap();
+        request.attempt("group", "candidate", "model", None);
+        {
+            let state = request.state.lock().unwrap();
+            state.current.as_ref().unwrap().market.lock().unwrap().price =
+                Some(super::super::pricing::Price {
+                    input: 2.0,
+                    output: 10.0,
+                    provider: "fixture".into(),
+                    fetched_at: 1,
+                    ..Default::default()
+                });
+        }
+        let frames = futures_util::stream::unfold(0, |index| async move {
+            match index {
+                0=>Some((Ok::<_,std::io::Error>(axum::body::Bytes::from_static(b"data: {\"choices\":[{\"delta\":{\"content\":\"a\"}}],\"usage\":{\"prompt_tokens\":10}}\n\n")),1)),
+                1=>{tokio::time::sleep(Duration::from_millis(35)).await;Some((Ok(axum::body::Bytes::from_static(b"data: {\"choices\":[{\"delta\":{\"content\":\"b\"}}],\"usage\":{\"completion_tokens\":20}}\n\n")),2))},
+                _=>None,
+            }
+        });
+        let response = axum::response::Response::builder()
+            .header("content-type", "text/event-stream")
+            .body(axum::body::Body::from_stream(frames))
+            .unwrap();
+        collector
+            .observe(response, Some(&request), "candidate")
+            .into_body()
+            .collect()
+            .await
+            .unwrap();
+        request.outcome("candidate", None);
+        request.finish(!restoration_failed, false);
+        request.finish(true, false);
+        let snapshot = collector.snapshot(1, None).unwrap();
+        assert_eq!(snapshot.market.events.len(), 1);
+        let event = &snapshot.market.events[0];
+        assert_eq!(event.cost_micros, Some(220));
+        assert_eq!(
+            event.outcome,
+            if restoration_failed {
+                market::Outcome::Failed
+            } else {
+                market::Outcome::Completed
+            }
+        );
+        assert_eq!(
+            snapshot.market.rows[0].metrics.speed_samples,
+            u64::from(!restoration_failed)
+        );
+        if !restoration_failed {
+            assert!(event.generation_ms.unwrap() >= 20);
+        }
+        collector.flush().unwrap();
+        let reopened = Collector::open(root.join("counts.json")).unwrap();
+        assert_eq!(reopened.snapshot(1, None).unwrap().market.events.len(), 1);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[tokio::test]
+async fn market_keeps_authenticated_retry_in_one_event_and_never_assigns_stale_usage_to_new_response(
+) {
+    let (root, collector) = fixture();
+    collector.configure(true);
+    let request = collector.begin("group").unwrap();
+    request.attempt("group", "candidate", "model", None);
+    let first = collector.observe(
+        crate::services::account_proxy::json_response(
+            &serde_json::json!({"usage":{"input_tokens":999,"output_tokens":999}}),
+        ),
+        Some(&request),
+        "candidate",
+    );
+    let second = collector.observe(
+        crate::services::account_proxy::json_response(
+            &serde_json::json!({"usage":{"input_tokens":10,"output_tokens":20}}),
+        ),
+        Some(&request),
+        "candidate",
+    );
+    second.into_body().collect().await.unwrap();
+    request.outcome("candidate", None);
+    request.finish(true, false);
+    assert!(collector
+        .snapshot(1, None)
+        .unwrap()
+        .market
+        .events
+        .is_empty());
+    first.into_body().collect().await.unwrap();
+    let snapshot = collector.snapshot(1, None).unwrap();
+    assert_eq!(snapshot.market.events.len(), 1);
+    assert_eq!(snapshot.market.events[0].output_tokens, Some(20));
+    assert_eq!(snapshot.market.events[0].cost_micros, None);
+    collector.configure(false);
+    let _ = std::fs::remove_dir_all(root);
+}

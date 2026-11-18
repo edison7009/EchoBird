@@ -51,6 +51,7 @@ export interface RouterStatisticsSnapshot {
   totals: RouterStatisticsTotals;
   rows: RouterStatisticsRow[];
   trend: { day: number; hour: number; totals: RouterStatisticsTotals }[];
+  market?: RouterMarketSnapshot;
 }
 export interface RouterStatisticsSource {
   id: string;
@@ -75,4 +76,69 @@ export function getSmartRouterStatistics(
 }
 export function getSmartRouterStatisticsCatalog(): Promise<RouterStatisticsCatalog> {
   return invoke('get_smart_router_statistics_catalog');
+}
+
+export interface RouterMarketMetrics {
+  attempts: number;
+  completed: number;
+  failed: number;
+  cancelled: number;
+  speedSamples: number;
+  outputTokens: number;
+  generationMs: number;
+  firstOutputMs: number;
+  firstOutputSamples: number;
+  usageReports: number;
+  totalTokens: number;
+  pricedReports: number;
+  pricedTokens: number;
+  costMicros: number;
+  completedMicros: number;
+  failedMicros: number;
+  completedPricedReports: number;
+  failedPricedReports: number;
+}
+export interface RouterReferencePrice {
+  input: number;
+  output: number;
+  cacheRead?: number | null;
+  cacheWrite?: number | null;
+  provider: string;
+  fetchedAt: number;
+}
+export interface RouterMarketPoint {
+  row: string;
+  day: number;
+  hour: number;
+  metrics: RouterMarketMetrics;
+}
+export interface RouterMarketEvent {
+  row: string;
+  at: number;
+  day: number;
+  hour: number;
+  outcome: 'completed' | 'failed' | 'cancelled';
+  elapsedMs: number;
+  firstOutputMs: number | null;
+  generationMs: number | null;
+  outputTokens: number | null;
+  totalTokens: number | null;
+  costMicros: number | null;
+  price: RouterReferencePrice | null;
+}
+export interface RouterMarketSnapshot {
+  rows: { row: string; metrics: RouterMarketMetrics; baseline: RouterMarketMetrics }[];
+  trend: RouterMarketPoint[];
+  events: RouterMarketEvent[];
+  capped: boolean;
+  baselineStart: number;
+  baselineEnd: number;
+  baselineRetained: boolean;
+  pricing: { fetchedAt: number; models: number };
+}
+export function refreshSmartRouterReferencePrices(): Promise<{
+  fetchedAt: number;
+  models: number;
+}> {
+  return invoke('refresh_smart_router_reference_prices');
 }

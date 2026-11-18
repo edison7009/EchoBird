@@ -1617,6 +1617,11 @@ async fn route_with_policy(
                     &candidate.model_id,
                     candidate.account_source.as_ref(),
                 );
+                statistics.reference_price(
+                    &candidate.base_url,
+                    candidate.account_source.as_ref(),
+                    &candidate.model_id,
+                );
             }
         }
         upstream_body["model"] = Value::String(candidate.model_id.clone());

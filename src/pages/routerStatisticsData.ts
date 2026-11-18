@@ -77,6 +77,18 @@ export function statisticsRows(
       row.models.push(model);
     }
     const counts = saved.counts;
+    if (counts.usage && counts.usage.reportedResponses > 0) {
+      const usage = (row.counts.usage ??= {
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        reportedResponses: 0,
+      });
+      usage.inputTokens += counts.usage.inputTokens;
+      usage.outputTokens += counts.usage.outputTokens;
+      usage.totalTokens += counts.usage.totalTokens;
+      usage.reportedResponses += counts.usage.reportedResponses;
+    }
     model.attempts += counts.attempts;
     row.counts.attempts += counts.attempts;
     row.counts.completed += counts.completed;

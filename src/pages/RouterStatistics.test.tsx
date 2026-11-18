@@ -9,11 +9,17 @@ import { useNavigationStore } from '../stores/navigationStore';
 import type { RouterStatisticsSnapshot } from '../api/routerStatistics';
 import { emptyStatisticsCounts } from './routerStatisticsData';
 
-const mocks = vi.hoisted(() => ({ snapshot: vi.fn(), catalog: vi.fn(), visible: true }));
+const mocks = vi.hoisted(() => ({
+  snapshot: vi.fn(),
+  catalog: vi.fn(),
+  prices: vi.fn(),
+  visible: true,
+}));
 vi.mock('../api/routerStatistics', () => ({
   ROUTER_STATISTICS_CHANGED: 'router-statistics-settings-changed',
   getSmartRouterStatistics: (...args: unknown[]) => mocks.snapshot(...args),
   getSmartRouterStatisticsCatalog: () => mocks.catalog(),
+  refreshSmartRouterReferencePrices: () => mocks.prices(),
 }));
 vi.mock('../hooks/useDocumentVisible', () => ({ useDocumentVisible: () => mocks.visible }));
 vi.mock('../hooks/useI18n', () => ({ useI18n: () => ({ t: (key: string) => key, locale: 'en' }) }));
@@ -56,6 +62,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   vi.stubGlobal('window', globalThis);
   vi.stubGlobal('document', new EventTarget());
+  vi.stubGlobal('localStorage', { getItem: vi.fn(() => null), setItem: vi.fn() });
   mocks.visible = true;
   mocks.snapshot.mockResolvedValue(empty);
   mocks.catalog.mockResolvedValue({ groups: [], sources: [], capped: false });
@@ -359,7 +366,8 @@ it('shows only sources used in the selected period and removes all placeholders 
   expect(rows()[0].findByProps({ className: 'rs-identity' }).findByType('b').children).toEqual([
     'DeepSeek',
   ]);
-  expect(rows()[0].findByProps({ className: 'rs-load' }).findByType('b').children).toEqual(['82']);
+  expect(rows()[0].findByProps({ className: 'rs-outcome-count' }).children[0]).toBe('100.0%');
+  expect(view.root.findAllByProps({ className: 'rs-load' })).toHaveLength(0);
   expect(view.root.findAllByProps({ className: 'rs-row rs-placeholder' })).toHaveLength(0);
   expect(JSON.stringify(view.toJSON())).not.toContain('statistics.archived');
 
@@ -473,3 +481,167 @@ it('refreshes the visible snapshot after an explicit recording change and stays 
   });
   expect(mocks.snapshot).toHaveBeenCalledTimes(3);
 });
+
+it('shows reported tokens for the selected source, preserves unknown usage, and does not read on selection', async () => {
+  const sources = ['reported', 'unknown'].map((id) => ({
+    id,
+    account: id,
+    model: 'model',
+    group: 'group',
+    name: id,
+    modelName: 'Model',
+    provider: 'fixture',
+    enabled: true,
+  }));
+  mocks.catalog.mockResolvedValue({ groups: [], sources, capped: false });
+  mocks.snapshot.mockResolvedValue({
+    ...empty,
+    totals: { ...empty.totals, calls: 2, completed: 2 },
+    rows: sources.map((source, index) => ({
+      ...source,
+      lastUsedAt: 1,
+      counts: {
+        ...emptyStatisticsCounts(),
+        attempts: 1,
+        completed: 1,
+        usage:
+          index === 0
+            ? { inputTokens: 100, outputTokens: 20, totalTokens: 120, reportedResponses: 1 }
+            : undefined,
+      },
+    })),
+  });
+  await activate();
+  await mount();
+  const tokens = () =>
+    view.root.findByProps({ className: 'rs-detail-counts' }).findAllByType('b')[1].children;
+  expect(tokens()).toEqual(['120']);
+  const unknown = view.root
+    .findAllByType('button')
+    .find(
+      (node) =>
+        String(node.props.className).startsWith('rs-row ') &&
+        node.findByProps({ className: 'rs-identity' }).findByType('b').children.includes('unknown')
+    )!;
+  await act(async () => unknown.props.onClick());
+  expect(tokens()).toEqual(['—']);
+  expect(mocks.snapshot).toHaveBeenCalledOnce();
+  expect(mocks.catalog).toHaveBeenCalledOnce();
+});
+
+it('never fetches pricing during navigation or metric changes, and refresh is explicit and non-overlapping', async () => {
+  await activate();
+  await mount();
+  expect(mocks.prices).not.toHaveBeenCalled();
+  await act(async () =>
+    view.root
+      .findAllByType('button')
+      .find((b) => b.children.includes('statistics.cost'))!
+      .props.onClick()
+  );
+  expect(mocks.prices).not.toHaveBeenCalled();
+  let finish!: (value: { fetchedAt: number; models: number }) => void;
+  mocks.prices.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+  );
+  const button = () =>
+    view.root.findAllByType('button').find((b) => b.children.includes('statistics.refreshPrices'))!;
+  await act(async () => {
+    button().props.onClick();
+    button().props.onClick();
+  });
+  expect(mocks.prices).toHaveBeenCalledOnce();
+  expect(button().props.disabled).toBe(true);
+  await activate('pets');
+  await act(async () => finish({ fetchedAt: 1, models: 2 }));
+  expect(mocks.snapshot).toHaveBeenCalledOnce();
+});
+
+it.each([0, 1, 6])(
+  'renders only real account tickers/watchlist rows for %i accounts without changing the snapshot on selection',
+  async (count) => {
+    const sources = Array.from({ length: count }, (_, index) => ({
+      id: `id-${index}`,
+      account: `account-${index}`,
+      model: 'm',
+      group: 'g',
+      name: `Account ${index}`,
+      modelName: 'Model',
+      provider: 'fixture',
+      enabled: true,
+    }));
+    mocks.catalog.mockResolvedValue({ groups: [], sources, capped: false });
+    mocks.snapshot.mockResolvedValue({
+      ...empty,
+      rows: sources.map((source) => ({
+        ...source,
+        lastUsedAt: 1,
+        counts: { ...emptyStatisticsCounts(), attempts: 1, completed: 1 },
+      })),
+    });
+    await activate();
+    await mount();
+    const tickers = view.root.findAllByProps({ className: 'rm-ticker' });
+    expect(tickers).toHaveLength(Math.min(4, count));
+    expect(view.root.findAllByProps({ className: 'rm-watch-row' })).toHaveLength(
+      count > 1 ? Math.min(4, count) : 0
+    );
+    if (count > 1) {
+      await act(async () =>
+        view.root.findAllByProps({ className: 'rm-watch-row' })[1].props.onClick()
+      );
+      expect(
+        view.root.findByProps({ className: 'rs-detail-identity' }).findByType('strong').children
+      ).toEqual(['Account 1']);
+    }
+    if (count === 6) {
+      const stars = () => view.root.findAllByProps({ className: 'rs-favorite' });
+      expect(stars().every((star) => !star.props['aria-pressed'])).toBe(true);
+      expect(localStorage.setItem).not.toHaveBeenCalled();
+      for (let index = 0; index < 4; index++) {
+        await act(async () => stars()[index].props.onClick());
+      }
+      expect(stars()[4].props.disabled).toBe(true);
+      await act(async () => stars()[0].props.onClick());
+      expect(view.root.findAllByProps({ className: 'rm-ticker' })).toHaveLength(3);
+      expect(stars()[4].props.disabled).toBe(false);
+      await act(async () => stars()[4].props.onClick());
+      const pinned = view.root.findAllByProps({ className: 'rm-ticker' });
+      expect(pinned).toHaveLength(4);
+      expect(pinned[3].findByProps({ className: 'rm-ticker-name' }).children).toEqual([
+        'Account 4',
+      ]);
+      expect(localStorage.setItem).toHaveBeenLastCalledWith(
+        'router-market-favorites',
+        JSON.stringify(['account-1', 'account-2', 'account-3', 'account-4'])
+      );
+      expect(
+        view.root.findByProps({ className: 'rs-detail-identity' }).findByType('strong').children
+      ).toEqual(['Account 1']);
+      await act(async () => {
+        view.unmount();
+      });
+      vi.mocked(localStorage.getItem).mockReturnValue(JSON.stringify(['account-4']));
+      await mount();
+      expect(view.root.findAllByProps({ className: 'rm-ticker' })).toHaveLength(1);
+      expect(view.root.findAllByProps({ className: 'rm-watch-row' })).toHaveLength(1);
+      expect(view.root.findByProps({ className: 'rm-ticker-name' }).children).toEqual([
+        'Account 4',
+      ]);
+      await act(async () =>
+        view.root.findAllByProps({ className: 'rs-favorite' })[4].props.onClick()
+      );
+      expect(view.root.findAllByProps({ className: 'rm-ticker' })).toHaveLength(4);
+      expect(
+        view.root
+          .findAllByProps({ className: 'rs-favorite' })
+          .every((star) => !star.props['aria-pressed'])
+      ).toBe(true);
+    }
+    expect(mocks.snapshot).toHaveBeenCalledTimes(count === 6 ? 2 : 1);
+    expect(mocks.prices).not.toHaveBeenCalled();
+  }
+);

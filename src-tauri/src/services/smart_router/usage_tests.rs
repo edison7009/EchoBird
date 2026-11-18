@@ -83,3 +83,48 @@ async fn preserves_body_headers_extensions_and_errors_and_records_once() {
     assert_eq!(result.lock().unwrap().len(), 1);
     assert_eq!(result.lock().unwrap()[0].total_tokens, 7);
 }
+
+#[test]
+fn telemetry_ignores_role_heartbeats_and_keeps_cache_categories_and_tiers_billable() {
+    let mut parser = Parser::new(true);
+    parser.started = Instant::now() - std::time::Duration::from_millis(100);
+    parser.push(b"data: {\"choices\":[{\"delta\":{\"role\":\"assistant\"}}]}\n\n");
+    assert!(parser.first_output_ms.is_none());
+    parser.push(b"data: {\"choices\":[{\"delta\":{\"content\":\"hello\"}}]}\n\n");
+    assert!(parser.first_output_ms.unwrap() >= 100);
+    parser.push(b"data: {\"usage\":{\"prompt_tokens\":20,\"completion_tokens\":10,\"prompt_tokens_details\":{\"cached_tokens\":12}}}\n\n");
+    parser.finish();
+    assert_eq!(parser.cache_read, 12);
+    assert_eq!(parser.usage.input_tokens, 20);
+    assert!(parser.input_seen && parser.output_seen);
+    let mut anthropic = Parser::new(false);
+    anthropic.push(br#"{"usage":{"input_tokens":5,"cache_read_input_tokens":10,"cache_creation_input_tokens":3,"cache_creation":{"ephemeral_1h_input_tokens":2},"output_tokens":4}}"#);
+    anthropic.finish();
+    assert_eq!(anthropic.usage.input_tokens, 18);
+    assert_eq!(anthropic.cache_write_1h, 2);
+    assert!(anthropic.first_output_ms.is_none());
+}
+
+#[tokio::test]
+async fn telemetry_observes_failed_reported_usage_and_preserves_status_and_bytes() {
+    let out = Arc::new(Mutex::new(None));
+    let sink = out.clone();
+    let text = r#"{"usage":{"input_tokens":20,"output_tokens":5}}"#;
+    let response = Response::builder()
+        .status(500)
+        .header("content-type", "application/json")
+        .body(Body::from(text))
+        .unwrap();
+    let response = observe_report(response, Instant::now(), move |r| {
+        *sink.lock().unwrap() = Some(r)
+    });
+    assert_eq!(response.status(), 500);
+    assert_eq!(
+        response.into_body().collect().await.unwrap().to_bytes(),
+        text
+    );
+    let report = out.lock().unwrap().take().unwrap();
+    assert!(report.billable);
+    assert_eq!(report.usage.total_tokens, 25);
+    assert!(report.generation_ms.is_none());
+}

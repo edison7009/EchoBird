@@ -118,3 +118,28 @@ it('uses the current account name when a removed model is encountered before an 
     counts: { attempts: 6, protections: [6, 0, 0, 0, 0] },
   });
 });
+
+it('merges only reported token usage across models and applies group filtering before aggregation', () => {
+  const rows = snapshot.rows.map((row, index) => ({
+    ...row,
+    counts: {
+      ...row.counts,
+      usage: {
+        inputTokens: 100 * (index + 1),
+        outputTokens: 20 * (index + 1),
+        totalTokens: 120 * (index + 1),
+        reportedResponses: index === 1 ? 0 : 1,
+      },
+    },
+  }));
+  const data = { ...snapshot, rows };
+  expect(statisticsRows(data, catalog, '')[0].counts.usage).toEqual({
+    inputTokens: 400,
+    outputTokens: 80,
+    totalTokens: 480,
+    reportedResponses: 2,
+  });
+  expect(statisticsRows(data, catalog, 'g1')[0].counts.usage?.totalTokens).toBe(120);
+  expect(statisticsRows(snapshot, catalog, '')[0].counts.usage).toBeUndefined();
+  expect(rows[0].counts.usage.totalTokens).toBe(120);
+});

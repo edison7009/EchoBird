@@ -1145,6 +1145,7 @@ pub fn run() {
                 model_commands::get_zhipu_team_access,
                 model_commands::save_zhipu_team_access,
                 smart_router_commands::get_smart_router_config,
+                smart_router_commands::refresh_smart_router_reference_prices,
                 smart_router_commands::get_smart_router_statistics,
                 smart_router_commands::get_smart_router_token_credits,
                 smart_router_commands::get_smart_router_statistics_catalog,

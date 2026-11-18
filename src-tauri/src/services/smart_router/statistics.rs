@@ -10,7 +10,8 @@ use chrono::{Datelike, Local, Timelike};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use super::usage::TokenUsage;
+use super::usage::{TokenUsage, UsageReport};
+use super::{market, pricing};
 use crate::models::model::AccountSource;
 
 pub const RETENTION_DAYS: i32 = 14;
@@ -103,6 +104,8 @@ struct Store {
     days: BTreeMap<i32, Day>,
     #[serde(default)]
     credits: TokenCredits,
+    #[serde(default)]
+    market: market::Store,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -130,6 +133,7 @@ impl Default for Store {
             groups: BTreeSet::new(),
             days: BTreeMap::new(),
             credits: TokenCredits::default(),
+            market: market::Store::default(),
         }
     }
 }
@@ -138,12 +142,14 @@ impl Store {
     fn trim(&mut self, today: i32) {
         self.days
             .retain(|day, _| *day > today - RETENTION_DAYS && *day <= today);
+        self.market.trim(today, &self.identities);
     }
 
     fn valid(&self) -> bool {
         let hash =
             |value: &str| value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit());
         self.version == 1
+            && self.market.valid(&self.identities)
             && uuid::Uuid::parse_str(&self.credits.ledger_id).is_ok()
             && self.identities.len() <= MAX_IDENTITIES
             && self.groups.len() <= MAX_GROUPS
@@ -217,6 +223,7 @@ pub struct Snapshot {
     pub totals: Totals,
     pub rows: Vec<Row>,
     pub trend: Vec<Trend>,
+    pub market: market::Snapshot,
 }
 
 pub fn hash(value: &str) -> String {
@@ -302,6 +309,9 @@ impl Collector {
     }
 
     pub fn configure(&self, active: bool) {
+        if active {
+            let _ = pricing::status();
+        }
         if self.active.swap(active, Ordering::SeqCst) != active {
             self.epoch.fetch_add(1, Ordering::SeqCst);
             if active {
@@ -324,6 +334,8 @@ impl Collector {
         }
         state.data.trim(today);
         update(&mut state.data, today, hour, now);
+        let data = &mut state.data;
+        data.market.trim(today, &data.identities);
         state.revision = state.revision.saturating_add(1);
         drop(state);
         self.wake.notify_one();
@@ -399,6 +411,8 @@ impl Collector {
             return Err("Invalid statistics period".into());
         }
         let today = clock().0;
+        // Initialize the private pricing cache before taking the statistics lock.
+        let _ = pricing::status();
         let state = self.state.lock().unwrap_or_else(|error| error.into_inner());
         let mut rows: BTreeMap<String, Counts> = BTreeMap::new();
         let mut totals = Totals::default();
@@ -454,6 +468,10 @@ impl Collector {
             totals,
             rows,
             trend,
+            market: state
+                .data
+                .market
+                .snapshot(today, days, &state.data.identities, group),
         })
     }
 
@@ -528,20 +546,38 @@ impl Collector {
                         request.day,
                         request.hour,
                         request.group.clone(),
+                        attempt.market.clone(),
                     )
                 })
         };
+        let started = target
+            .as_ref()
+            .map(|t| {
+                let mut m = t.5.lock().unwrap_or_else(|e| e.into_inner());
+                m.observed = true;
+                m.observation = m.observation.saturating_add(1);
+                m.pending_observations = m.pending_observations.saturating_add(1);
+                m.ambiguous_usage |= m
+                    .report
+                    .as_ref()
+                    .is_some_and(|r| r.usage.reported_responses > 0);
+                m.report = None;
+                (m.started, m.observation)
+            })
+            .unwrap_or_else(|| (Instant::now(), 0));
+        let (started, observation) = started;
         let collector = self.clone();
-        super::usage::observe(response, move |usage| {
+        super::usage::observe_report(response, started, move |report| {
+            let usage = &report.usage;
             collector.update(epoch, |store, _, _, _| {
                 store.credits.total = store.credits.total.saturating_add(usage.total_tokens);
-                if let Some((row, row_day, day, hour, group)) = &target {
+                if let Some((row, row_day, day, hour, group, _)) = &target {
                     if let Some(counts) = store
                         .days
                         .get_mut(row_day)
                         .and_then(|day| day.rows.get_mut(row))
                     {
-                        counts.usage.add(&usage);
+                        counts.usage.add(usage);
                     }
                     if let Some(totals) = store
                         .days
@@ -549,10 +585,19 @@ impl Collector {
                         .and_then(|day| day.hours.get_mut(hour))
                         .and_then(|groups| groups.get_mut(group))
                     {
-                        totals.usage.add(&usage);
+                        totals.usage.add(usage);
                     }
                 }
             });
+            if let Some((_, _, _, _, _, handle)) = target {
+                record_market(
+                    &collector,
+                    epoch,
+                    &handle,
+                    None,
+                    Some((observation, report)),
+                );
+            }
         })
     }
 }
@@ -773,6 +818,86 @@ struct Attempt {
     row: String,
     day: i32,
     done: bool,
+    market: Arc<Mutex<MarketAttempt>>,
+}
+struct MarketAttempt {
+    row: String,
+    day: i32,
+    hour: u8,
+    started: Instant,
+    observed: bool,
+    observation: u64,
+    pending_observations: u64,
+    ambiguous_usage: bool,
+    report: Option<UsageReport>,
+    outcome: Option<market::Outcome>,
+    price: Option<pricing::Price>,
+    recorded: bool,
+}
+fn record_market(
+    collector: &Collector,
+    epoch: u64,
+    handle: &Mutex<MarketAttempt>,
+    outcome: Option<market::Outcome>,
+    report: Option<(u64, UsageReport)>,
+) {
+    let ready = {
+        let mut a = handle.lock().unwrap_or_else(|e| e.into_inner());
+        if a.recorded {
+            return;
+        }
+        if outcome.is_some() {
+            a.outcome = outcome;
+        }
+        if let Some((observation, report)) = report {
+            a.pending_observations = a.pending_observations.saturating_sub(1);
+            if observation != a.observation {
+                a.ambiguous_usage |= report.usage.reported_responses > 0;
+            } else {
+                a.report = Some(report);
+            }
+        }
+        if a.pending_observations > 0 {
+            return;
+        }
+        if a.ambiguous_usage {
+            if let Some(report) = &mut a.report {
+                report.billable = false;
+            }
+        }
+        if a.outcome.is_some() && !a.observed && a.report.is_none() {
+            a.report = Some(UsageReport {
+                elapsed_ms: a.started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64,
+                ..UsageReport::default()
+            });
+        }
+        match (a.outcome, a.report.take()) {
+            (Some(outcome), Some(report)) => {
+                a.recorded = true;
+                Some((
+                    a.row.clone(),
+                    a.day,
+                    a.hour,
+                    outcome,
+                    report,
+                    a.price.clone(),
+                ))
+            }
+            (_, report) => {
+                a.report = report;
+                None
+            }
+        }
+    };
+    if let Some((row, day, hour, outcome, report, price)) = ready {
+        collector.update(epoch, move |store, _, _, now| {
+            if store.identities.contains_key(&row) {
+                store
+                    .market
+                    .record(row, outcome, report, price, (day, hour, now));
+            }
+        });
+    }
 }
 
 pub struct Request {
@@ -808,8 +933,23 @@ impl Request {
         if state.finished {
             return;
         }
-        if let Some(previous) = state.current.as_mut().filter(|attempt| !attempt.done) {
-            self.end_attempt(previous, Some(5), false);
+        let previous_success = state.success;
+        if let Some(previous) = state.current.as_mut() {
+            if !previous.done {
+                self.end_attempt(previous, Some(5), false);
+            } else {
+                record_market(
+                    &self.collector,
+                    self.epoch,
+                    &previous.market,
+                    Some(if previous_success {
+                        market::Outcome::Completed
+                    } else {
+                        market::Outcome::Failed
+                    }),
+                    None,
+                );
+            }
         }
         let (id, mut identity) = row_identity(group, candidate, model, source);
         let mut started_day = None;
@@ -846,10 +986,35 @@ impl Request {
         state.success = false;
         state.current = Some(Attempt {
             candidate: candidate.into(),
-            row: id,
+            row: id.clone(),
             day: started_day.unwrap_or_else(|| clock().0),
             done: false,
+            market: Arc::new(Mutex::new(MarketAttempt {
+                row: id,
+                day: started_day.unwrap_or_else(|| clock().0),
+                hour: clock().1,
+                started: Instant::now(),
+                observed: false,
+                observation: 0,
+                pending_observations: 0,
+                ambiguous_usage: false,
+                report: None,
+                outcome: None,
+                price: None,
+                recorded: false,
+            })),
         });
+    }
+
+    pub fn reference_price(&self, base_url: &str, source: Option<&AccountSource>, model: &str) {
+        let state = self.state.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(attempt) = &state.current {
+            attempt
+                .market
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .price = pricing::lookup(base_url, source, model);
+        }
     }
 
     fn end_attempt(&self, attempt: &mut Attempt, failure: Option<usize>, cancelled: bool) {
@@ -857,6 +1022,19 @@ impl Request {
             return;
         }
         attempt.done = true;
+        if cancelled || failure.is_some() {
+            record_market(
+                &self.collector,
+                self.epoch,
+                &attempt.market,
+                Some(if cancelled {
+                    market::Outcome::Cancelled
+                } else {
+                    market::Outcome::Failed
+                }),
+                None,
+            );
+        }
         self.collector.update(self.epoch, |store, _, _, _| {
             let Some(row) = store
                 .days
@@ -941,6 +1119,21 @@ impl Request {
             }
         }
         let success = response_ok && state.success && !cancelled;
+        if let Some(attempt) = &state.current {
+            record_market(
+                &self.collector,
+                self.epoch,
+                &attempt.market,
+                Some(if cancelled {
+                    market::Outcome::Cancelled
+                } else if success {
+                    market::Outcome::Completed
+                } else {
+                    market::Outcome::Failed
+                }),
+                None,
+            );
+        }
         self.collector.update(self.epoch, |store, _, _, _| {
             let Some(day) = store.days.get_mut(&self.day) else {
                 return;
