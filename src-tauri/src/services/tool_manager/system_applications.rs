@@ -154,6 +154,60 @@ pub async fn details(id: &str) -> Result<ApplicationDetails, String> {
         .map_err(|error| error.to_string())
 }
 
+/// Metadata lookup only on the explicit managed-app uninstall action.
+pub async fn managed_configuration_paths(tool_id: String) -> Result<Vec<String>, String> {
+    tokio::task::spawn_blocking(move || {
+        let definitions = super::get_definitions();
+        let Some(definition) = definitions
+            .iter()
+            .find(|definition| definition.id == tool_id)
+        else {
+            return Vec::new();
+        };
+        let executable = super::get_tool_exe_path(&tool_id);
+        let launch_uri = definition
+            .paths_config
+            .launch_uri
+            .as_deref()
+            .and_then(|uri| {
+                #[cfg(windows)]
+                {
+                    crate::services::msix::resolve_launch_uri(uri)
+                }
+                #[cfg(not(windows))]
+                {
+                    let _ = uri;
+                    None::<String>
+                }
+            });
+        let Some(location) = executable
+            .as_deref()
+            .map(std::path::Path::new)
+            .and_then(|path| {
+                path.ancestors().find(|ancestor| {
+                    ancestor
+                        .extension()
+                        .is_some_and(|extension| extension == "app")
+                })
+            })
+            .map(|path| path.to_string_lossy().into_owned())
+            .or(launch_uri)
+            .or_else(|| executable.clone())
+        else {
+            return Vec::new();
+        };
+        let application = SystemApplication::new(
+            definition.paths_config.name.clone(),
+            location,
+            executable,
+            String::new(),
+        );
+        configuration_paths::discover_managed(&application, definition)
+    })
+    .await
+    .map_err(|error| error.to_string())
+}
+
 fn inspect(application: &SystemApplication) -> ApplicationDetails {
     use std::path::PathBuf;
     #[cfg(not(target_os = "linux"))]

@@ -10,7 +10,11 @@ import {
 import { useSystemApplicationsStore } from '../../stores/systemApplicationsStore';
 import { useNavigationStore } from '../../stores/navigationStore';
 
-vi.mock('../../api/tauri', () => ({ getSystemApplicationDetails: vi.fn(), openFolder: vi.fn() }));
+vi.mock('../../api/tauri', () => ({
+  getSystemApplicationDetails: vi.fn(),
+  getToolConfigurationPaths: vi.fn(),
+  openFolder: vi.fn(),
+}));
 vi.mock('../../hooks/useI18n', () => ({
   useI18n: () => ({
     locale: 'en',
@@ -37,6 +41,7 @@ let renderer: ReactTestRenderer;
 beforeEach(() => {
   tool = { ...tool };
   vi.clearAllMocks();
+  vi.mocked(api.getToolConfigurationPaths).mockReset().mockResolvedValue([]);
   useSystemApplicationsStore.setState(useSystemApplicationsStore.getInitialState(), true);
   useNavigationStore.setState(useNavigationStore.getInitialState(), true);
   vi.mocked(api.getSystemApplicationDetails).mockResolvedValue(details);
@@ -322,7 +327,7 @@ it.each([
   );
 });
 
-it('includes the detected managed-client path without additional native reads', () => {
+it('looks up managed configuration only on uninstall click and retains its detected path', async () => {
   const path = 'D:\\Managed App\\App.exe';
   act(() => {
     renderer = create(
@@ -332,7 +337,9 @@ it('includes the detected managed-client path without additional native reads', 
       />
     );
   });
-  act(() => renderer.root.findAllByType('button')[1].props.onClick());
+  expect(api.getToolConfigurationPaths).not.toHaveBeenCalled();
+  await act(async () => renderer.root.findAllByType('button')[1].props.onClick());
+  expect(api.getToolConfigurationPaths).toHaveBeenCalledExactlyOnceWith(tool.id);
   expect(useNavigationStore.getState().motherPrefill).toContain(path);
   expect(api.getSystemApplicationDetails).not.toHaveBeenCalled();
   expect(api.openFolder).not.toHaveBeenCalled();
@@ -441,4 +448,79 @@ it('shows found configuration/data locations and sends literal paths as clues fo
   expect(prefill.split(JSON.stringify(first))).toHaveLength(2);
   expect(prefill).toContain('aiDesktop.configurationLocationsHint');
   expect(api.openFolder).not.toHaveBeenCalled();
+});
+
+it('deduplicates managed configuration clues without sending or changing the client', async () => {
+  const config = '/home/fixture/.app/settings.json';
+  vi.mocked(api.getToolConfigurationPaths).mockResolvedValueOnce([config, config]);
+  act(() => {
+    renderer = create(
+      <ApplicationActions tool={{ ...tool, systemAppId: undefined }} disabled={false} />
+    );
+  });
+  expect(api.getToolConfigurationPaths).not.toHaveBeenCalled();
+  await act(async () => renderer.root.findAllByType('button')[1].props.onClick());
+  const prefill = useNavigationStore.getState().motherPrefill!;
+  expect(prefill.split(JSON.stringify(config))).toHaveLength(2);
+  expect(prefill).toContain('aiDesktop.configurationLocationsHint');
+  expect(api.openFolder).not.toHaveBeenCalled();
+});
+
+it('guards repeated clicks and ignores managed paths returned after selecting another app', async () => {
+  let finish!: (paths: string[]) => void;
+  vi.mocked(api.getToolConfigurationPaths).mockReturnValueOnce(
+    new Promise((resolve) => {
+      finish = resolve;
+    })
+  );
+  const managed = { ...tool, systemAppId: undefined };
+  act(() => {
+    renderer = create(<ApplicationActions tool={managed} disabled={false} />);
+  });
+  act(() => {
+    renderer.root.findAllByType('button')[1].props.onClick();
+    renderer.root.findAllByType('button')[1].props.onClick();
+  });
+  expect(api.getToolConfigurationPaths).toHaveBeenCalledOnce();
+  expect(renderer.root.findAllByType('button')[1].props.disabled).toBe(false);
+  act(() =>
+    renderer.update(<ApplicationActions tool={{ ...managed, id: 'other' }} disabled={false} />)
+  );
+  await act(async () => finish(['/old/config']));
+  expect(useNavigationStore.getState().motherPrefill).toBeUndefined();
+});
+
+it('does not reopen the assistant when managed path lookup finishes after leaving apps', async () => {
+  let finish!: (paths: string[]) => void;
+  vi.mocked(api.getToolConfigurationPaths).mockReturnValueOnce(
+    new Promise((resolve) => {
+      finish = resolve;
+    })
+  );
+  act(() => {
+    renderer = create(
+      <ApplicationActions tool={{ ...tool, systemAppId: undefined }} disabled={false} />
+    );
+  });
+  act(() => {
+    renderer.root.findAllByType('button')[1].props.onClick();
+  });
+  act(() => useNavigationStore.getState().setActivePage('models'));
+  await act(async () => finish(['/app/config']));
+  expect(useNavigationStore.getState().activePage).toBe('models');
+  expect(useNavigationStore.getState().motherPrefill).toBeUndefined();
+});
+
+it('still prefills the managed uninstall request if configuration discovery fails', async () => {
+  vi.mocked(api.getToolConfigurationPaths).mockRejectedValueOnce(new Error('fixture failure'));
+  act(() => {
+    renderer = create(
+      <ApplicationActions tool={{ ...tool, systemAppId: undefined }} disabled={false} />
+    );
+  });
+  await act(async () => renderer.root.findAllByType('button')[1].props.onClick());
+  expect(useNavigationStore.getState().motherPrefill).toContain('Completely uninstall');
+  expect(useNavigationStore.getState().motherPrefill).not.toContain(
+    'aiDesktop.configurationLocations'
+  );
 });

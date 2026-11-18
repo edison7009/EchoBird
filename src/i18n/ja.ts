@@ -384,7 +384,7 @@ const ja: Partial<Translations> = {
   'agent.customSwitch': 'カスタムモデル切り替え',
   'freeModels.router.chooseIcon': 'アイコンを選択',
   'freeModels.router.limit': '接続グループは最大7件です。既存のグループを削除してください。',
-  'freeModels.selectSwitchModels': 'スマートルーター - クイックモデル選択',
+  'freeModels.selectSwitchModels': 'スマートルーター · クイックモデル選択',
   'freeModels.quickAdd': 'まとめて選択',
   'freeModels.quickAdd.collapseAll': 'すべて折りたたむ',
   'freeModels.quickAdd.expandAll': 'すべて展開',

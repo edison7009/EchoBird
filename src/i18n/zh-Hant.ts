@@ -365,7 +365,7 @@ const zhHant: Partial<Translations> = {
   'agent.customSwitch': '自訂模型切換',
   'freeModels.router.chooseIcon': '選擇圖示',
   'freeModels.router.limit': '最多支援 7 個智慧接入群組，請先刪除一個群組再新增。',
-  'freeModels.selectSwitchModels': '智能接入 - 快速模型選擇',
+  'freeModels.selectSwitchModels': '智能接入 · 快速選擇模型',
   'freeModels.quickAdd': '批次選擇',
   'freeModels.quickAdd.collapseAll': '全部收合',
   'freeModels.quickAdd.expandAll': '全部展開',

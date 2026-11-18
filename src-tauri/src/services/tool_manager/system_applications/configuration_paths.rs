@@ -221,6 +221,29 @@ fn catalog_paths(
 }
 
 pub(super) fn discover(app: &SystemApplication) -> Vec<String> {
+    discover_with_paths(app, Vec::new())
+}
+
+pub(super) fn discover_managed(
+    app: &SystemApplication,
+    definition: &crate::models::tool::ToolDefinition,
+) -> Vec<String> {
+    let mut extra: Vec<PathBuf> = [
+        &definition.paths_config.config_file,
+        &definition.paths_config.config_dir,
+        &definition.config_mapping.config_file,
+    ]
+    .into_iter()
+    .filter(|value| !value.is_empty())
+    .map(|value| super::super::expand_path(value))
+    .collect();
+    if let Ok(path) = super::super::model_config_path(definition) {
+        extra.push(path);
+    }
+    discover_with_paths(app, extra)
+}
+
+fn discover_with_paths(app: &SystemApplication, extra: Vec<PathBuf>) -> Vec<String> {
     let Some(home) = dirs::home_dir() else {
         return Vec::new();
     };
@@ -267,6 +290,7 @@ pub(super) fn discover(app: &SystemApplication) -> Vec<String> {
     };
     let mut paths = catalog_paths(app, &super::super::get_definitions());
     paths.extend(candidates(app, &roots, bundle_id.as_deref()));
+    paths.extend(extra);
     existing(paths, &roots)
 }
 
@@ -391,6 +415,36 @@ mod tests {
         assert!(catalog_paths(&app, &[definition]).is_empty());
         assert_eq!(std::fs::read(config).unwrap(), b"not read");
         std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn managed_catalog_paths_include_existing_config_without_declared_executable_matching() {
+        use crate::models::tool::{PathsConfig, ToolDefinition};
+        let (root, _, mut app) = fixture(Platform::Linux);
+        let private = root.join("private");
+        let config = private.join("settings.json");
+        std::fs::create_dir_all(&private).unwrap();
+        std::fs::write(&config, b"not modified").unwrap();
+        app.name = "fixture-unique-managed-app".into();
+        app.executable = None;
+        let definition = ToolDefinition {
+            id: "fixture-managed".into(),
+            tool_dir: String::new(),
+            paths_config: serde_json::from_value::<PathsConfig>(serde_json::json!({
+                "name":"Fixture", "category":"Desktop", "configFile":config,
+                "configDir":private, "paths":{}
+            }))
+            .unwrap(),
+            config_mapping: serde_json::from_value(serde_json::json!({"configFile":config}))
+                .unwrap(),
+        };
+        let result = discover_managed(&app, &definition);
+        assert_eq!(result.len(), 2);
+        assert!(result.iter().any(|path| Path::new(path) == config));
+        assert!(result.iter().any(|path| Path::new(path) == private));
+        assert_eq!(std::fs::read(&config).unwrap(), b"not modified");
+        std::fs::remove_dir_all(root).unwrap();
+        assert!(discover_managed(&app, &definition).is_empty());
     }
 
     #[cfg(unix)]

@@ -385,7 +385,7 @@ const en: Translations = {
   'freeModels.router.chooseIcon': 'Choose icon',
   'freeModels.router.limit':
     'You can have up to 7 routing groups. Remove a group before adding another.',
-  'freeModels.selectSwitchModels': 'Smart Router - Quick Model Selection',
+  'freeModels.selectSwitchModels': 'Smart Router · Quick Model Selection',
   'freeModels.quickAdd': 'Bulk Select',
   'freeModels.quickAdd.collapseAll': 'Collapse all',
   'freeModels.quickAdd.expandAll': 'Expand all',

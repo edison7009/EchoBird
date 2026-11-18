@@ -917,6 +917,7 @@ pub fn run() {
                 tool_commands::list_system_applications,
                 tool_commands::get_system_application_icon,
                 tool_commands::get_system_application_details,
+                tool_commands::get_tool_configuration_paths,
                 tool_commands::launch_system_application,
                 tool_commands::list_antigravity_accounts,
                 tool_commands::start_antigravity_login,

@@ -178,6 +178,11 @@ pub async fn get_system_application_details(
 }
 
 #[tauri::command]
+pub async fn get_tool_configuration_paths(tool_id: String) -> Result<Vec<String>, String> {
+    tool_manager::system_applications::managed_configuration_paths(tool_id).await
+}
+
+#[tauri::command]
 pub async fn launch_system_application(id: String) -> Result<(), String> {
     crate::services::process_manager::launch_system_application(&id).await
 }

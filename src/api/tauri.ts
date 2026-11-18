@@ -59,6 +59,10 @@ export interface SystemApplicationDetails {
   configPaths?: string[];
 }
 
+export async function getToolConfigurationPaths(toolId: string): Promise<string[]> {
+  return invoke('get_tool_configuration_paths', { toolId });
+}
+
 export async function getSystemApplicationDetails(id: string): Promise<SystemApplicationDetails> {
   return invoke('get_system_application_details', { id });
 }

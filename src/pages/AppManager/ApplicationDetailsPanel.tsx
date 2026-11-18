@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import * as api from '../../api/tauri';
 import type { LocalTool } from '../../api/types';
 import { DesktopToolImage, toolDisplayName } from '../../components/DesktopToolIcon';
@@ -186,15 +186,26 @@ export function ApplicationActions({
   const filePath = path || (!shellTarget ? detectedPath : null);
   const target = launchTarget || tool.launchUri || shellTarget;
   const buttonClassName = `flex-1 rounded-lg border border-cyber-border px-3 py-2 text-[13px] text-cyber-text-secondary transition-colors enabled:hover:bg-cyber-elevated enabled:hover:text-cyber-text ${tool.systemAppId ? '' : 'disabled:opacity-40'}`;
-  const uninstallMessage = [
-    t('mother.hintUninstall').replace('{agent}', () => toolDisplayName(tool, locale)),
-    filePath && `${t('aiDesktop.fileLocation')} ${filePath}`,
-    target && target !== filePath && `${t('aiDesktop.launchTarget')} ${target}`,
-    configurationPaths.length > 0 &&
-      `${t('aiDesktop.configurationLocations')}\n${configurationPaths.map((location) => JSON.stringify(location)).join('\n')}\n${t('aiDesktop.configurationLocationsHint')}`,
-  ]
-    .filter(Boolean)
-    .join('\n');
+  const uninstallAttempt = useRef(0);
+  const uninstallPending = useRef(false);
+  useEffect(() => {
+    uninstallAttempt.current += 1;
+    uninstallPending.current = false;
+    return () => {
+      uninstallAttempt.current += 1;
+      uninstallPending.current = false;
+    };
+  }, [tool, activePage, appsTab]);
+  const uninstallMessage = (paths: string[]) =>
+    [
+      t('mother.hintUninstall').replace('{agent}', () => toolDisplayName(tool, locale)),
+      filePath && `${t('aiDesktop.fileLocation')} ${filePath}`,
+      target && target !== filePath && `${t('aiDesktop.launchTarget')} ${target}`,
+      paths.length > 0 &&
+        `${t('aiDesktop.configurationLocations')}\n${[...new Set(paths)].map((location) => JSON.stringify(location)).join('\n')}\n${t('aiDesktop.configurationLocationsHint')}`,
+    ]
+      .filter(Boolean)
+      .join('\n');
   if (
     activePage !== 'apps' ||
     appsTab === 'install' ||
@@ -227,7 +238,24 @@ export function ApplicationActions({
         <button
           type="button"
           disabled={disabled}
-          onClick={() => goToMother(uninstallMessage)}
+          onClick={async () => {
+            if (disabled || uninstallPending.current) return;
+            if (tool.systemAppId) {
+              goToMother(uninstallMessage(configurationPaths));
+              return;
+            }
+            uninstallPending.current = true;
+            const attempt = uninstallAttempt.current;
+            let paths: string[] = [];
+            try {
+              paths = await api.getToolConfigurationPaths(tool.id);
+            } catch {
+              // Path lookup is best effort; the assistant can still investigate the app.
+            }
+            if (attempt !== uninstallAttempt.current) return;
+            uninstallPending.current = false;
+            goToMother(uninstallMessage(paths));
+          }}
           className={buttonClassName}
         >
           {t('aiDesktop.thoroughUninstall')}
