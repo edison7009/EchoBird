@@ -388,6 +388,7 @@ mod tests {
                 internal_id: index.to_string(),
                 model_id: format!("model-{index}"),
                 base_url: "http://127.0.0.1:1/v1".into(),
+                anthropic_url: None,
                 api_key: "fixture".into(),
                 account_source: None,
                 fingerprint: format!("fingerprint-{index}"),

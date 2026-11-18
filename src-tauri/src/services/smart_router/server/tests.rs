@@ -17,6 +17,7 @@ fn candidate(addr: SocketAddr, id: &str) -> Candidate {
         fingerprint: candidate_fingerprint(&model_id, &base_url, &api_key),
         model_id,
         base_url,
+        anthropic_url: None,
         api_key,
         account_source: None,
     }
@@ -1164,17 +1165,91 @@ async fn falls_back_when_success_stream_has_no_first_byte() {
 }
 
 #[tokio::test]
+async fn native_messages_preserves_history_and_stream() {
+    let history = json!([
+        {"role":"user","content":"Use the label QA-271."},
+        {"role":"assistant","content":[
+            {"type":"thinking","thinking":"fixture","signature":"fixture"},
+            {"type":"text","text":"The label is QA-271."},
+            {"type":"tool_use","id":"toolu_fixture","name":"Read","input":{}}
+        ]},
+        {"role":"user","content":[
+            {"type":"tool_result","tool_use_id":"toolu_fixture","content":"fixture result"},
+            {"type":"text","text":"What was the label?"}
+        ]}
+    ]);
+    let native_stream = concat!(
+        "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"usage\":{\"input_tokens\":12}}}\n\n",
+        "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"delta\":{\"type\":\"text_delta\",\"text\":\"QA-271\"}}\n\n",
+        "event: message_stop\ndata: {\"type\":\"message_stop\"}\n\n",
+    );
+    let expected = history.clone();
+    let upstream = Router::new().route(
+        "/anthropic/v1/messages",
+        post(
+            move |headers: HeaderMap, Json(body): Json<Value>| async move {
+                assert_eq!(headers["x-api-key"], "upstream-key");
+                assert_eq!(body["model"], "native-model");
+                assert_eq!(body["messages"], expected);
+                assert_eq!(body["output_config"]["effort"], "high");
+                if body["stream"] == true {
+                    ([(header::CONTENT_TYPE, "text/event-stream")], native_stream).into_response()
+                } else {
+                    Json(json!({"type":"message","content":[{"type":"text","text":"QA-271"}]}))
+                        .into_response()
+                }
+            },
+        ),
+    );
+    let addr = spawn_mock(upstream).await;
+    let mut native = candidate(addr, "native");
+    native.anthropic_url = Some(format!("http://{addr}/anthropic"));
+    let state = AppState::for_tests().unwrap();
+
+    for stream in [false, true] {
+        let response = route_messages_with_candidates(
+            &state,
+            &inbound_headers(),
+            json!({
+                "model":"claude-opus-5",
+                "messages":history,
+                "max_tokens":1024,
+                "stream":stream,
+                "output_config":{"effort":"high"}
+            }),
+            vec![native.clone()],
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response.headers()["X-EchoBird-Routed-Via"],
+            "native/native-model"
+        );
+        let bytes = response.into_body().collect().await.unwrap().to_bytes();
+        if stream {
+            assert_eq!(bytes, Bytes::from_static(native_stream.as_bytes()));
+        } else {
+            let body: Value = serde_json::from_slice(&bytes).unwrap();
+            assert_eq!(body["content"][0]["text"], "QA-271");
+        }
+    }
+}
+
+#[tokio::test]
 async fn anthropic_request_falls_back_and_preserves_tool_use() {
     let first = Router::new().route(
-        "/v1/chat/completions",
+        "/v1/messages",
         post(|| async { StatusCode::TOO_MANY_REQUESTS }),
     );
     let first_addr = spawn_mock(first).await;
+    let mut native = candidate(first_addr, "first");
+    native.anthropic_url = Some(format!("http://{first_addr}/v1"));
     let second = Router::new().route(
         "/v1/chat/completions",
         post(|Json(body): Json<Value>| async move {
             assert_eq!(body["model"], "second-model");
             assert_eq!(body["tool_choice"], "required");
+            assert_eq!(body["messages"][1]["content"], "Previous reply.");
             Json(json!({
                 "id": "chatcmpl-tool",
                 "model": body["model"],
@@ -1203,7 +1278,11 @@ async fn anthropic_request_falls_back_and_preserves_tool_use() {
         json!({
             "model": "claude-opus-5",
             "max_tokens": 1024,
-            "messages": [{"role": "user", "content": "weather?"}],
+            "messages": [
+                {"role":"user","content":"First turn."},
+                {"role":"assistant","content":[{"type":"text","text":"Previous reply."}]},
+                {"role":"user","content":"weather?"}
+            ],
             "tools": [{
                 "name": "weather",
                 "description": "Get weather",
@@ -1211,10 +1290,7 @@ async fn anthropic_request_falls_back_and_preserves_tool_use() {
             }],
             "tool_choice": {"type": "any"}
         }),
-        vec![
-            candidate(first_addr, "first"),
-            candidate(second_addr, "second"),
-        ],
+        vec![native, candidate(second_addr, "second")],
     )
     .await;
 

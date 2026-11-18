@@ -394,6 +394,7 @@ struct Candidate {
     internal_id: String,
     model_id: String,
     base_url: String,
+    anthropic_url: Option<String>,
     api_key: String,
     account_source: Option<crate::models::model::AccountSource>,
     fingerprint: String,
@@ -448,6 +449,7 @@ enum RouteProtocol {
     #[default]
     Chat,
     Responses,
+    Messages,
 }
 
 impl Default for RoutePolicy {
@@ -909,9 +911,19 @@ async fn route_messages_with_candidates(
     candidates: Vec<Candidate>,
 ) -> Response {
     let stream_requested = body.get("stream").and_then(Value::as_bool).unwrap_or(false);
-    let mut openai_body = crate::services::local_llm::proxy::anthropic_to_openai(&body);
-    openai_body["model"] = Value::String(state.model_id.clone());
-    let response = route_chat_with_candidates(state, headers, openai_body, candidates).await;
+    let response = route_with_policy(
+        state,
+        headers,
+        body,
+        candidates,
+        RoutePolicy::default(),
+        RouteProtocol::Messages,
+    )
+    .await;
+
+    if response.extensions().get::<NativeMessages>().is_some() {
+        return response;
+    }
 
     if !response.status().is_success() {
         return openai_error_to_anthropic(response).await;
@@ -948,6 +960,7 @@ fn resolve_candidates_from(
                     fingerprint: candidate_fingerprint(&model_id, &base_url, &api_key),
                     model_id,
                     base_url,
+                    anthropic_url: None,
                     api_key,
                     account_source: None,
                 });
@@ -959,13 +972,19 @@ fn resolve_candidates_from(
                 return None;
             }
             let api_key = model_manager::decrypt_key_for_use(&model.api_key);
+            let anthropic_url = model
+                .anthropic_url
+                .as_deref()
+                .map(str::trim)
+                .filter(|url| !url.is_empty() && !super::is_router_url(url));
+            let endpoints = anthropic_url.map(|url| format!("{}\n{url}", model.base_url));
 
             Some(Candidate {
                 attempt: None,
                 internal_id: model.internal_id.clone(),
                 fingerprint: candidate_fingerprint(
                     model_id,
-                    &model.base_url,
+                    endpoints.as_deref().unwrap_or(&model.base_url),
                     &model
                         .account_source
                         .as_ref()
@@ -974,6 +993,7 @@ fn resolve_candidates_from(
                 ),
                 model_id: model_id.to_string(),
                 base_url: model.base_url.clone(),
+                anthropic_url: anthropic_url.map(str::to_owned),
                 api_key,
                 account_source: model.account_source.clone(),
             })
@@ -1037,6 +1057,7 @@ pub(crate) async fn route_live_account_probe(
         fingerprint: candidate_fingerprint(&model_id, "account://echobird", &source_json),
         model_id,
         base_url: "account://echobird".into(),
+        anthropic_url: None,
         api_key: String::new(),
         account_source: Some(source),
     };
@@ -1053,6 +1074,13 @@ fn drops_billing_line(candidate: &Candidate, protocol: RouteProtocol) -> bool {
             .is_some_and(|source| source.provider == AccountProvider::ClaudeCode)
 }
 
+#[derive(Clone, Copy)]
+struct NativeMessages;
+
+fn uses_native_messages(candidate: &Candidate) -> bool {
+    candidate.account_source.is_none() && candidate.anthropic_url.is_some()
+}
+
 async fn send_candidate(
     state: &AppState,
     headers: &HeaderMap,
@@ -1062,6 +1090,12 @@ async fn send_candidate(
     refreshed_credentials: Option<Value>,
     final_candidate: bool,
 ) -> Result<Response, String> {
+    let protocol = if protocol == RouteProtocol::Messages && !uses_native_messages(candidate) {
+        body = crate::services::local_llm::proxy::anthropic_to_openai(&body);
+        RouteProtocol::Chat
+    } else {
+        protocol
+    };
     if drops_billing_line(candidate, protocol) {
         crate::services::anthropic_proxy::billing_line::strip_from_chat(&mut body);
     }
@@ -1129,6 +1163,9 @@ async fn send_candidate(
             .extensions_mut()
             .insert(RejectedAccountCredentials(rejected_credentials));
         return Ok(response);
+    }
+    if protocol == RouteProtocol::Messages {
+        return send_native_messages(state, candidate, body).await;
     }
     if zen_free::is_candidate(candidate) {
         return zen_free::send(state, headers, candidate, &body, protocol, final_candidate).await;
@@ -1398,6 +1435,48 @@ fn request_stream_usage(body: &mut Value) {
         None | Some(Value::Null) => body["stream_options"] = json!({"include_usage": true}),
         Some(_) => {}
     }
+}
+
+async fn send_native_messages(
+    state: &AppState,
+    candidate: &Candidate,
+    mut body: Value,
+) -> Result<Response, String> {
+    use crate::services::anthropic_proxy::{
+        billing_line::{keeps_billing_line, strip_from_anthropic},
+        filter_deepseek_tools, messages_url,
+    };
+
+    let base = candidate
+        .anthropic_url
+        .as_deref()
+        .expect("Native Messages endpoint");
+    if !keeps_billing_line(&candidate.model_id, false) {
+        strip_from_anthropic(&mut body);
+    }
+    let deepseek = candidate.model_id.starts_with("deepseek-")
+        || url::Url::parse(base).is_ok_and(|url| url.host_str() == Some("api.deepseek.com"));
+    if deepseek {
+        if let Err(error) = filter_deepseek_tools(&mut body) {
+            return Ok(anthropic_error(StatusCode::BAD_REQUEST, error));
+        }
+    }
+
+    let mut request = state
+        .http_client
+        .post(messages_url(base))
+        .header("anthropic-version", "2023-06-01")
+        .json(&body);
+    if let Some(key) = upstream_bearer_token(candidate) {
+        request = request.header("x-api-key", key).bearer_auth(key);
+    }
+    let upstream = request.send().await.map_err(|error| error.to_string())?;
+    let status = upstream.status();
+    let headers = upstream.headers().clone();
+    let mut response = Response::new(Body::from_stream(upstream.bytes_stream()));
+    *response.status_mut() = status;
+    *response.headers_mut() = headers;
+    Ok(response)
 }
 
 async fn send_api_request(
@@ -1718,6 +1797,14 @@ async fn route_with_policy(
                 }
             }
         }
+        let requested_protocol = protocol;
+        let native_messages =
+            protocol == RouteProtocol::Messages && uses_native_messages(&candidate);
+        let protocol = if protocol == RouteProtocol::Messages && !native_messages {
+            RouteProtocol::Chat
+        } else {
+            protocol
+        };
         let status = response.status();
         let content_type = response.headers().get(header::CONTENT_TYPE).cloned();
         let cache_control = response.headers().get(header::CACHE_CONTROL).cloned();
@@ -1988,7 +2075,7 @@ async fn route_with_policy(
                             state,
                             &candidate,
                             &configured_candidates,
-                            protocol,
+                            requested_protocol,
                             standby_epoch,
                         );
                     }
@@ -2142,6 +2229,9 @@ async fn route_with_policy(
                     if protocol == RouteProtocol::Responses {
                         copy_response_headers(&mut result, &response_headers);
                     }
+                    if native_messages {
+                        result.extensions_mut().insert(NativeMessages);
+                    }
                     return result;
                 }
                 Err(mut error) => {
@@ -2289,6 +2379,35 @@ async fn route_with_policy(
                     return response;
                 }
                 let response_value = serde_json::from_slice::<Value>(&bytes).ok();
+                if native_messages {
+                    if !response_value
+                        .as_ref()
+                        .is_some_and(anthropic::message_has_output)
+                    {
+                        mark_failure(state, &candidate, FailureClass::Transient, None);
+                        attempts.push(AttemptRecord {
+                            candidate_id: candidate.internal_id.clone(),
+                            model_id: candidate.model_id.clone(),
+                            failure: FailureClass::Transient,
+                            status: Some(status.as_u16()),
+                        });
+                        continue;
+                    }
+                    mark_success(state, &candidate);
+                    if let Some(epoch) = standby_epoch {
+                        state.standby.used(
+                            state,
+                            &candidate,
+                            &configured_candidates,
+                            requested_protocol,
+                            epoch,
+                        );
+                    }
+                    let mut response =
+                        upstream_response(status, content_type, cache_control, bytes, &candidate);
+                    response.extensions_mut().insert(NativeMessages);
+                    return response;
+                }
                 if response_value.as_ref().is_some_and(|value| {
                     empty_chat_response(value) || chat_finished_with_error(value)
                 }) {
@@ -2315,7 +2434,7 @@ async fn route_with_policy(
                         state,
                         &candidate,
                         &configured_candidates,
-                        protocol,
+                        requested_protocol,
                         standby_epoch,
                     );
                 }
@@ -2537,6 +2656,20 @@ impl StreamCompletion {
                     self.response_id = value["response"]["id"].as_str().map(str::to_owned);
                     self.meaningful |= response_has_content(&value["response"]);
                     self.legitimate_empty |= legitimate_empty_response(&value["response"]);
+                    self.require_output()?;
+                }
+                continue;
+            }
+            if self.protocol == RouteProtocol::Messages {
+                self.accounted |= positive_token_usage(&value["usage"])
+                    || positive_token_usage(&value["message"]["usage"]);
+                if anthropic::event_has_output(&value) {
+                    self.meaningful = true;
+                    self.last_progress = Some(tokio::time::Instant::now());
+                }
+                self.legitimate_empty |= value["delta"]["stop_reason"] == "max_tokens";
+                if value["type"] == "message_stop" {
+                    self.done = true;
                     self.require_output()?;
                 }
                 continue;

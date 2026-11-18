@@ -753,6 +753,7 @@ async fn local_upstream_sees_protected_content_on_all_three_protocols_and_auth_s
                 internal_id: "fixture".into(),
                 model_id: "fixture-model".into(),
                 base_url: format!("http://{addr}/v1"),
+                anthropic_url: None,
                 api_key: "upstream-auth-fixture".into(),
                 account_source: None,
                 fingerprint: "fixture".into(),

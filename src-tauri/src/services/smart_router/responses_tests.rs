@@ -59,6 +59,7 @@ impl MockServer {
             fingerprint: candidate_fingerprint(&model_id, &base_url, &api_key),
             model_id,
             base_url,
+            anthropic_url: None,
             api_key,
             account_source: None,
             attempt: None,

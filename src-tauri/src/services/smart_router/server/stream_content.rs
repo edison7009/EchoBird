@@ -152,6 +152,12 @@ pub(super) fn stream_failure_event(
     protocol: RouteProtocol,
     error: &crate::services::account_proxy::ProxyError,
 ) -> Bytes {
+    if protocol == RouteProtocol::Messages {
+        return Bytes::from(format!(
+            "event: error\ndata: {}\n\n",
+            json!({"type":"error","error":{"type":"api_error","message":error.message}})
+        ));
+    }
     if protocol == RouteProtocol::Responses {
         return Bytes::from(format!(
             "event: error\ndata: {}\n\n",

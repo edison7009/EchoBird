@@ -748,6 +748,22 @@ async fn route(
     if path.starts_with("/api/organizations/") && path.split('/').count() == 4 {
         return Json(identity(&context.locale)["organization"].clone()).into_response();
     }
+    if path.starts_with("/api/frame/") {
+        return match (request.method().as_str(), path.as_str()) {
+            ("GET", "/api/frame/types") => Json(json!({"types": []})).into_response(),
+            ("GET", "/api/frame/frames" | "/api/frame/frames/external") => {
+                Json(json!({"frames": []})).into_response()
+            }
+            _ => (
+                StatusCode::NOT_IMPLEMENTED,
+                Json(json!({"type":"error","error":{
+                    "type":"not_supported_error",
+                    "message":"Hosted Artifacts are unavailable in local API mode."
+                }})),
+            )
+                .into_response(),
+        };
+    }
     if path.starts_with("/api/") || path.starts_with("/edge-api/") {
         return Json(json!({})).into_response();
     }
@@ -1043,6 +1059,33 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(app_start["model_selector_config"][0]["id"], "code");
+        for (path, expected) in [
+            ("types", json!({"types":[]})),
+            ("types?q=fixture", json!({"types":[]})),
+            ("frames?limit=200", json!({"frames":[]})),
+            ("frames/external", json!({"frames":[]})),
+        ] {
+            let listing = client
+                .get(format!("{base}/api/frame/{path}"))
+                .send()
+                .await
+                .unwrap();
+            assert_eq!(listing.status(), StatusCode::OK);
+            assert_eq!(listing.json::<Value>().await.unwrap(), expected);
+        }
+        let deployment = client
+            .post(format!("{base}/api/frame/deploy/direct"))
+            .json(&json!({"content":"<html>fixture</html>"}))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(deployment.status(), StatusCode::NOT_IMPLEMENTED);
+        assert_eq!(
+            deployment.json::<Value>().await.unwrap()["error"]["type"],
+            "not_supported_error"
+        );
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+
         let organization = format!("{base}/api/organizations/{ORGANIZATION}");
         let old_chat = directory.join("chat/old-conversation.json");
         super::super::native_account_files::write(&old_chat, b"saved-chat").unwrap();

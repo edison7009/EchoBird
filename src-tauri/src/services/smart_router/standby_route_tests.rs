@@ -57,6 +57,7 @@ impl Upstream {
                 internal_id: (*id).into(),
                 model_id: (*id).into(),
                 base_url: self.base.clone(),
+                anthropic_url: None,
                 api_key: "standby-fixture-key".into(),
                 account_source: None,
                 fingerprint: candidate_fingerprint(id, &self.base, "standby-fixture-key"),

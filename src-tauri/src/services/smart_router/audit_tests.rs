@@ -1008,6 +1008,7 @@ fn audit_http_candidate(addr: SocketAddr, id: &str) -> Candidate {
         fingerprint: candidate_fingerprint(&model_id, &base_url, "fixture-key"),
         model_id,
         base_url,
+        anthropic_url: None,
         api_key: "fixture-key".into(),
         account_source: None,
     }

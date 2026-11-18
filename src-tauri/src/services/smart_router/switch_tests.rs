@@ -6,6 +6,7 @@ fn candidate(id: &str, base_url: &str) -> Candidate {
         internal_id: id.into(),
         model_id: "same-upstream-id".into(),
         base_url: base_url.into(),
+        anthropic_url: None,
         api_key: "fixture".into(),
         fingerprint: id.into(),
         account_source: None,

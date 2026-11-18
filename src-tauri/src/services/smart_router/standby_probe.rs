@@ -23,10 +23,21 @@ pub(super) async fn check(
 }
 
 async fn run(state: &AppState, candidate: &Candidate, protocol: RouteProtocol) -> bool {
+    let protocol = if protocol == RouteProtocol::Messages && !uses_native_messages(candidate) {
+        RouteProtocol::Chat
+    } else {
+        protocol
+    };
     let body = match protocol {
         RouteProtocol::Chat => json!({
             "model":candidate.model_id,
             "messages":[{"role":"user","content":"Reply only OK."}],
+            "stream":true
+        }),
+        RouteProtocol::Messages => json!({
+            "model":candidate.model_id,
+            "messages":[{"role":"user","content":"Reply only OK."}],
+            "max_tokens":64,
             "stream":true
         }),
         RouteProtocol::Responses => json!({
@@ -188,6 +199,7 @@ async fn read_response(response: Response, protocol: RouteProtocol) -> Result<()
                     .iter()
                     .any(|choice| chat_message_has_content(&choice["message"]))
         }),
+        RouteProtocol::Messages => anthropic::message_has_output(&value),
         RouteProtocol::Responses => {
             value["object"] == "response"
                 && matches!(value["status"].as_str(), Some("completed" | "incomplete"))
@@ -218,6 +230,9 @@ fn event_has_output(event: &str, data: &str, protocol: RouteProtocol) -> bool {
                 .iter()
                 .any(|choice| chat_message_has_content(&choice["delta"]))
         });
+    }
+    if protocol == RouteProtocol::Messages {
+        return anthropic::event_has_output(&value);
     }
     let kind = value["type"].as_str().unwrap_or(event);
     (matches!(
@@ -276,6 +291,7 @@ mod tests {
             internal_id: id.into(),
             model_id: "standby-model".into(),
             base_url: "http://127.0.0.1:1/v1".into(),
+            anthropic_url: None,
             api_key: "fixture-key".into(),
             account_source: None,
             fingerprint: format!("standby-{id}"),

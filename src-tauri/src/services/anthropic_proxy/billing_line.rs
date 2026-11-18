@@ -20,11 +20,11 @@ fn without_billing_line(text: &str) -> Option<&str> {
 }
 
 /// A Claude model keeps the line; the router decides for its own candidates.
-pub(super) fn keeps_billing_line(model: &str, router_upstream: bool) -> bool {
+pub(crate) fn keeps_billing_line(model: &str, router_upstream: bool) -> bool {
     router_upstream || model.to_ascii_lowercase().contains("claude")
 }
 
-pub(super) fn strip_from_anthropic(body: &mut Value) {
+pub(crate) fn strip_from_anthropic(body: &mut Value) {
     let Some(request) = body.as_object_mut() else {
         return;
     };

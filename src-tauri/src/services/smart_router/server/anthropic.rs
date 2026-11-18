@@ -436,6 +436,30 @@ pub(super) async fn openai_error_to_anthropic(response: Response) -> Response {
     anthropic_error(status, message)
 }
 
+pub(super) fn message_has_output(value: &Value) -> bool {
+    value["type"] == "message"
+        && (value["content"]
+            .as_array()
+            .is_some_and(|blocks| blocks.iter().any(block_has_output))
+            || value["stop_reason"] == "max_tokens"
+            || super::positive_token_usage(&value["usage"]))
+}
+
+fn block_has_output(block: &Value) -> bool {
+    ["text", "thinking", "partial_json"]
+        .iter()
+        .any(|key| super::nonempty_text(&block[*key]))
+        || matches!(block["type"].as_str(), Some("tool_use" | "server_tool_use"))
+}
+
+pub(super) fn event_has_output(value: &Value) -> bool {
+    match value["type"].as_str() {
+        Some("content_block_start") => block_has_output(&value["content_block"]),
+        Some("content_block_delta") => block_has_output(&value["delta"]),
+        _ => false,
+    }
+}
+
 pub(super) fn anthropic_error(status: StatusCode, message: &str) -> Response {
     let error_type = match status {
         StatusCode::BAD_REQUEST => "invalid_request_error",

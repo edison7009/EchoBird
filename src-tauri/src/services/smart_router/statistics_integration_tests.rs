@@ -52,6 +52,7 @@ fn model(id: &str) -> Candidate {
         internal_id: id.into(),
         model_id: format!("{id}-model"),
         base_url: "http://127.0.0.1:1/v1".into(),
+        anthropic_url: None,
         api_key: "fixture-auth".into(),
         fingerprint: id.into(),
         account_source: None,

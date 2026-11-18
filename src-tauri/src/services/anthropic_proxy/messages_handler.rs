@@ -206,14 +206,7 @@ async fn handle_messages_with(
     //      style baseURLs that include /v1 — issue #108)
     //   3. otherwise                          → append "/v1/messages"
     //      (canonical Anthropic-spec path)
-    let base = relay.base_url.trim_end_matches('/');
-    let upstream_url = if base.contains("/messages") {
-        base.to_string()
-    } else if base.ends_with("/v1") {
-        format!("{}/messages", base)
-    } else {
-        format!("{}/v1/messages", base)
-    };
+    let upstream_url = messages_url(&relay.base_url);
     let is_stream = req_body
         .get("stream")
         .and_then(|v| v.as_bool())
@@ -280,7 +273,18 @@ async fn handle_messages_with(
     response
 }
 
-fn filter_deepseek_tools(body: &mut Value) -> Result<(), &'static str> {
+pub(crate) fn messages_url(base: &str) -> String {
+    let base = base.trim_end_matches('/');
+    if base.contains("/messages") {
+        base.to_string()
+    } else if base.ends_with("/v1") {
+        format!("{}/messages", base)
+    } else {
+        format!("{}/v1/messages", base)
+    }
+}
+
+pub(crate) fn filter_deepseek_tools(body: &mut Value) -> Result<(), &'static str> {
     let forced = (body["tool_choice"]["type"] == "tool")
         .then(|| body["tool_choice"]["name"].as_str().map(str::to_owned))
         .flatten();
