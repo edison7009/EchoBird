@@ -4,18 +4,18 @@
     "scripts/build-pet-renderer.mjs": "1ca45a917a10e9ea0af9d8a769753b512ad5621f72fe730601850e8d1f95b3b2",
     "src-tauri/crates/echo-supply-renderer/Cargo.toml": "10a9514c71dbec6380f323de8131efd3ddd1b65c151f7d469abf255070dadccf",
     "src-tauri/crates/echo-supply-renderer/src/gl.rs": "de9d45d233c11e954a3a90d0cd37175fe9e16d716a10805d706f12b541bd0e96",
-    "src-tauri/crates/echo-supply-renderer/src/lib.rs": "d037d6ff638e3bc0bb66f668069ab3ccb5db119d85416dcd466373cd45761691",
+    "src-tauri/crates/echo-supply-renderer/src/lib.rs": "0ada498af9f17738f94357da8f5f4083d1f72ed2c9563614fe5aa0e6b13be271",
     "src-tauri/crates/echo-supply-renderer/src/mat.rs": "cc94afd312f48ffe9ff955a6d6a344e483adf01a4b04cf33da0ef4f6cb7ecbae",
     "src-tauri/crates/echo-supply-renderer/src/pet_fx.rs": "99fda8ff8608448898dfa13bc0429f9899ce3d0a4591b8b6f59afec5a8aa636d",
     "src-tauri/crates/echo-supply-renderer/src/pet_mesh.rs": "e21e7079b5b3e862ff14fa3443d11f1c66c7a9219c99e9b1bea3fdaa9838dbc5",
     "src-tauri/crates/echo-supply-renderer/src/pet_models.rs": "2ee0114ef33329ef4f2f5852250b28917832c2c95270d63b06ed003be8f1f511",
     "src-tauri/crates/echo-supply-renderer/src/pet_pose.rs": "ca56e4898d9b4c7766cbaedba78572d48e3907e3ddbaf2b8a40b873cc5aca52b",
     "src-tauri/crates/echo-supply-renderer/src/pet_scene.rs": "47328ad6381208355c3b5442ea32b0eb209b407d69bee9ff6081bd87e0092c73",
-    "src-tauri/crates/echo-supply-renderer/src/scene.rs": "09c7b28802b45308d3c1f5f985e893501a3d48b606ed2d4a38ba7c56e91421c9",
+    "src-tauri/crates/echo-supply-renderer/src/scene.rs": "d9995fab3e5fd4ec0de35e962b33de32c7fea5b132d746303c4789eb37b3d90a",
     "src-tauri/crates/echo-supply-renderer/src/shaders.rs": "5cc0d6a9d572c7ab395c992b3b2f23832ff75e7c417c7d0b42bf2487b02430ff"
   },
   "outputs": {
-    "renderer.js": "9f87a8978b51622d831209cb98670996d3eefd9ebae5875a625438fb4e71a12d",
-    "renderer_bg.wasm": "650252aa9e35ebc8e561c5d8c80470ad3da82928691523f3eb8789b3405990d4"
+    "renderer.js": "fd6f805f4fa836d7bf94302ce971687643c2b1839c5eab87274c194cb40a5e03",
+    "renderer_bg.wasm": "763c4d9561ceb2128e1a2a8fa9c897c698e70cb2c6a0bb7e56c1a04340589acf"
   }
 }

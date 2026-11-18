@@ -50,18 +50,19 @@
 }
 
 .pet-reward-dialog {
+  --supply-width: min(1100px, calc(100vw - 24px));
+  --supply-height: clamp(300px, calc(100dvh - 150px), 620px);
   position: fixed;
   inset: 0;
-  width: min(1100px, calc(100vw - 24px));
+  width: var(--supply-width);
   max-height: calc(100dvh - 24px);
   margin: auto;
-  padding: 0 0 22px;
+  padding: 0 0 64px;
   overflow-x: hidden;
   overflow-y: auto;
   border: 0;
-  border-radius: 16px;
-  background: #eae7df;
-  color: #222320;
+  background: transparent;
+  color: rgb(var(--text-primary-rgb));
   text-align: center;
 }
 .pet-reward-dialog::backdrop {
@@ -76,23 +77,31 @@
   width: 28px;
   height: 28px;
   place-items: center;
-  color: #52534e;
+  color: rgb(var(--text-primary-rgb));
 }
 .pet-supply-rust {
   position: relative;
   width: 100%;
-  height: min(620px, calc(100dvh - 150px));
-  min-height: 300px;
+  height: var(--supply-height);
 }
 .pet-supply-canvas {
   display: block;
   width: 100%;
   height: 100%;
-  border-radius: 16px 16px 0 0;
+  opacity: 0;
   touch-action: none;
   user-select: none;
 }
-.pet-supply-load {
+.pet-supply-canvas[data-ready='true'] {
+  opacity: 1;
+  animation: pet-supply-fade-in 180ms ease-out;
+}
+@keyframes pet-supply-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.pet-supply-error {
   position: absolute;
   inset: 0;
   display: flex;
@@ -101,38 +110,42 @@
   gap: 12px;
   font-size: 13px;
 }
-.pet-supply-load button {
+.pet-supply-error button {
   padding: 5px 10px;
   border: 1px solid #7775;
   border-radius: 6px;
 }
 .pet-reward-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 42px;
-}
-.pet-reward-choice-hint {
-  color: #66665e;
-  font-size: 12px;
+  position: absolute;
+  /* The revealed card is centered and scales down in narrow canvases. */
+  top: calc(
+    var(--supply-height) * 0.5 + min(var(--supply-height) * 0.34, var(--supply-width) * 0.386) +
+      12px
+  );
+  left: 50%;
+  transform: translateX(-50%);
 }
 .pet-reward-use {
-  min-width: 116px;
-  min-height: 38px;
-  padding: 0 24px;
+  min-width: 88px;
+  min-height: 2.25rem;
+  padding: 0 1.25rem;
   border: 1px solid rgb(var(--accent-rgb));
   border-radius: 8px;
   background: rgb(var(--accent-rgb));
   color: #fff;
   font-weight: 600;
-  box-shadow: 0 4px 14px rgb(var(--accent-rgb) / 0.24);
+  box-shadow: 0 4px 10px rgb(var(--accent-rgb) / 0.3);
+  transition:
+    background-color 0.2s,
+    border-color 0.2s;
 }
 .pet-reward-use:hover {
+  border-color: rgb(var(--accent-secondary-rgb));
   background: rgb(var(--accent-secondary-rgb));
 }
 @media (prefers-reduced-motion: reduce) {
-  .pet-reward-gift-ready {
+  .pet-reward-gift-ready,
+  .pet-supply-canvas[data-ready='true'] {
     animation: none;
   }
 }

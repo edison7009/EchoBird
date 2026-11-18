@@ -6,12 +6,11 @@ import { loadPetRenderer } from './petRenderer.js';
 const copy = vi.hoisted(() => ({ prefix: '' }));
 vi.mock('./petRenderer.js', () => ({ loadPetRenderer: vi.fn() }));
 vi.mock('../../hooks/useI18n', () => ({
-  useI18n: () => ({ t: (key: string) => copy.prefix + key }),
+  useI18n: () => ({ t: (key: string) => copy.prefix + key, locale: copy.prefix }),
 }));
 const native = {
   add_art: vi.fn(),
-  set_logo: vi.fn(),
-  set_copy: vi.fn(),
+  set_logo_and_pack_labels: vi.fn(),
   resize: vi.fn(),
   set_reduced_motion: vi.fn(),
   pointer_move: vi.fn(),
@@ -204,7 +203,7 @@ it('ignores right clicks and releases without an accepted primary press', async 
   expect(handlers.onOpen).not.toHaveBeenCalled();
 });
 it('releases partially initialized native resources immediately on failure', async () => {
-  native.set_copy.mockImplementationOnce(() => {
+  native.set_logo_and_pack_labels.mockImplementationOnce(() => {
     throw new Error('texture unavailable');
   });
   const log = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -232,4 +231,9 @@ it('restores the current reveal on a replacement scene after changing language',
   expect(native.dispose).toHaveBeenCalledOnce();
   expect(native.reveal).toHaveBeenCalledTimes(2);
   expect(native.reveal.mock.lastCall?.[1]).toBe('localized:pets.reward.growth');
+  expect(native.set_logo_and_pack_labels.mock.lastCall?.slice(1)).toEqual([
+    'localized:pets.reward.packTear',
+    'localized:pets.reward.packName',
+    'localized:pets.reward.packCount',
+  ]);
 });

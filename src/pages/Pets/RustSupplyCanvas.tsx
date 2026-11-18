@@ -33,8 +33,12 @@ const LAYERS = ['body', 'eyes', 'joy', 'wince', 'smile', 'open'] as const;
 
 interface NativeScene {
   add_art(character: number, layer: number, image: HTMLImageElement): void;
-  set_logo(image: HTMLImageElement): void;
-  set_copy(brand: string, kind: string, hint: string, label: string, count: string): void;
+  set_logo_and_pack_labels(
+    image: HTMLImageElement,
+    tear: string,
+    pack: string,
+    count: string
+  ): void;
   resize(width: number, height: number, dpr: number): void;
   set_reduced_motion(reduced: boolean): void;
   pointer_move(x: number, y: number): void;
@@ -130,7 +134,7 @@ export function RustSupplyCanvas({
   onRevealFinished?: () => void;
   onError?: (error: unknown) => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const canvas = useRef<HTMLCanvasElement>(null);
   const scene = useRef<NativeScene | null>(null);
   const revealed = useRef(false);
@@ -167,13 +171,9 @@ export function RustSupplyCanvas({
 
   const name = t(`pets.reward.${kind}`);
   const detail = t(`pets.reward.${kind}Detail`);
-  const copyKey = JSON.stringify([
-    'EchoBird',
-    'TOKENPET',
-    `${t('pets.reward.open')} →`,
-    t('pets.reward.title'),
-    t('pets.reward.choose'),
-  ]);
+  const packTear = t('pets.reward.packTear');
+  const packName = t('pets.reward.packName');
+  const packCount = t('pets.reward.packCount');
 
   useEffect(() => {
     let cancelled = false;
@@ -215,9 +215,7 @@ export function RustSupplyCanvas({
         live = new module.SupplyScene(canvas.current);
         scene.current = live;
         for (const slot of art) live.add_art(slot.character, slot.layer, slot.image);
-        live.set_logo(logo);
-        const [brand, kindLabel, hint, label, count] = JSON.parse(copyKey) as string[];
-        live.set_copy(brand, kindLabel, hint, label, count);
+        live.set_logo_and_pack_labels(logo, packTear, packName, packCount);
         live.set_reduced_motion(media.matches);
         const fit = () => {
           const bounds = canvas.current?.getBoundingClientRect();
@@ -259,7 +257,7 @@ export function RustSupplyCanvas({
       live?.dispose();
       live?.free();
     };
-  }, [copyKey, attempt]);
+  }, [locale, attempt, packTear, packName, packCount]);
 
   // Keep the scene in step with the dialog's phase. The reward's words reach
   // the scene only once the dialog has accepted a pick.
@@ -304,6 +302,7 @@ export function RustSupplyCanvas({
       <canvas
         ref={canvas}
         className="pet-supply-canvas"
+        data-ready={ready}
         aria-hidden="true"
         onPointerMove={(event) => scene.current?.pointer_move(...point(event))}
         onPointerDown={(event) => {
@@ -346,9 +345,8 @@ export function RustSupplyCanvas({
         onContextMenu={(event) => event.preventDefault()}
         onDragStart={(event) => event.preventDefault()}
       />
-      {!ready && !error && <span className="pet-supply-load">{t('pets.reward.loading')}</span>}
       {error && (
-        <div className="pet-supply-load">
+        <div className="pet-supply-error">
           <span>{t('pets.reward.renderError')}</span>
           <button
             type="button"

@@ -4,6 +4,7 @@ const milestoneUrl = new URL('../../assets/pets/milestone.mp3', import.meta.url)
 function createAudioClips(urls: string[], volume: number) {
   let clips: HTMLAudioElement[] = [];
   let playback = 0;
+  let finishPriming: (() => void) | undefined;
   function stop() {
     playback += 1;
     for (const clip of clips) {
@@ -11,6 +12,7 @@ function createAudioClips(urls: string[], volume: number) {
       clip.currentTime = 0;
       clip.volume = volume;
     }
+    finishPriming?.();
   }
   return {
     prepare() {
@@ -25,14 +27,19 @@ function createAudioClips(urls: string[], volume: number) {
     // Unlock delayed playback inside the opening gesture without an audible cue.
     prime() {
       const clip = clips[0];
-      if (!clip) return;
+      if (!clip || finishPriming) return;
       const revision = playback;
+      const wasMuted = clip.muted;
+      // WebKit may start the first frame before the volume change takes effect.
+      clip.muted = true;
       clip.volume = 0;
+      finishPriming = () => {
+        clip.muted = wasMuted;
+        finishPriming = undefined;
+      };
       const settle = () => {
         if (revision !== playback) return;
-        clip.pause();
-        clip.currentTime = 0;
-        clip.volume = volume;
+        stop();
       };
       void clip.play().then(settle, settle);
     },

@@ -128,9 +128,6 @@ export default function PetRewardDialog({
         }}
       />
       <div className="pet-reward-actions">
-        {phase === 'choosing' && (
-          <p className="pet-reward-choice-hint">{t('pets.reward.choose')}</p>
-        )}
         {phase === 'revealed' && (
           <button
             type="button"

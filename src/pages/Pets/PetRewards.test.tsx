@@ -67,8 +67,10 @@ it('does not automatically open saved cards and preserves one on closing', async
     view = create(<PetRewards />);
   });
   expect(view.root.findAllByProps({ className: 'test-close' })).toHaveLength(0);
+  expect(button().findByType('span').props.children).toBe('pets.reward.claim');
   await act(async () => button().props.onClick());
   act(() => view.root.findByProps({ className: 'test-close' }).props.onClick());
+  expect(button().findByType('span').props.children).toBe('pets.reward.claim');
   expect(pets.getState().rewards.pending).toEqual(pending);
   expect(pets.getState().rewards.nextClaimAt).toBe(0);
 });
@@ -106,6 +108,7 @@ it('pauses the next opportunity while holding a card and starts ten minutes only
   act(() => {
     view = create(<PetRewards />);
   });
+  expect(button().findByType('span').props.children).toBe('pets.reward.claim');
   await act(async () => button().props.onClick());
   const close = view.root.findByProps({ className: 'test-close' }).props.onClick;
   expect(pets.getState().rewards.nextClaimAt).toBe(0);

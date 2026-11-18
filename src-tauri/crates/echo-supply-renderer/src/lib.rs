@@ -141,19 +141,30 @@ pub fn tear_path(seed: u64) -> [f32; TEAR_SAMPLES + 1] {
 /// Card width / height (5:7), in pack heights.
 pub const CARD_W: f32 = 0.56;
 pub const CARD_H: f32 = CARD_W * 1.4;
+#[cfg(any(test, target_arch = "wasm32"))]
+pub(crate) const FAN_SCALE: f32 = 1.20;
+const FAN_VISIBLE_FRACTION: f32 = 0.88;
+const FAN_SLOT_WIDTH: f32 = 0.66;
+
+/// Fits the five overlapping cards within the visible width.
+#[cfg(any(test, target_arch = "wasm32"))]
+pub(crate) fn fit_fan_scale(half_width: f32) -> f32 {
+    FAN_SCALE.min(half_width * 2.0 * FAN_VISIBLE_FRACTION / (CARD_W * (1.0 + 4.0 * FAN_SLOT_WIDTH)))
+}
 
 /// Centre-to-centre spacing of the five face-down cards, so they fit the
 /// visible width (`half_width` in world units) with a small margin.
 pub fn fan_spacing(half_width: f32, scale: f32) -> f32 {
     let card = CARD_W * scale;
-    ((half_width * 2.0 * 0.94 - card) / 4.0).clamp(card * 0.55, card * 1.08)
+    ((half_width * 2.0 * FAN_VISIBLE_FRACTION - card) / 4.0)
+        .clamp(card * 0.55, card * FAN_SLOT_WIDTH)
 }
 
 /// Where each face-down card rests: x offset, height offset and roll.
 /// The middle card sits highest, like a hand of cards.
 pub fn fan_slot(index: usize, spacing: f32) -> (f32, f32, f32) {
     let i = index as f32 - 2.0;
-    (i * spacing, -0.03 * i * i, -0.05 * i)
+    (i * spacing, -0.024 * i * i, -0.085 * i)
 }
 
 /// Which card is under a pointer at world x, or None between and beyond them.
@@ -189,24 +200,29 @@ mod tests {
 
     #[test]
     fn five_slots_are_distinct_and_hit_testing_matches_them() {
-        for half_width in [0.9f32, 1.2, 2.0] {
-            let spacing = fan_spacing(half_width, 0.85);
+        for half_width in [0.66f32, 0.9, 1.2, 2.0] {
+            let scale = fit_fan_scale(half_width);
+            let spacing = fan_spacing(half_width, scale);
             let xs: Vec<f32> = (0..5).map(|i| fan_slot(i, spacing).0).collect();
             for w in xs.windows(2) {
                 assert!(w[1] > w[0]);
             }
             for (i, x) in xs.iter().enumerate() {
-                assert_eq!(slot_at(*x, spacing, CARD_W * 0.85), Some(i));
+                assert_eq!(slot_at(*x, spacing, CARD_W * scale), Some(i));
             }
-            assert_eq!(slot_at(10.0, spacing, CARD_W * 0.85), None);
+            assert_eq!(slot_at(10.0, spacing, CARD_W * scale), None);
         }
     }
 
     #[test]
     fn fan_stays_inside_the_view() {
-        for half_width in [0.9f32, 1.2, 2.0] {
-            let spacing = fan_spacing(half_width, 0.85);
-            let outer = fan_slot(4, spacing).0 + CARD_W * 0.85 / 2.0;
+        for half_width in [0.66f32, 0.9, 1.2, 2.0] {
+            let scale = fit_fan_scale(half_width);
+            let spacing = fan_spacing(half_width, scale);
+            let (center, _, roll) = fan_slot(4, spacing);
+            let rolled_half_width = (CARD_W * roll.cos() + CARD_H * roll.sin().abs()) * scale / 2.0;
+            let outer = center + rolled_half_width;
+            assert!(spacing < CARD_W * scale);
             assert!(outer <= half_width * 1.0, "{half_width}: {outer}");
         }
     }

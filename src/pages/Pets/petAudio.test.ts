@@ -78,6 +78,7 @@ it('silently primes the gesture and does not let a late unlock stop the delayed 
     unlock = resolve;
   });
   const clip = {
+    muted: false,
     volume: 1,
     currentTime: 0,
     play: vi.fn(() => Promise.resolve()).mockImplementationOnce(() => pending),
@@ -94,8 +95,10 @@ it('silently primes the gesture and does not let a late unlock stop the delayed 
   const sound = createRewardAudio();
   sound.prepare();
   sound.prime();
+  expect(clip.muted).toBe(true);
   expect(clip.volume).toBe(0);
   sound.play();
+  expect(clip.muted).toBe(false);
   expect(clip.volume).toBe(0.4);
   clip.currentTime = 0.15;
   const pauses = clip.pause.mock.calls.length;

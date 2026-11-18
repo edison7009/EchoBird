@@ -35,6 +35,9 @@ const PetsMain = lazy(() =>
 const PetsPanel = lazy(() =>
   import('./pages/Pets/Pets').then((module) => ({ default: module.PetsPanel }))
 );
+const PetsCredit = lazy(() =>
+  import('./pages/Pets/Pets').then((module) => ({ default: module.PetsCredit }))
+);
 import {
   RouterStatisticsProvider,
   RouterStatisticsPanel,
@@ -567,6 +570,11 @@ function AppContent() {
                                       </OnFirstVisit>
                                     </div>
                                   </section>
+                                  {feature('pets') && (
+                                    <OnFirstVisit active>
+                                      <PetsCredit />
+                                    </OnFirstVisit>
+                                  )}
                                 </main>
 
                                 <aside className="flex flex-col">
@@ -659,7 +667,9 @@ function AppContent() {
                             )}
 
                             {/* Download bar */}
-                            <div className="flex-shrink-0 pt-2">
+                            <div
+                              className={`flex-shrink-0 pt-2 ${feature('pets') ? 'empty:hidden' : ''}`}
+                            >
                               <DownloadBar />
                             </div>
                           </div>

@@ -11,23 +11,14 @@ const mock = vi.hoisted(() => ({
   credits: vi.fn(async () => ({ ledgerId: 'fixture-ledger', total: 0 })),
   done: undefined as undefined | (() => void),
   progress: undefined as undefined | ((progress: number) => void),
-  impact: undefined as undefined | (() => void),
   show: vi.fn(),
   dispose: vi.fn(),
   interact: vi.fn(),
   rotate: vi.fn(),
-  upgrade: vi.fn(
-    (
-      _next: unknown,
-      done: () => void,
-      onProgress?: (progress: number) => void,
-      cues?: { onImpact?: () => void }
-    ) => {
-      mock.done = done;
-      mock.progress = onProgress;
-      mock.impact = cues?.onImpact;
-    }
-  ),
+  upgrade: vi.fn((_next: unknown, done: () => void, onProgress?: (progress: number) => void) => {
+    mock.done = done;
+    mock.progress = onProgress;
+  }),
   thumbnail: vi.fn(() => 'data:image/png;base64,fixture'),
   sound: { prepare: vi.fn(), play: vi.fn(), stop: vi.fn(), dispose: vi.fn() },
 }));
@@ -46,7 +37,6 @@ beforeEach(() => {
   vi.clearAllMocks();
   mock.done = undefined;
   mock.progress = undefined;
-  mock.impact = undefined;
   mock.visible = true;
   mock.modalOpen = false;
   mock.credits.mockResolvedValue({ ledgerId: 'fixture-ledger', total: 0 });
@@ -446,31 +436,3 @@ it.each([9, 19, 29, 39, 49, 59])(
     expect(mock.sound.play).toHaveBeenCalledExactlyOnceWith(true);
   }
 );
-
-it('plays impact audio once before settlement without granting growth early', async () => {
-  await mount();
-  const balance = pets.getState().balance;
-  upgrade();
-  act(() => {
-    mock.impact!();
-    mock.impact!();
-  });
-  expect(mock.sound.play).toHaveBeenCalledExactlyOnceWith(false);
-  expect(pets.getState().balance).toBe(balance);
-  expect(pets.getState().items[0].level).toBe(0);
-  finishUpgrade();
-  expect(pets.getState().items[0].level).toBe(1);
-  expect(mock.sound.play).toHaveBeenCalledTimes(1);
-});
-
-it('ignores late impact audio after switching pets', async () => {
-  await mount();
-  upgrade();
-  const impact = mock.impact!;
-  act(() => {
-    pets.getState().select(2);
-    impact();
-  });
-  expect(mock.sound.play).not.toHaveBeenCalled();
-  expect(pets.getState().items[0].level).toBe(0);
-});

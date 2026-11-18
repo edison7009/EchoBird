@@ -14,6 +14,7 @@ export function PetRewards() {
   const [now, setNow] = useState(Date.now);
   const [open, setOpen] = useState(false);
   const ready = rewards.nextClaimAt <= now;
+  const canClaim = ready || Boolean(rewards.pending);
   const ticking = (!rewards.pending && !ready) || rewards.doubleUntil > now;
   useEffect(() => {
     const refresh = () => {
@@ -39,13 +40,13 @@ export function PetRewards() {
       <button
         type="button"
         className="pet-reward-claim"
-        disabled={busy || (!ready && !rewards.pending)}
+        disabled={busy || !canClaim}
         onClick={() => {
           setNow(Date.now());
           if (usePetsStore.getState().claimReward()) setOpen(true);
         }}
       >
-        {ready || rewards.pending ? (
+        {canClaim ? (
           <Gift
             size={16}
             className={ready && !rewards.pending ? 'pet-reward-gift-ready' : undefined}
@@ -53,12 +54,8 @@ export function PetRewards() {
         ) : (
           <Clock3 size={16} />
         )}
-        <span>
-          {t(
-            rewards.pending ? 'pets.reward.view' : ready ? 'pets.reward.claim' : 'pets.reward.next'
-          )}
-        </span>
-        {!ready && !rewards.pending && <span>{rewardCountdown(rewards.nextClaimAt, now)}</span>}
+        <span>{t(canClaim ? 'pets.reward.claim' : 'pets.reward.next')}</span>
+        {!canClaim && <span>{rewardCountdown(rewards.nextClaimAt, now)}</span>}
       </button>
       {rewards.doubleUntil > now && (
         <small className="pet-reward-boost">

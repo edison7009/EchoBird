@@ -17,8 +17,8 @@ use crate::gl::{
 };
 use crate::shaders::*;
 use crate::{
-    clamp01, ease_back, ease_out, fan_slot, fan_spacing, slot_at, smooth, tear_path, Rng, Spring,
-    AUTO_TEAR_SECONDS, CARD_H, CARD_W, PACK_ASPECT, REVEAL_SECONDS, TEAR_CUE_PROGRESS,
+    clamp01, ease_back, ease_out, fan_slot, fan_spacing, fit_fan_scale, slot_at, smooth, tear_path,
+    Rng, Spring, AUTO_TEAR_SECONDS, CARD_H, CARD_W, PACK_ASPECT, REVEAL_SECONDS, TEAR_CUE_PROGRESS,
     TEAR_SAMPLES,
 };
 
@@ -30,16 +30,19 @@ pub const EV_PICKED: u32 = 8;
 pub const EV_REVEAL_MID: u32 = 16;
 pub const EV_REVEAL_DONE: u32 = 32;
 
-const FOV: f32 = 0.52;
+const BRAND: &str = "EchoBird";
+const PACK_LABEL: &str = "TOKENPET";
+const FOV: f32 = 0.44;
+const MIN_ASPECT: f32 = 0.88;
 const EYE_Z: f32 = 3.4;
 const PACK_H: f32 = 1.0;
-const FAN_SCALE: f32 = 0.78;
+const PACK_SCALE: f32 = 1.12;
 /// Card thickness and corner radius, in pack heights.
 const CARD_T: f32 = 0.016;
 const CARD_R: f32 = 0.045;
 /// Depth the fanned cards rest at; spacing is computed for this plane.
 const FAN_Z: f32 = 0.0;
-const REVEAL_SCALE: f32 = 1.16;
+const REVEAL_SCALE: f32 = 1.04;
 
 /// Mascot layers, as sent by JS in `add_art`.
 const L_BODY: usize = 0;
@@ -155,7 +158,6 @@ pub struct SupplyScene {
     card_back: Option<WebGlTexture>,
     card_front: Option<WebGlTexture>,
     art: Vec<Option<WebGlTexture>>,
-    copy: [String; 5],
     width: f32,
     height: f32,
     dpr: f32,
@@ -253,13 +255,6 @@ impl SupplyScene {
             card_back: None,
             card_front: None,
             art: (0..CHARS * LAYERS).map(|_| None).collect(),
-            copy: [
-                "EchoBird".into(),
-                "TOKENPET".into(),
-                "TEAR HERE \u{2192}".into(),
-                "Supply pack".into(),
-                "Pick 1 of 5".into(),
-            ],
             width: 600.0,
             height: 800.0,
             dpr: 1.0,
@@ -302,7 +297,7 @@ impl SupplyScene {
             sparkles: Vec::new(),
             disposed: false,
         };
-        scene.redraw_print()?;
+        scene.redraw_print(["Tear here →", "Card pack", "5 cards"])?;
         scene.redraw_back()?;
         Ok(scene)
     }
@@ -326,24 +321,16 @@ impl SupplyScene {
         Ok(())
     }
 
-    /// Printed words on the pack: brand, kind, tear hint, pack label, count.
-    pub fn set_copy(
+    /// Draw the bird mark and localized labels on the pack, and the mark on the card back.
+    pub fn set_logo_and_pack_labels(
         &mut self,
-        brand: String,
-        kind: String,
-        hint: String,
-        label: String,
-        count: String,
+        image: HtmlImageElement,
+        tear: &str,
+        pack: &str,
+        count: &str,
     ) -> Result<(), JsValue> {
-        self.copy = [brand, kind, hint, label, count];
-        self.redraw_print()?;
-        self.redraw_back()
-    }
-
-    /// EchoBird's bird mark, drawn on the pack and as the card-back emblem.
-    pub fn set_logo(&mut self, image: HtmlImageElement) -> Result<(), JsValue> {
         self.logo = Some(image);
-        self.redraw_print()?;
+        self.redraw_print([tear, pack, count])?;
         self.redraw_back()
     }
 
@@ -407,7 +394,7 @@ impl SupplyScene {
                 if self.progress.x < 0.01 && dx.abs() > 0.02 {
                     self.dir = dx.signum();
                 }
-                self.progress.to = clamp01(dx * self.dir / (PACK_ASPECT * 0.95));
+                self.progress.to = clamp01(dx * self.dir / (PACK_ASPECT * PACK_SCALE * 0.95));
             }
         }
         if self.choosing() {
@@ -424,7 +411,8 @@ impl SupplyScene {
         if self.opened_at.is_some() || self.auto_from.is_some() {
             return false;
         }
-        let on_pack = wx.abs() < PACK_ASPECT * 0.55 && wy.abs() < PACK_H * 0.55;
+        let on_pack =
+            wx.abs() < PACK_ASPECT * PACK_SCALE * 0.55 && wy.abs() < PACK_H * PACK_SCALE * 0.55;
         if on_pack {
             self.drag = Some((wx, wy));
             self.moved = false;
@@ -669,12 +657,12 @@ impl SupplyScene {
         }
         // A hovered back leans toward where the pointer is on it, so that
         // corner presses away; the others waft gently, as if in moving air.
-        let spacing = self.spacing();
+        let (fan_scale, spacing) = self.fan_dimensions();
         let (px, py) = self.pointer_world;
         let waft = if self.reduced { 0.0 } else { 1.0 };
         for i in 0..5 {
             let (sx, sy, _) = fan_slot(i, spacing);
-            let (w, h) = (CARD_W * FAN_SCALE, CARD_H * FAN_SCALE);
+            let (w, h) = (CARD_W * fan_scale, CARD_H * fan_scale);
             let hx = ((px - sx) / w + 0.5).clamp(0.0, 1.0);
             let cy = self.fan_y() + sy + 0.09 * self.hover[i].x;
             let hy = (0.5 - (py - cy) / h).clamp(0.0, 1.0);
@@ -777,8 +765,8 @@ impl SupplyScene {
     fn fov(&self) -> f32 {
         let aspect = self.width / self.height;
         // Keep things the same size in narrow windows.
-        if aspect < 0.75 {
-            2.0 * ((FOV / 2.0).tan() * 0.75 / aspect).atan()
+        if aspect < MIN_ASPECT {
+            2.0 * ((FOV / 2.0).tan() * MIN_ASPECT / aspect).atan()
         } else {
             FOV
         }
@@ -811,18 +799,18 @@ impl SupplyScene {
         self.ready_sent && self.picked.is_none()
     }
 
-    fn spacing(&self) -> f32 {
-        // Visible half width at the fan's depth, so the outer cards stay on screen.
-        let at_depth = self.half_extent().0 * (EYE_Z - FAN_Z) / EYE_Z;
-        fan_spacing(at_depth, FAN_SCALE)
+    fn fan_dimensions(&self) -> (f32, f32) {
+        let half_width = self.half_extent().0;
+        let scale = fit_fan_scale(half_width);
+        (scale, fan_spacing(half_width, scale))
     }
 
     fn card_at(&self, wx: f32, wy: f32) -> Option<usize> {
-        let half_h = CARD_H * FAN_SCALE * 0.5;
-        if (wy - self.fan_y()).abs() > half_h + 0.05 {
-            return None;
-        }
-        slot_at(wx, self.spacing(), CARD_W * FAN_SCALE)
+        let (scale, spacing) = self.fan_dimensions();
+        let index = slot_at(wx, spacing, CARD_W * scale)?;
+        let (_, y, _) = fan_slot(index, spacing);
+        let center_y = self.fan_y() + y + 0.09 * self.hover[index].x;
+        ((wy - center_y).abs() <= CARD_H * scale * 0.5 + 0.05).then_some(index)
     }
 
     fn fan_y(&self) -> f32 {
@@ -845,6 +833,7 @@ impl SupplyScene {
             .mul(&Mat4::rot_y(self.ry.x))
             .mul(&Mat4::rot_x(self.rx.x))
             .mul(&Mat4::rot_z(self.rz.x))
+            .mul(&Mat4::scale(PACK_SCALE, PACK_SCALE, PACK_SCALE))
     }
 
     /// The plane through the pack's torn opening, facing up the pack, in
@@ -905,7 +894,7 @@ impl SupplyScene {
         if a < 0.35 {
             return Vec::new();
         }
-        let spacing = self.spacing();
+        let (fan_scale, spacing) = self.fan_dimensions();
         let pack = self.pack_model();
         let mut poses = Vec::with_capacity(5);
         for i in 0..5 {
@@ -921,13 +910,14 @@ impl SupplyScene {
             let fan = ease_back((a - 1.2 - i as f32 * 0.06) / 0.65);
             let (sx, sy, roll) = fan_slot(i, spacing);
             let centre = [0.0, self.fan_y() + 0.05, FAN_Z + 0.2];
-            let slot = [sx, self.fan_y() + sy, FAN_Z + i as f32 * 0.001];
+            let depth = (2 - i.abs_diff(2)) as f32 * 0.006;
+            let slot = [sx, self.fan_y() + sy, FAN_Z + depth];
             let mut pos = [0.0; 3];
             for (k, p) in pos.iter_mut().enumerate() {
                 let stacked = inside[k] + (centre[k] - inside[k]) * gather;
                 *p = stacked + (slot[k] - stacked) * fan;
             }
-            let scale = 1.0 + (FAN_SCALE - 1.0) * gather;
+            let scale = 1.0 + (fan_scale - 1.0) * gather;
             let mut pose = CardPose {
                 index: i,
                 pos,
@@ -970,9 +960,10 @@ impl SupplyScene {
             poses.push(pose);
         }
         poses.sort_by(|a, b| {
-            a.pos[2]
-                .partial_cmp(&b.pos[2])
-                .unwrap_or(std::cmp::Ordering::Equal)
+            let picked = |pose: &CardPose| Some(pose.index) == self.picked;
+            picked(a)
+                .cmp(&picked(b))
+                .then_with(|| a.pos[2].total_cmp(&b.pos[2]))
         });
         poses
     }
@@ -985,7 +976,7 @@ impl SupplyScene {
             .mul(&Mat4::scale(pose.scale, pose.scale, pose.scale))
     }
 
-    fn redraw_print(&mut self) -> Result<(), JsValue> {
+    fn redraw_print(&mut self, [tear, pack, count]: [&str; 3]) -> Result<(), JsValue> {
         let (w, h) = (1024u32, (1024.0 / PACK_ASPECT) as u32);
         let canvas = offscreen_canvas(w, h)?;
         let ctx: CanvasRenderingContext2d = canvas
@@ -994,16 +985,14 @@ impl SupplyScene {
             .dyn_into()?;
         let (w, h) = (w as f64, h as f64);
         ctx.set_text_baseline("alphabetic");
-        ctx.set_fill_style_str("rgba(255,255,255,0.55)");
-        ctx.set_font(&format!("600 26px {FONT}"));
-        letter_spacing(&ctx, "4px");
-        ctx.fill_text(&self.copy[2], w * 0.075, h * 0.098)?;
-        letter_spacing(&ctx, "0px");
+        ctx.set_fill_style_str("rgba(255,255,255,0.78)");
+        ctx.set_font(&format!("700 30px {FONT}"));
+        ctx.fill_text(tear, w * 0.075, h * 0.102)?;
         ctx.set_fill_style_str("#ffffff");
         // The wordmark fills the width beside the mark, shrinking for long names.
         let logo_room = if self.logo.is_some() { 132.0 } else { 0.0 };
         ctx.set_font(&format!("800 118px {FONT}"));
-        let natural = ctx.measure_text(&self.copy[0])?.width();
+        let natural = ctx.measure_text(BRAND)?.width();
         let brand_px = (118.0 * (w * 0.86 - logo_room) / natural.max(1.0)).min(118.0);
         ctx.set_font(&format!("800 {brand_px:.0}px {FONT}"));
         let mut brand_x = w * 0.07;
@@ -1019,20 +1008,20 @@ impl SupplyScene {
             )?;
             brand_x += size + 4.0;
         }
-        ctx.fill_text(&self.copy[0], brand_x, h * 0.26)?;
+        ctx.fill_text(BRAND, brand_x, h * 0.26)?;
         ctx.set_fill_style_str("rgba(255,255,255,0.72)");
         ctx.set_font(&format!("700 30px {FONT}"));
         letter_spacing(&ctx, "5px");
         ctx.set_text_align("right");
         // The kind of pack sits on its own line under the wordmark.
-        ctx.fill_text(&self.copy[1], w * 0.93, h * 0.305)?;
+        ctx.fill_text(PACK_LABEL, w * 0.93, h * 0.305)?;
+
         letter_spacing(&ctx, "0px");
         ctx.set_font(&format!("600 40px {FONT}"));
         ctx.set_fill_style_str("rgba(255,255,255,0.9)");
+        ctx.fill_text(count, w * 0.925, h * 0.895)?;
         ctx.set_text_align("left");
-        ctx.fill_text(&self.copy[3], w * 0.075, h * 0.895)?;
-        ctx.set_text_align("right");
-        ctx.fill_text(&self.copy[4], w * 0.925, h * 0.895)?;
+        ctx.fill_text(pack, w * 0.075, h * 0.895)?;
         if let Some(old) = self.print.take() {
             self.gl.delete_texture(Some(&old));
         }
@@ -1071,20 +1060,20 @@ impl SupplyScene {
             )?;
             ctx.set_fill_style_str("rgba(255,255,255,0.42)");
             ctx.set_font(&format!("800 34px {FONT}"));
-            ctx.fill_text(&self.copy[0], w * 0.5, h * 0.5 + size * 0.5)?;
+            ctx.fill_text(BRAND, w * 0.5, h * 0.5 + size * 0.5)?;
             ctx.set_font(&format!("700 16px {FONT}"));
             letter_spacing(&ctx, "6px");
             ctx.set_fill_style_str("rgba(255,255,255,0.24)");
-            ctx.fill_text(&self.copy[1], w * 0.5 + 3.0, h * 0.5 + size * 0.5 + 38.0)?;
+            ctx.fill_text(PACK_LABEL, w * 0.5 + 3.0, h * 0.5 + size * 0.5 + 38.0)?;
             letter_spacing(&ctx, "0px");
         } else {
             ctx.set_fill_style_str("rgba(255,255,255,0.34)");
             ctx.set_font(&format!("800 54px {FONT}"));
-            ctx.fill_text(&self.copy[0], w * 0.5, h * 0.5)?;
+            ctx.fill_text(BRAND, w * 0.5, h * 0.5)?;
             ctx.set_font(&format!("700 18px {FONT}"));
             letter_spacing(&ctx, "6px");
             ctx.set_fill_style_str("rgba(255,255,255,0.22)");
-            ctx.fill_text(&self.copy[1], w * 0.5, h * 0.5 + 52.0)?;
+            ctx.fill_text(PACK_LABEL, w * 0.5, h * 0.5 + 52.0)?;
             letter_spacing(&ctx, "0px");
         }
         if let Some(old) = self.card_back.take() {
@@ -1384,7 +1373,12 @@ impl SupplyScene {
         self.shape_prog.f4(
             gl,
             "u_rect",
-            [0.0, 0.0, PACK_ASPECT * 1.15 + self.ry.x.abs() * 0.2, 0.32],
+            [
+                0.0,
+                0.0,
+                PACK_ASPECT * PACK_SCALE * 1.15 + self.ry.x.abs() * 0.2,
+                0.32,
+            ],
         );
         self.shape_prog.f4(
             gl,
@@ -1639,6 +1633,11 @@ impl SupplyScene {
         for pose in poses {
             if pose.alpha <= 0.002 {
                 continue;
+            }
+            // Composite the fan back to front. Keep depth within each card
+            // for its raised artwork, without letting adjacent tilted cards cut through it.
+            if out {
+                gl.clear(Gl::DEPTH_BUFFER_BIT);
             }
             let model = self.card_model(pose);
             self.card_prog.bind(gl);

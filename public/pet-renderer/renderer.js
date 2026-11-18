@@ -261,35 +261,20 @@ export class SupplyScene {
         }
     }
     /**
-     * Printed words on the pack: brand, kind, tear hint, pack label, count.
-     * @param {string} brand
-     * @param {string} kind
-     * @param {string} hint
-     * @param {string} label
+     * Draw the bird mark and localized labels on the pack, and the mark on the card back.
+     * @param {HTMLImageElement} image
+     * @param {string} tear
+     * @param {string} pack
      * @param {string} count
      */
-    set_copy(brand, kind, hint, label, count) {
-        const ptr0 = passStringToWasm0(brand, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    set_logo_and_pack_labels(image, tear, pack, count) {
+        const ptr0 = passStringToWasm0(tear, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passStringToWasm0(kind, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr1 = passStringToWasm0(pack, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len1 = WASM_VECTOR_LEN;
-        const ptr2 = passStringToWasm0(hint, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr2 = passStringToWasm0(count, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len2 = WASM_VECTOR_LEN;
-        const ptr3 = passStringToWasm0(label, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len3 = WASM_VECTOR_LEN;
-        const ptr4 = passStringToWasm0(count, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len4 = WASM_VECTOR_LEN;
-        const ret = wasm.supplyscene_set_copy(this.__wbg_ptr, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4);
-        if (ret[1]) {
-            throw takeFromExternrefTable0(ret[0]);
-        }
-    }
-    /**
-     * EchoBird's bird mark, drawn on the pack and as the card-back emblem.
-     * @param {HTMLImageElement} image
-     */
-    set_logo(image) {
-        const ret = wasm.supplyscene_set_logo(this.__wbg_ptr, image);
+        const ret = wasm.supplyscene_set_logo_and_pack_labels(this.__wbg_ptr, image, ptr0, len0, ptr1, len1, ptr2, len2);
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
         }
