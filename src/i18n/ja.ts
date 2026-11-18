@@ -609,6 +609,10 @@ const ja: Partial<Translations> = {
   'aiDesktop.launchTarget': '起動エントリ',
   'aiDesktop.addToMy': '「マイアプリ」に追加',
   'aiDesktop.removeFromMy': '「マイアプリ」から非表示',
+  'aiDesktop.configurationLocations': '検出された設定・データの場所',
+  'aiDesktop.configurationLocationsHint':
+    'これらのパスは調査用で、共有データや個人データを含む場合があります。所有元と整理範囲を確認してください。表示は削除の許可を意味しません。',
+  'aiDesktop.thoroughUninstall': '完全に削除',
   'aiDesktop.openLocation': 'フォルダーを開く',
   'btn.launchApp': 'アプリを起動',
   'btn.modifyOnly': '変更のみ',

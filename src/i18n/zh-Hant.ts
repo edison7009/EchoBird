@@ -583,6 +583,10 @@ const zhHant: Partial<Translations> = {
   'aiDesktop.launchTarget': '啟動項目',
   'aiDesktop.addToMy': '加入「我的」應用',
   'aiDesktop.removeFromMy': '取消在「我的」顯示',
+  'aiDesktop.configurationLocations': '已找到的設定與資料位置',
+  'aiDesktop.configurationLocationsHint':
+    '這些路徑僅供查核，可能包含共用或個人資料；請先確認歸屬與清理範圍，不代表已授權刪除。',
+  'aiDesktop.thoroughUninstall': '徹底解除安裝',
   'aiDesktop.openLocation': '開啟資料夾',
   'btn.launchApp': '啟動應用',
   'btn.modifyOnly': '僅修改',

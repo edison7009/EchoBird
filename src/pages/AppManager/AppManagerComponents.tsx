@@ -1242,6 +1242,7 @@ export const AppManagerPanel: React.FC = () => {
       directory={panelDetails.directory}
       path={panelDetails.data?.path}
       launchTarget={panelDetails.data?.launchTarget}
+      configurationPaths={panelDetails.configurationPaths}
       disabled={isLaunching || applicationDetails.loading}
     />
   );

@@ -56,6 +56,7 @@ export interface SystemApplicationDetails {
   fileSize: number | null;
   modifiedAt: number | null;
   launchTarget: string;
+  configPaths?: string[];
 }
 
 export async function getSystemApplicationDetails(id: string): Promise<SystemApplicationDetails> {

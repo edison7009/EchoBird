@@ -68,6 +68,7 @@ export function useApplicationDetails(tool: LocalTool | null | undefined) {
     error: current?.error,
     loading: !!tool?.systemAppId && !data && !current?.error,
     directory: data?.directory || managedDirectory || null,
+    configurationPaths: [...new Set(data?.configPaths ?? [])],
   };
 }
 
@@ -125,20 +126,24 @@ export function ApplicationDetailsPanel({
         {(stableLayout || path) && (
           <div className="space-y-2">
             <dt className="text-cyber-text-secondary">{t('aiDesktop.fileLocation')}</dt>
-            <dd
-              className={`select-text break-all leading-relaxed ${stableLayout ? 'h-16 overflow-y-auto' : ''}`}
-            >
-              {value(path)}
-            </dd>
+            <dd className="select-text break-all leading-relaxed">{value(path)}</dd>
           </div>
         )}
         {(stableLayout || (details && details.launchTarget !== path)) && (
           <div className="space-y-2">
             <dt className="text-cyber-text-secondary">{t('aiDesktop.launchTarget')}</dt>
-            <dd
-              className={`select-text break-all text-xs leading-relaxed text-cyber-text-secondary ${stableLayout ? 'h-14 overflow-y-auto' : ''}`}
-            >
+            <dd className="select-text break-all leading-relaxed">
               {value(details?.launchTarget)}
+            </dd>
+          </div>
+        )}
+        {state.configurationPaths.length > 0 && (
+          <div className="space-y-2">
+            <dt className="text-cyber-text-secondary">{t('aiDesktop.configurationLocations')}</dt>
+            <dd className="select-text space-y-2 break-all leading-relaxed">
+              {state.configurationPaths.map((location) => (
+                <p key={location}>{location}</p>
+              ))}
             </dd>
           </div>
         )}
@@ -157,12 +162,14 @@ export function ApplicationActions({
   directory,
   path,
   launchTarget,
+  configurationPaths = [],
   disabled,
 }: {
   tool: LocalTool;
   directory?: string | null;
   path?: string | null;
   launchTarget?: string | null;
+  configurationPaths?: string[];
   disabled: boolean;
 }) {
   const { t, locale } = useI18n();
@@ -183,6 +190,8 @@ export function ApplicationActions({
     t('mother.hintUninstall').replace('{agent}', () => toolDisplayName(tool, locale)),
     filePath && `${t('aiDesktop.fileLocation')} ${filePath}`,
     target && target !== filePath && `${t('aiDesktop.launchTarget')} ${target}`,
+    configurationPaths.length > 0 &&
+      `${t('aiDesktop.configurationLocations')}\n${configurationPaths.map((location) => JSON.stringify(location)).join('\n')}\n${t('aiDesktop.configurationLocationsHint')}`,
   ]
     .filter(Boolean)
     .join('\n');
@@ -221,7 +230,7 @@ export function ApplicationActions({
           onClick={() => goToMother(uninstallMessage)}
           className={buttonClassName}
         >
-          {t('btn.uninstall')}
+          {t('aiDesktop.thoroughUninstall')}
         </button>
       </div>
       {tool.systemAppId && !tool.defaultInMyApplications && (

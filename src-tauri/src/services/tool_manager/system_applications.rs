@@ -1,3 +1,5 @@
+mod configuration_paths;
+
 use crate::services::voice_input::app_icon_cache::Cache as IconCache;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -141,6 +143,8 @@ pub struct ApplicationDetails {
     file_size: Option<u64>,
     modified_at: Option<u64>,
     launch_target: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    config_paths: Vec<String>,
 }
 
 pub async fn details(id: &str) -> Result<ApplicationDetails, String> {
@@ -224,6 +228,7 @@ fn inspect(application: &SystemApplication) -> ApplicationDetails {
             .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
             .map(|duration| duration.as_millis() as u64),
         launch_target: application.path.clone(),
+        config_paths: configuration_paths::discover(application),
     }
 }
 

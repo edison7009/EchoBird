@@ -547,6 +547,10 @@ const zhHans: Partial<Translations> = {
   'aiDesktop.launchTarget': '启动入口',
   'aiDesktop.addToMy': '添加到“我的”应用',
   'aiDesktop.removeFromMy': '取消在“我的”显示',
+  'aiDesktop.configurationLocations': '已发现的配置与数据位置',
+  'aiDesktop.configurationLocationsHint':
+    '这些路径仅供核查，可能包含共享或个人数据；先确认归属和清理范围，不代表已授权删除。',
+  'aiDesktop.thoroughUninstall': '彻底卸载',
   'aiDesktop.openLocation': '打开文件夹',
   'btn.launchApp': '启动应用',
   'btn.modifyOnly': '仅修改',

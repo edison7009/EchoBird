@@ -28,7 +28,7 @@ vi.mock('../../hooks/useI18n', () => ({
     t: (key: string) =>
       (
         ({
-          'btn.uninstall': '卸载',
+          'aiDesktop.thoroughUninstall': '彻底卸载',
           'btn.launchApp': '启动应用',
           'mother.hintUninstall': '彻底卸载 {agent}',
           'aiDesktop.openLocation': '打开文件夹',
@@ -83,7 +83,7 @@ it.each(['本机应用', 'App $& $`'])(
     const uninstall = renderer.root
       .findByType(AppManagerPanel)
       .findAllByType('button')
-      .find((action) => action.children.includes('卸载'))!;
+      .find((action) => action.children.includes('彻底卸载'))!;
     expect(handleLaunch).not.toHaveBeenCalled();
     const detailsPanel = renderer.root.findByType(ApplicationDetailsPanel);
     expect(detailsPanel.findAllByType(ApplicationActions)).toHaveLength(1);
@@ -341,4 +341,43 @@ it('preserves the account-only login panel and its action row without adding a d
   expect(renderer.root.findAllByType(ApplicationActions)).toHaveLength(1);
   expect(JSON.stringify(renderer.toJSON())).toContain('agent.addCurrentAccount');
   expect(add).not.toHaveBeenCalled();
+});
+
+it('keeps configuration clues scoped to the coherent app snapshot while details change', async () => {
+  let complete!: (value: api.SystemApplicationDetails) => void;
+  vi.mocked(api.getSystemApplicationDetails)
+    .mockReset()
+    .mockResolvedValueOnce({ ...nativeDetails('config-first'), configPaths: ['/configs/first'] })
+    .mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          complete = resolve;
+        })
+    );
+  await act(async () => {
+    renderer = create(renderPanel(nativeTool('config-first')));
+  });
+  expect(renderer.root.findByType(ApplicationActions).props.configurationPaths).toEqual([
+    '/configs/first',
+  ]);
+  act(() => renderer.update(renderPanel(nativeTool('config-second'))));
+  expect(renderer.root.findByType(ApplicationActions).props.disabled).toBe(true);
+  expect(renderer.root.findByType(ApplicationActions).props.configurationPaths).toEqual([
+    '/configs/first',
+  ]);
+  await act(async () =>
+    complete({ ...nativeDetails('config-second'), configPaths: ['/configs/second'] })
+  );
+  expect(renderer.root.findByType(ApplicationActions).props.configurationPaths).toEqual([
+    '/configs/second',
+  ]);
+  act(() =>
+    renderer.root
+      .findByType(ApplicationActions)
+      .findAllByType('button')
+      .find((button) => button.children.includes('彻底卸载'))!
+      .props.onClick()
+  );
+  expect(useNavigationStore.getState().motherPrefill).toContain('"/configs/second"');
+  expect(useNavigationStore.getState().motherPrefill).not.toContain('/configs/first');
 });

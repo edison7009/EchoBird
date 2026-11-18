@@ -582,6 +582,10 @@ const en: Translations = {
   'aiDesktop.launchTarget': 'Launch entry',
   'aiDesktop.addToMy': 'Add to My apps',
   'aiDesktop.removeFromMy': 'Remove from My apps',
+  'aiDesktop.configurationLocations': 'Found configuration and data locations',
+  'aiDesktop.configurationLocationsHint':
+    'These paths are investigation clues and may contain shared or personal data. Verify ownership and cleanup scope first; listing them does not authorize deletion.',
+  'aiDesktop.thoroughUninstall': 'Fully uninstall',
   'aiDesktop.openLocation': 'Open folder',
   'btn.launchApp': 'LAUNCH APP',
   'btn.modifyOnly': 'MODIFY ONLY',

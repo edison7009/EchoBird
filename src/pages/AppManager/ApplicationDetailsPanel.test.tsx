@@ -56,6 +56,7 @@ function Details({ tool }: { tool: LocalTool }) {
         directory={state.directory}
         path={state.data?.path}
         launchTarget={state.data?.launchTarget}
+        configurationPaths={state.configurationPaths}
         disabled={state.loading}
       />
     </ApplicationDetailsPanel>
@@ -107,7 +108,7 @@ it('shows pending attributes and ignores late responses after changing apps', as
   act(() =>
     renderer.root
       .findAllByType('button')
-      .find((button) => button.children.includes('btn.uninstall'))!
+      .find((button) => button.children.includes('aiDesktop.thoroughUninstall'))!
       .props.onClick()
   );
   expect(useNavigationStore.getState().motherPrefill).toContain('/new/start');
@@ -213,7 +214,7 @@ it('retries failures on re-entry and disables actions while that retry is pendin
   expect(text()).toContain(details.path);
 });
 
-it('keeps the same property rows and value heights through loading, missing and long values', async () => {
+it('keeps the same property rows through loading, missing and long values', async () => {
   let complete!: (data: api.SystemApplicationDetails) => void;
   vi.mocked(api.getSystemApplicationDetails).mockImplementationOnce(
     () =>
@@ -380,7 +381,9 @@ it.each(['all', 'desktop'] as const)(
             button.children.includes('aiDesktop.removeFromMy')
         )!;
     const markup = text();
-    expect(markup.indexOf('aiDesktop.addToMy')).toBeGreaterThan(markup.indexOf('btn.uninstall'));
+    expect(markup.indexOf('aiDesktop.addToMy')).toBeGreaterThan(
+      markup.indexOf('aiDesktop.thoroughUninstall')
+    );
     expect(toggle().props['aria-pressed']).toBe(false);
     act(() => toggle().props.onClick());
     expect(useSystemApplicationsStore.getState().myApplicationIds).toEqual([tool.systemAppId]);
@@ -404,7 +407,38 @@ it('keeps fixed My entries free of add/remove controls in the system panel', asy
   const actions = renderer.root.findByType(ApplicationActions).findAllByType('button');
   expect(actions.map((button) => button.children)).toEqual([
     ['aiDesktop.openLocation'],
-    ['btn.uninstall'],
+    ['aiDesktop.thoroughUninstall'],
   ]);
   expect(useSystemApplicationsStore.getState().myApplicationIds).toEqual([]);
+});
+
+it('shows found configuration/data locations and sends literal paths as clues for thorough uninstall', async () => {
+  const first = '/Users/fixture/Library/Containers/com.example.App';
+  const second = '/Users/fixture/Library/Preferences/com.example.App.plist';
+  vi.mocked(api.getSystemApplicationDetails).mockResolvedValueOnce({
+    ...details,
+    configPaths: [first, second, first],
+  });
+  await act(async () => {
+    renderer = create(<Details tool={tool} />);
+  });
+  expect(text()).toContain('aiDesktop.configurationLocations');
+  expect(text()).toContain(first);
+  expect(text()).toContain(second);
+  expect(renderer.root.findByType(ApplicationActions).props.configurationPaths).toEqual([
+    first,
+    second,
+  ]);
+  act(() =>
+    renderer.root
+      .findAllByType('button')
+      .find((button) => button.children.includes('aiDesktop.thoroughUninstall'))!
+      .props.onClick()
+  );
+  const prefill = useNavigationStore.getState().motherPrefill!;
+  expect(prefill).toContain(JSON.stringify(first));
+  expect(prefill).toContain(JSON.stringify(second));
+  expect(prefill.split(JSON.stringify(first))).toHaveLength(2);
+  expect(prefill).toContain('aiDesktop.configurationLocationsHint');
+  expect(api.openFolder).not.toHaveBeenCalled();
 });
