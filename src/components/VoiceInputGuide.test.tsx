@@ -106,9 +106,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function mount(includeImport = false) {
+function mount() {
   act(() => {
-    view = create(<VoiceInputGuide onClose={dismissed} includeImport={includeImport} />, {
+    view = create(<VoiceInputGuide onClose={dismissed} />, {
       createNodeMock: (element) => {
         if (element.props.className === 'voice-guide-panel page-scroll')
           return { getBoundingClientRect: () => ({ height: panelHeight }) };
@@ -125,12 +125,21 @@ function mount(includeImport = false) {
   });
 }
 
+function openVoiceGuidePage() {
+  act(() =>
+    view.root
+      .findByProps({ 'aria-label': translate('guide.next', localization.locale) })
+      .props.onClick()
+  );
+}
+
 it.each(['zh-Hans', 'zh-Hant', 'en', 'ja'])(
   'demonstrates speech and whole-text fill locally in %s, then clears every timer',
   async (locale) => {
     await loadLocale(locale);
     localization.locale = locale;
     mount();
+    openVoiceGuidePage();
     const desktop = () => view.root.findByProps({ className: 'voice-guide-desktop' });
     const editor = () => view.root.findByProps({ className: 'voice-guide-editor' });
     expect(desktop().props['data-phase']).toBe('idle');
@@ -159,12 +168,13 @@ it.each(['zh-Hans', 'zh-Hant', 'en', 'ja'])(
     for (const call of Object.values(voiceApi)) expect(call).not.toHaveBeenCalled();
     act(() => view.unmount());
     expect(vi.getTimerCount()).toBe(0);
-    expect(disconnected).toHaveBeenCalledOnce();
+    expect(disconnected).toHaveBeenCalledTimes(2);
   }
 );
 
 it('keeps its arrow on the expanded/collapsed navigation and within a smaller viewport', () => {
   mount();
+  openVoiceGuidePage();
   const bubble = () => view.root.findByProps({ className: 'voice-guide-position' });
   expect(bubble().props.style).toMatchObject({ left: 270, top: 150, width: 420 });
   rect = { left: 8, right: 56, top: 320, width: 48, height: 40 };
@@ -198,6 +208,7 @@ it('traps keyboard focus, closes with Escape and restores the previous focus wit
 
 it('opens only the voice page from the guide action', () => {
   mount();
+  openVoiceGuidePage();
   act(() => view.root.findByProps({ className: 'voice-guide-target' }).props.onClick());
   expect(useNavigationStore.getState().activePage).toBe('voice');
   expect(dismissed).toHaveBeenCalledOnce();
@@ -206,8 +217,8 @@ it('opens only the voice page from the guide action', () => {
   expect(fetch).not.toHaveBeenCalled();
 });
 
-it('starts with import on first install and flips pages without scanning or starting audio', () => {
-  mount(true);
+it('always starts with import and flips pages without scanning or starting audio', () => {
+  mount();
   expect(view.root.findByProps({ role: 'dialog' }).props['aria-label']).toBe(
     translate('settings.autoImport', 'en')
   );
@@ -232,7 +243,7 @@ it('only imports on click, guards duplicate clicks, and completes after the guid
       finish = resolve;
     })
   );
-  mount(true);
+  mount();
   const button = () => view.root.findByType(DesktopPrimaryButton);
   expect(importMocks.invoke).not.toHaveBeenCalled();
   act(() => {
@@ -270,7 +281,7 @@ it('only imports on click, guards duplicate clicks, and completes after the guid
 
 it('keeps a failed import retryable inline without opening another dialog', async () => {
   importMocks.invoke.mockRejectedValueOnce(new Error('fixture failure'));
-  mount(true);
+  mount();
   await act(async () => view.root.findByType(DesktopPrimaryButton).props.onClick());
   expect(JSON.stringify(view.toJSON())).toContain(translate('guide.retryImport', 'en'));
   expect(view.root.findAllByProps({ role: 'dialog' })).toHaveLength(1);
@@ -288,7 +299,7 @@ it('keeps a failed import retryable inline without opening another dialog', asyn
 });
 
 it('does not start import while backup or restore is pending', () => {
-  mount(true);
+  mount();
   useConfigBackupStore.setState({ phase: 'working' });
   act(() => view.root.findByType(DesktopPrimaryButton).props.onClick());
   expect(importMocks.invoke).not.toHaveBeenCalled();
@@ -297,7 +308,7 @@ it('does not start import while backup or restore is pending', () => {
 it.each([0, 1])(
   'skips the entire guide from page %s without importing or opening voice',
   (page) => {
-    mount(true);
+    mount();
     if (page === 1)
       act(() =>
         view.root.findByProps({ 'aria-label': translate('guide.next', 'en') }).props.onClick()

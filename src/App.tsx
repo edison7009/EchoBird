@@ -223,7 +223,6 @@ function AppContent() {
   const [showSettings, setShowSettings] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
   const [showVoiceGuideOnClose, setShowVoiceGuideOnClose] = useState(false);
-  const [showImportGuideOnClose, setShowImportGuideOnClose] = useState(false);
 
   // Stores — selector form so App.tsx (the root of the entire tree) only
   // re-renders when activePage flips, not on every motherNewMessage tick.
@@ -287,7 +286,6 @@ function AppContent() {
           // choice. Only a downgrade (seen is newer) is skipped.
           if (!seen || isNewerVersion(appVersion, seen)) {
             setShowVoiceGuideOnClose(true);
-            setShowImportGuideOnClose(!seen);
             setShowChangelog(true);
           }
           if (seen !== appVersion) {
@@ -702,7 +700,6 @@ function AppContent() {
               <ChangelogDialog
                 isOpen={showChangelog}
                 showVoiceGuideOnClose={showVoiceGuideOnClose}
-                showImportGuideOnClose={showImportGuideOnClose}
                 onClose={() => setShowChangelog(false)}
               />
             </OnFirstVisit>

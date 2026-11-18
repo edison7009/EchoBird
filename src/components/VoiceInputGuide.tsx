@@ -76,15 +76,9 @@ function VoiceGuideDemo() {
   );
 }
 
-export function VoiceInputGuide({
-  onClose,
-  includeImport = false,
-}: {
-  onClose: () => void;
-  includeImport?: boolean;
-}) {
+export function VoiceInputGuide({ onClose }: { onClose: () => void }) {
   const { t } = useI18n();
-  const [page, setPage] = useState(includeImport ? 0 : 1);
+  const [page, setPage] = useState(0);
   const isVoice = page === 1;
   const collapsed = useSidebarStore((state) => state.collapsed);
   const root = useRef<HTMLDivElement>(null);
@@ -224,32 +218,30 @@ export function VoiceInputGuide({
           <p id="voice-guide-description">
             {t(isVoice ? 'voice.guide.description' : 'guide.importDescription')}
           </p>
-          {includeImport && (
-            <nav className="voice-guide-pagination" aria-label={t('guide.pages')}>
-              <div className="voice-guide-pagination-controls">
-                <button
-                  type="button"
-                  aria-label={t('guide.previous')}
-                  aria-disabled={page === 0}
-                  onClick={() => setPage(0)}
-                >
-                  <ChevronLeft size={18} />
-                </button>
-                <span aria-live="polite">{`${page + 1}/2`}</span>
-                <button
-                  type="button"
-                  aria-label={t('guide.next')}
-                  aria-disabled={page === 1}
-                  onClick={() => setPage(1)}
-                >
-                  <ChevronRight size={18} />
-                </button>
-              </div>
-              <button type="button" className="voice-guide-skip" onClick={onClose}>
-                {t('guide.skip')}
+          <nav className="voice-guide-pagination" aria-label={t('guide.pages')}>
+            <div className="voice-guide-pagination-controls">
+              <button
+                type="button"
+                aria-label={t('guide.previous')}
+                aria-disabled={page === 0}
+                onClick={() => setPage(0)}
+              >
+                <ChevronLeft size={18} />
               </button>
-            </nav>
-          )}
+              <span aria-live="polite">{`${page + 1}/2`}</span>
+              <button
+                type="button"
+                aria-label={t('guide.next')}
+                aria-disabled={page === 1}
+                onClick={() => setPage(1)}
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+            <button type="button" className="voice-guide-skip" onClick={onClose}>
+              {t('guide.skip')}
+            </button>
+          </nav>
         </section>
       </aside>
     </div>

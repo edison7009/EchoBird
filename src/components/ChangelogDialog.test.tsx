@@ -9,14 +9,8 @@ vi.mock('../hooks/useI18n', () => ({
 }));
 vi.mock('../pages/MotherAgent/mdComponents', () => ({ mdComponents: {} }));
 vi.mock('./VoiceInputGuide', () => ({
-  VoiceInputGuide: ({
-    onClose,
-    includeImport,
-  }: {
-    onClose: () => void;
-    includeImport?: boolean;
-  }) => (
-    <button data-guide data-import={includeImport} onClick={onClose}>
+  VoiceInputGuide: ({ onClose }: { onClose: () => void }) => (
+    <button data-guide onClick={onClose}>
       guide
     </button>
   ),
@@ -24,13 +18,7 @@ vi.mock('./VoiceInputGuide', () => ({
 let view: ReactTestRenderer;
 let open: (value: boolean) => void;
 const closed = vi.fn();
-function Harness({
-  automatic = false,
-  firstInstall = false,
-}: {
-  automatic?: boolean;
-  firstInstall?: boolean;
-}) {
+function Harness({ automatic = false }: { automatic?: boolean }) {
   const [isOpen, setOpen] = useState(true);
   useLayoutEffect(() => {
     open = setOpen;
@@ -39,7 +27,6 @@ function Harness({
     <ChangelogDialog
       isOpen={isOpen}
       showVoiceGuideOnClose={automatic}
-      showImportGuideOnClose={firstInstall}
       onClose={() => {
         closed();
         setOpen(false);
@@ -145,19 +132,5 @@ it.each([
     expect(view.root.findAllByType('h2').map((node) => node.children.join(''))).toEqual([heading]);
     expect(JSON.stringify(view.toJSON())).not.toContain('<details>');
     expect(JSON.stringify(view.toJSON())).not.toContain('T00:08:40Z');
-  }
-);
-
-it.each([false, true])(
-  'includes import only for first install=%s after the changelog closes',
-  async (firstInstall) => {
-    await act(async () => {
-      view = create(<Harness automatic firstInstall={firstInstall} />);
-    });
-    act(() => view.root.findByType('button').props.onClick());
-    act(() => {
-      vi.advanceTimersByTime(200);
-    });
-    expect(view.root.findByProps({ 'data-guide': true }).props['data-import']).toBe(firstInstall);
   }
 );
