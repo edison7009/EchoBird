@@ -213,7 +213,7 @@
     background-color 120ms,
     border-color 120ms;
 }
-.rs-row:not(.rs-placeholder):hover {
+.rs-source-row:hover > .rs-row {
   background: rgb(var(--text-primary-rgb) / 0.05);
 }
 .rs-row.rs-selected {
@@ -231,10 +231,6 @@
 }
 .rs-row > span.rs-error {
   color: rgb(var(--error-rgb));
-}
-.rs-row:focus-visible {
-  outline: 2px solid var(--rs-accent);
-  outline-offset: -2px;
 }
 .rs-source {
   display: grid;
@@ -341,14 +337,6 @@
   justify-content: flex-end;
   align-items: center;
   gap: 3px;
-}
-.rs-last > svg {
-  color: var(--rs-muted);
-  opacity: 0;
-  flex-shrink: 0;
-}
-.rs-selected .rs-last > svg {
-  opacity: 1;
 }
 .rs-footer {
   font-size: 11px;
@@ -1007,26 +995,45 @@
 .rs-source-row {
   position: relative;
 }
-.rs-source-row > .rs-row {
-  padding-left: 38px;
-}
 .rs-favorite {
   position: absolute;
   z-index: 1;
-  left: 9px;
-  top: 25px;
-  padding: 3px;
-  display: flex;
+  inset: 0;
+  width: 100%;
+  border-radius: 7px;
   color: var(--rs-muted);
+}
+.rs-favorite > svg {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 .rs-favorite[aria-pressed='true'] {
   color: var(--rs-accent);
 }
-.rs-favorite:disabled {
+.rs-favorite:disabled > svg {
   opacity: 0.35;
 }
 .rs-favorite:focus-visible {
   outline: 2px solid var(--rs-accent);
+  outline-offset: -2px;
+}
+.rs-source-details {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin: -6px;
+  flex-shrink: 0;
+  color: var(--rs-muted);
+}
+.rs-source-details:hover,
+.rs-source-details:focus-visible,
+.rs-source-details[aria-pressed='true'] {
+  color: var(--rs-accent);
 }
 .rm-focus-limit {
   color: var(--rs-muted);
@@ -1069,11 +1076,6 @@
   grid-column: 3;
   grid-row: 1;
   margin: 0 0 0 10px;
-}
-.rs-favorite {
-  left: auto;
-  right: 9px;
-  top: 23px;
 }
 .rs-row > .rs-row-meta {
   display: flex;
@@ -1125,9 +1127,6 @@
     grid-column: 1 / -1;
     grid-row: 2;
     margin: 3px 0 0;
-  }
-  .rs-favorite {
-    top: 23px;
   }
   .rs-row-meta .rs-tags {
     gap: 2px;

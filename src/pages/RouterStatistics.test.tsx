@@ -232,9 +232,7 @@ it('leaves usage and details empty until real rows arrive, then shows only recor
   await activate();
   await mount();
   expect(
-    view.root
-      .findAllByType('button')
-      .filter((node) => String(node.props.className).startsWith('rs-row '))
+    view.root.findAllByType('button').filter((node) => node.props.className === 'rs-source-details')
   ).toHaveLength(0);
   expect(
     view.root
@@ -299,9 +297,7 @@ it('leaves usage and details empty until real rows arrive, then shows only recor
       .props.onClick()
   );
   expect(
-    view.root
-      .findAllByType('button')
-      .filter((node) => String(node.props.className).startsWith('rs-row '))
+    view.root.findAllByType('button').filter((node) => node.props.className === 'rs-source-details')
   ).toHaveLength(1);
   expect(view.root.findAllByProps({ className: 'rs-row rs-placeholder' })).toHaveLength(0);
   expect(view.root.findAllByProps({ className: 'rs-tag rs-kind-0' })).toHaveLength(1);
@@ -342,10 +338,7 @@ it('shows only sources used in the selected period and removes all placeholders 
   mocks.snapshot.mockResolvedValue({ ...empty, rows: old });
   await activate();
   await mount();
-  const rows = () =>
-    view.root
-      .findAllByType('button')
-      .filter((node) => String(node.props.className).startsWith('rs-row '));
+  const rows = () => view.root.findAllByProps({ className: 'rs-source-row' });
   const refresh = () =>
     act(async () => view.root.findByProps({ 'aria-label': 'btn.refresh' }).props.onClick());
   expect(rows()).toHaveLength(0);
@@ -429,7 +422,7 @@ it('selects account and API sources from the same list without extra reads and h
   const rows = () =>
     view.root
       .findAllByType('button')
-      .filter((node) => String(node.props.className).startsWith('rs-row '));
+      .filter((node) => node.props.className === 'rs-source-details');
   expect(rows()).toHaveLength(2);
   expect(view.root.findAllByProps({ className: 'rs-detail-title' })).toHaveLength(0);
   expect(
@@ -443,6 +436,7 @@ it('selects account and API sources from the same list without extra reads and h
   ).toBe(false);
   await act(async () => rows()[1].props.onClick());
   expect(rows().map((row) => row.props['aria-pressed'])).toEqual([false, true]);
+  expect(localStorage.setItem).not.toHaveBeenCalled();
   expect(
     view.root.findByProps({ className: 'rs-detail-identity' }).findByType('strong').children
   ).toEqual(['api source']);
@@ -451,11 +445,10 @@ it('selects account and API sources from the same list without extra reads and h
   await act(async () =>
     view.root.findByProps({ 'aria-label': 'statistics.hideAccounts' }).props.onClick()
   );
-  expect(
-    rows().every((row) =>
-      row.findByProps({ className: 'rs-identity' }).findByType('b').children.includes('******')
-    )
-  ).toBe(true);
+  expect(rows().map((row) => row.props['aria-label'])).toEqual([
+    'statistics.sourceDetails · ******',
+    'statistics.sourceDetails · ******',
+  ]);
   expect(
     view.root.findByProps({ className: 'rs-detail-identity' }).findByType('strong').children
   ).toEqual(['******']);
@@ -516,13 +509,7 @@ it('shows reported tokens for the selected source, preserves unknown usage, and 
   const tokens = () =>
     view.root.findByProps({ className: 'rs-detail-counts' }).findAllByType('b')[1].children;
   expect(tokens()).toEqual(['120']);
-  const unknown = view.root
-    .findAllByType('button')
-    .find(
-      (node) =>
-        String(node.props.className).startsWith('rs-row ') &&
-        node.findByProps({ className: 'rs-identity' }).findByType('b').children.includes('unknown')
-    )!;
+  const unknown = view.root.findByProps({ 'aria-label': 'statistics.sourceDetails · unknown' });
   await act(async () => unknown.props.onClick());
   expect(tokens()).toEqual(['—']);
   expect(mocks.snapshot).toHaveBeenCalledOnce();

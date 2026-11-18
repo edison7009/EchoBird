@@ -461,10 +461,9 @@ export function RouterStatisticsMain() {
             {state.rows.map((row) => (
               <div className="rs-source-row" key={row.id}>
                 <button
+                  type="button"
                   className="rs-favorite"
-                  aria-label={t(
-                    state.favoriteIds.includes(row.id) ? 'statistics.unfollow' : 'statistics.follow'
-                  )}
+                  aria-label={`${t('statistics.follow')} · ${name(row)}`}
                   aria-pressed={state.favoriteIds.includes(row.id)}
                   disabled={!state.favoriteIds.includes(row.id) && state.favoriteIds.length >= 4}
                   onClick={() => state.toggleFavorite(row.id)}
@@ -472,14 +471,10 @@ export function RouterStatisticsMain() {
                   <Star
                     size={15}
                     fill={state.favoriteIds.includes(row.id) ? 'currentColor' : 'none'}
+                    aria-hidden="true"
                   />
                 </button>
-                <button
-                  key={row.id}
-                  aria-pressed={row.id === state.current?.id}
-                  className={`rs-row ${row.id === state.current?.id ? 'rs-selected' : ''}`}
-                  onClick={() => state.setSelected(row.id)}
-                >
+                <div className={`rs-row ${row.id === state.current?.id ? 'rs-selected' : ''}`}>
                   <span className="rs-source">
                     <SourceIcon provider={row.provider} model={row.model} />
                     <span className="rs-identity">
@@ -522,7 +517,15 @@ export function RouterStatisticsMain() {
                   <span className="rs-row-meta">
                     <span className="rs-last">
                       {last(row.lastUsedAt)}
-                      <ChevronRight size={12} />
+                      <button
+                        type="button"
+                        className="rs-source-details"
+                        aria-label={`${t('statistics.sourceDetails')} · ${name(row)}`}
+                        aria-pressed={row.id === state.current?.id}
+                        onClick={() => state.setSelected(row.id)}
+                      >
+                        <ChevronRight size={12} aria-hidden="true" />
+                      </button>
                     </span>
                     <span className="rs-tags">
                       {row.counts.protections.map(
@@ -536,7 +539,7 @@ export function RouterStatisticsMain() {
                       )}
                     </span>
                   </span>
-                </button>
+                </div>
               </div>
             ))}
           </div>
