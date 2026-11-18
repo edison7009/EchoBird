@@ -252,12 +252,21 @@ it('cancels initial source loading and ignores late catalogs without group creat
 });
 it('keeps account names private and silently hides failed sources', async () => {
   useAccountPrivacyStore.setState({ hidden: true });
+  vi.mocked(accounts.listProxyAccounts).mockImplementation(async (provider) => [
+    {
+      source: { provider, accountId: `${provider}@example.test` },
+      label: `${provider}@example.test`,
+    },
+  ]);
   vi.mocked(accounts.getAccountProxyModels).mockImplementation(async (source) => {
     if (source.provider === 'codex') throw new Error('fixture unavailable');
     return ['single'];
   });
   await open();
   expect(JSON.stringify(tree.toJSON())).not.toContain('@example.test');
+  expect(JSON.stringify(tree.toJSON())).not.toContain(
+    encodeURIComponent('claudeCode@example.test')
+  );
   expect(tree.root.findAllByType('section')).toHaveLength(1);
   expect(tree.root.findAllByProps({ role: 'alert' })).toHaveLength(0);
   expect(button('single').props['aria-pressed']).toBe(true);
@@ -330,4 +339,91 @@ it('uses official provider logos and the default box for an unknown API channel'
       .findAllByType('svg')
       .some((node) => String(node.props.className).includes('lucide-box'))
   ).toBe(true);
+});
+
+it('collapses each account independently without refetching or changing its selected models', async () => {
+  await open();
+  const sections = tree.root.findAllByType('section');
+  const header = (index: number) =>
+    sections[index]
+      .findAllByType('button')
+      .find((node) => node.props['aria-expanded'] !== undefined)!;
+  expect(header(0).props['aria-expanded']).toBe(true);
+  expect(header(1).props['aria-expanded']).toBe(true);
+  await click('alpha');
+  const reads = [
+    vi.mocked(accounts.listProxyAccounts).mock.calls.length,
+    vi.mocked(accounts.getAccountProxyModels).mock.calls.length,
+    vi.mocked(models.getModels).mock.calls.length,
+  ];
+  await act(async () => header(0).props.onClick());
+  expect(header(0).props['aria-expanded']).toBe(false);
+  expect(sections[0].findByProps({ id: header(0).props['aria-controls'] }).props.hidden).toBe(true);
+  expect(sections[0].findAllByProps({ 'aria-label': 'alpha' })).toHaveLength(0);
+  expect(sections[1].findAllByProps({ 'aria-label': 'alpha' })).toHaveLength(1);
+  await act(async () => header(0).props.onClick());
+  expect(button('alpha').props['aria-pressed']).toBe(false);
+  expect(button('beta').props['aria-pressed']).toBe(true);
+  expect([
+    vi.mocked(accounts.listProxyAccounts).mock.calls.length,
+    vi.mocked(accounts.getAccountProxyModels).mock.calls.length,
+    vi.mocked(models.getModels).mock.calls.length,
+  ]).toEqual(reads);
+  await act(async () => header(0).props.onClick());
+  expect(createCustomRouterGroup).not.toHaveBeenCalled();
+  await click('common.confirm');
+  const choices = vi.mocked(createCustomRouterGroup).mock.calls[0][0];
+  expect(
+    choices
+      .filter((choice) => choice.input.accountSource?.provider === 'codex')
+      .map((choice) => choice.input.modelId)
+  ).toEqual(['beta']);
+  expect(choices).toHaveLength(3);
+});
+
+it('retains API model choices when collapsed and resets expansion after reopening', async () => {
+  vi.mocked(accounts.listProxyAccounts).mockResolvedValue([]);
+  vi.mocked(models.getModels).mockResolvedValue([savedApi]);
+  await open();
+  await click('api-gamma');
+  const header = () =>
+    tree.root
+      .findAllByType('section')[0]
+      .findAllByType('button')
+      .find((node) => node.props['aria-expanded'] !== undefined)!;
+  await act(async () => header().props.onClick());
+  expect(header().props['aria-expanded']).toBe(false);
+  expect(models.fetchUpstreamModelCatalog).toHaveBeenCalledTimes(1);
+  await click('common.confirm');
+  expect(
+    vi.mocked(createCustomRouterGroup).mock.calls[0][0].map((choice) => choice.input.modelId)
+  ).toEqual(['api-alpha', 'api-beta', 'api-gamma']);
+  await click('freeModels.quickAdd');
+  expect(header().props['aria-expanded']).toBe(true);
+});
+
+it('keeps a loading account collapsed when its directory finishes without reloading it', async () => {
+  const pending = deferred<string[]>();
+  vi.mocked(accounts.getAccountProxyModels).mockImplementation(async (source) =>
+    source.provider === 'codex' ? pending.promise : ['ready']
+  );
+  await open();
+  const section = tree.root.findAllByType('section')[0];
+  const header = () =>
+    section.findAllByType('button').find((node) => node.props['aria-expanded'] !== undefined)!;
+  await act(async () => header().props.onClick());
+  expect(button('common.confirm').props.disabled).toBe(true);
+  await act(async () => pending.resolve(['loaded-a', 'loaded-b', 'loaded-c']));
+  expect(header().props['aria-expanded']).toBe(false);
+  expect(section.findAllByProps({ 'aria-label': 'loaded-a' })).toHaveLength(0);
+  expect(button('common.confirm').props.disabled).toBe(false);
+  await act(async () => header().props.onClick());
+  expect(button('loaded-a').props['aria-pressed']).toBe(true);
+  expect(button('loaded-b').props['aria-pressed']).toBe(true);
+  expect(button('loaded-c').props['aria-pressed']).toBe(false);
+  expect(
+    vi
+      .mocked(accounts.getAccountProxyModels)
+      .mock.calls.filter(([source]) => source.provider === 'codex')
+  ).toHaveLength(1);
 });

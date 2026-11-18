@@ -355,7 +355,7 @@ const zhHans: Partial<Translations> = {
   'agent.customSwitch': '自定义模型切换',
   'freeModels.router.chooseIcon': '选择图标',
   'freeModels.router.limit': '最多支持 7 个智能接入组，请先删除一个组再添加。',
-  'freeModels.selectSwitchModels': '选择可切换的模型',
+  'freeModels.selectSwitchModels': '智能接入 - 快速模型选择',
   'freeModels.quickAdd': '批量选择',
   'freeModels.quickAdd.empty': '暂无已保存的账号。',
   'freeModels.quickAdd.noModels': '暂无可用模型',

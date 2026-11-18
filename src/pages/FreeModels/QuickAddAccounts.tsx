@@ -1,6 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, ListPlus, Box, X } from 'lucide-react';
+import { Plus, ListPlus, Box, X, ChevronDown } from 'lucide-react';
 import { accountProxySources, useAccountProviderFilter } from '../../hooks/useAccountCapability';
 import {
   accountProviderIconSrc,
@@ -219,6 +219,8 @@ function QuickAddDialog({
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(new Set<string>());
+  const [collapsed, setCollapsed] = useState(new Set<string>());
+  const channelId = useId();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const alive = useRef(true);
@@ -491,13 +493,29 @@ function QuickAddDialog({
                   .filter((row) => row.column === column)
                   .map((row) => {
                     const choices = row.models;
+                    const isCollapsed = collapsed.has(row.key);
+                    const modelsId = `${channelId}-channel-${channels.indexOf(row)}`;
                     return (
                       <section
                         key={row.key}
                         className="min-w-0 py-4 [&_.capability-toggle]:max-w-full [&_.capability-toggle]:truncate [&_.capability-toggle[aria-pressed='false']]:border-dashed"
                       >
-                        <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-cyber-text">
-                          <div className="flex min-w-0 flex-1 basis-full items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={saving}
+                          aria-expanded={!isCollapsed}
+                          aria-controls={modelsId}
+                          onClick={() =>
+                            setCollapsed((current) => {
+                              const next = new Set(current);
+                              if (next.has(row.key)) next.delete(row.key);
+                              else next.add(row.key);
+                              return next;
+                            })
+                          }
+                          className={`flex w-full flex-wrap items-center gap-x-3 gap-y-2 rounded-button text-left text-sm text-cyber-text outline-none focus-visible:ring-2 focus-visible:ring-cyber-accent disabled:opacity-50 ${isCollapsed ? '' : 'mb-3'}`}
+                        >
+                          <span className="flex min-w-0 flex-1 basis-full items-center gap-2">
                             <QuickAddChannelIcon row={row} />
                             <span
                               className={
@@ -525,36 +543,44 @@ function QuickAddDialog({
                                 </span>
                               </>
                             )}
-                          </div>
-                        </div>
-                        {row.loading ? (
-                          <div role="status" aria-label={t('voice.loading')}>
-                            <ModelChoicesSkeleton count={row.estimatedModels} />
-                          </div>
-                        ) : row.models.length === 0 ? (
-                          <p className="text-xs text-cyber-text-secondary">
-                            {t('freeModels.quickAdd.noModels')}
-                          </p>
-                        ) : (
-                          <>
-                            <CapabilitySelection
-                              disabled={saving}
-                              toggles={choices.map((id) => ({
-                                id,
-                                label: row.account?.modelLabels?.[id] ?? id,
-                                checked: selected.has(channelChoiceKey(row, id)),
-                                onChange: (checked) =>
-                                  setSelected((current) => {
-                                    const next = new Set(current);
-                                    const key = channelChoiceKey(row, id);
-                                    if (checked) next.add(key);
-                                    else next.delete(key);
-                                    return next;
-                                  }),
-                              }))}
+                            <ChevronDown
+                              size={14}
+                              aria-hidden="true"
+                              className={`ml-auto shrink-0 text-cyber-text-muted ${isCollapsed ? '-rotate-90' : ''}`}
                             />
-                          </>
-                        )}
+                          </span>
+                        </button>
+                        <div id={modelsId} hidden={isCollapsed}>
+                          {!isCollapsed &&
+                            (row.loading ? (
+                              <div role="status" aria-label={t('voice.loading')}>
+                                <ModelChoicesSkeleton count={row.estimatedModels} />
+                              </div>
+                            ) : row.models.length === 0 ? (
+                              <p className="text-xs text-cyber-text-secondary">
+                                {t('freeModels.quickAdd.noModels')}
+                              </p>
+                            ) : (
+                              <>
+                                <CapabilitySelection
+                                  disabled={saving}
+                                  toggles={choices.map((id) => ({
+                                    id,
+                                    label: row.account?.modelLabels?.[id] ?? id,
+                                    checked: selected.has(channelChoiceKey(row, id)),
+                                    onChange: (checked) =>
+                                      setSelected((current) => {
+                                        const next = new Set(current);
+                                        const key = channelChoiceKey(row, id);
+                                        if (checked) next.add(key);
+                                        else next.delete(key);
+                                        return next;
+                                      }),
+                                  }))}
+                                />
+                              </>
+                            ))}
+                        </div>
                       </section>
                     );
                   })}
