@@ -1,3 +1,4 @@
+import { motherMaintenanceLabels } from '../data/motherMaintenanceLabels';
 // Japanese translation
 // UI tone: polite-form (です/ます) but compact; tech terms stay in katakana/English
 // where natural (API / GitHub / Claude / Codex / etc.)
@@ -932,6 +933,8 @@ const ja: Partial<Translations> = {
   'mother.hintSecurityAudit': '不審なアクティビティを検出',
   'mother.hintDetectCuda': 'CUDA モジュールの状態を確認',
   'mother.hintInstallCuda': 'CUDA モジュールのインストールを支援',
+  'mother.hintAnalyzeDiskSpace': motherMaintenanceLabels.diskSpace['ja'],
+  'mother.hintAnalyzeResiduals': motherMaintenanceLabels.residuals['ja'],
   'mother.hintInstallGit': 'Git のインストールを支援',
   'mother.contextUsage': 'コンテキスト使用量 {used}KB / {total}（{pct}%）',
   'mother.contextSize': 'コンテキストサイズ',

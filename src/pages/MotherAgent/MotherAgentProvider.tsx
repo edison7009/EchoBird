@@ -1,3 +1,4 @@
+import { maintenanceMessage } from './maintenancePrompts';
 import { useModelRepository } from '../../hooks/useModelRepository';
 import { isSmartRouterId } from '../../utils/smartRouter';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
@@ -654,7 +655,15 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
         const protocol = selectAgentProtocol(modelData.baseUrl, modelData.anthropicUrl);
         const anthropicUrl = protocol.anthropicUrl;
         await api.sendAgentMessage({
-          message: message.trim(),
+          message: maintenanceMessage(
+            message.trim(),
+            {
+              residuals: t('mother.hintAnalyzeResiduals'),
+              diskSpace: t('mother.hintAnalyzeDiskSpace'),
+            },
+            selectedServerId,
+            locale
+          ),
           conversation_id: sessionKey,
           request_id: run.requestId,
           model_id: modelData.internalId,
@@ -695,6 +704,7 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
       setChatOutput,
       finishRun,
       reasoningEffort,
+      t,
     ]
   );
 

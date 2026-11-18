@@ -785,6 +785,8 @@ export type TKey =
   | 'mother.hintSecurityAudit'
   | 'mother.hintDetectCuda'
   | 'mother.hintInstallCuda'
+  | 'mother.hintAnalyzeDiskSpace'
+  | 'mother.hintAnalyzeResiduals'
   | 'mother.hintInstallGit'
   | 'mother.hintUnlockCodexPlugins'
   | 'mother.selectionQuestion'

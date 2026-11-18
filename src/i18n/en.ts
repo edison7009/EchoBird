@@ -1,3 +1,4 @@
+import { motherMaintenanceLabels } from '../data/motherMaintenanceLabels';
 // English baseline translation (complete reference, fallback for all locales)
 import { Translations } from './types';
 
@@ -955,6 +956,8 @@ const en: Translations = {
   'mother.hintSecurityAudit': 'Detect suspicious activity',
   'mother.hintDetectCuda': 'Detect CUDA module status',
   'mother.hintInstallCuda': 'Help me install CUDA modules',
+  'mother.hintAnalyzeDiskSpace': motherMaintenanceLabels.diskSpace['en'],
+  'mother.hintAnalyzeResiduals': motherMaintenanceLabels.residuals['en'],
   'mother.hintInstallGit': 'Help me install Git',
   'mother.hintUnlockCodexPlugins': '',
   'mother.contextUsage': 'Context usage {used}KB / {total} ({pct}%)',

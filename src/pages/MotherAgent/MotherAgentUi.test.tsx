@@ -671,6 +671,75 @@ describe('Mother Agent welcome screen', () => {
     expect(button.props.className).not.toContain('cursor-');
   });
 
+  it.each(['zh-Hans', 'zh-Hant', 'en', 'ja'])(
+    'puts cleanup and disk analysis side by side in row four and only prefills localized labels (%s)',
+    async (language) => {
+      locale = language;
+      await loadLocale(locale);
+      state = { ...state, parasiteAgent: null, sendMessage: vi.fn(), handleChatSend: vi.fn() };
+      vi.mocked(api.getMotherHints).mockResolvedValueOnce(
+        JSON.stringify({
+          hints: [
+            { action: 'install', agent: 'ChatGPT' },
+            { action: 'install', agent: 'Claude Code' },
+            { action: 'installGit' },
+            { action: 'showSpecs' },
+            { action: 'networkInfo' },
+            { action: 'securityAudit' },
+            { action: 'uninstall', agent: 'OpenClaw' },
+            { action: 'troubleshoot', agent: 'OpenClaw' },
+            { action: 'install', agent: 'Hermes Desktop' },
+          ],
+        })
+      );
+      await act(async () => {
+        renderer = create(<QuickCommandChips />);
+      });
+      const rows = renderer!.root
+        .findAllByType('div')
+        .filter(
+          (node) =>
+            node.findAllByType('button').length &&
+            node.parent?.props.className?.includes('max-w-[720px]')
+        );
+      expect(rows).toHaveLength(4);
+      const last = renderer!.root.findByProps({ 'data-command-row': '4' });
+      expect(last.findAllByType('button')).toHaveLength(2);
+      const label = translate('mother.hintAnalyzeResiduals', locale);
+      expect(last.findAllByType('button')[0].children).toEqual([label]);
+      const diskLabel = translate('mother.hintAnalyzeDiskSpace', locale);
+      expect(last.findAllByType('button')[1].children).toEqual([diskLabel]);
+      act(() => last.findAllByType('button')[0].props.onClick());
+      expect(state.setChatInput).toHaveBeenCalledExactlyOnceWith(label);
+      act(() => last.findAllByType('button')[1].props.onClick());
+      expect(state.setChatInput).toHaveBeenLastCalledWith(diskLabel);
+      expect(state.sendMessage).not.toHaveBeenCalled();
+      expect(state.handleChatSend).not.toHaveBeenCalled();
+    }
+  );
+
+  it('keeps row four visible in Claude Code mode without changing its send behavior', async () => {
+    state = { ...state, parasiteAgent: 'claudecode' };
+    await act(async () => {
+      renderer = create(<QuickCommandChips />);
+    });
+    expect(
+      renderer!.root.findByProps({ 'data-command-row': '4' }).findAllByType('button')
+    ).toHaveLength(2);
+    expect(JSON.stringify(renderer!.toJSON())).toContain('Show local machine specs');
+  });
+
+  it('keeps the native cleanup entry available when the bundled hints request fails', async () => {
+    state = { ...state, parasiteAgent: null };
+    vi.mocked(api.getMotherHints).mockRejectedValueOnce(new Error('Hints unavailable'));
+    await act(async () => {
+      renderer = create(<QuickCommandChips />);
+    });
+    expect(
+      renderer!.root.findByProps({ 'data-command-row': '4' }).findAllByType('button')
+    ).toHaveLength(2);
+  });
+
   it('shows the existing logo and commands for an empty conversation and keeps the input', async () => {
     await act(async () => {
       renderer = create(<MotherAgentMain />);

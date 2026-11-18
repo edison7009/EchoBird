@@ -1,3 +1,4 @@
+import { motherMaintenanceLabels } from '../data/motherMaintenanceLabels';
 // Traditional Chinese translation (Taiwan vocabulary preferred over HK)
 // Derived from zh-Hans with character conversion + TW-specific term swaps
 // (軟體/使用者/設定/預設/影片/伺服器/訊息/檔案/啟動/連線 etc.)
@@ -890,6 +891,8 @@ const zhHant: Partial<Translations> = {
   'mother.hintSecurityAudit': '偵測可疑活動',
   'mother.hintDetectCuda': '檢測 CUDA 模組狀態',
   'mother.hintInstallCuda': '幫我安裝 CUDA 模組',
+  'mother.hintAnalyzeDiskSpace': motherMaintenanceLabels.diskSpace['zh-Hant'],
+  'mother.hintAnalyzeResiduals': motherMaintenanceLabels.residuals['zh-Hant'],
   'mother.hintInstallGit': '幫我安裝 Git',
   'mother.contextUsage': '上下文用量 {used}KB / {total}（{pct}%）',
   'mother.contextSize': '上下文大小',

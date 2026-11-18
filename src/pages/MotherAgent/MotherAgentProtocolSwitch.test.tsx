@@ -346,3 +346,36 @@ describe('Mother Agent protocol switching', () => {
     expectNoContextOrClientWrites();
   });
 });
+
+it.each([
+  ['mother.hintAnalyzeResiduals', 'echobird-residual-cleanup'],
+  ['mother.hintAnalyzeDiskSpace', 'echobird-disk-space'],
+])('sends the internal workflow only on explicit native send (%s)', async (label, marker) => {
+  await mount();
+  await select(openai);
+  const draft = `${label}\nKeep my games and videos.`;
+  act(() => state.setChatInput(draft));
+  expect(api.sendAgentMessage).not.toHaveBeenCalled();
+  await act(async () => state.handleChatSend());
+  const request = vi.mocked(api.sendAgentMessage).mock.lastCall![0];
+  expect(request.message).toContain(`<${marker}>`);
+  expect(request.message).toContain('Target machine: local computer');
+  expect(request.message.startsWith(draft)).toBe(true);
+  expect(state.chatOutput).toContainEqual({ type: 'user', text: draft, chips: undefined });
+  expect(state.chatInput).toBe('');
+  expect(api.parasiteSendMessage).not.toHaveBeenCalled();
+  expect(api.applyModelToTool).not.toHaveBeenCalled();
+});
+
+it.each(['mother.hintAnalyzeResiduals', 'mother.hintAnalyzeDiskSpace'])(
+  'leaves Claude Code maintenance messages unchanged (%s)',
+  async (message) => {
+    vi.mocked(api.parasiteListInstalled).mockResolvedValue(['claudecode']);
+    vi.mocked(api.parasiteSendMessage).mockResolvedValue(undefined);
+    await mount();
+    act(() => state.setParasiteAgent('claudecode'));
+    await act(async () => state.sendMessage(message));
+    expect(api.parasiteSendMessage).toHaveBeenCalledWith(expect.objectContaining({ message }));
+    expect(api.sendAgentMessage).not.toHaveBeenCalled();
+  }
+);

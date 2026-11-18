@@ -43,39 +43,47 @@ export function QuickCommandChips() {
       .catch(() => setHints([...FRONTEND_HINTS]));
   }, []);
 
+  const renderCommand = (hint: MotherHint, i: number) => {
+    // showSpecs swaps to a local-machine wording when 127.0.0.1 is
+    // selected — otherwise the agent often refuses, treating "server"
+    // prompts as a remote/privileged operation.
+    const isLocalShowSpecs = hint.action === 'showSpecs' && selectedServerId === 'local';
+    const i18nKey = (isLocalShowSpecs
+      ? 'mother.hintShowSpecsLocal'
+      : `mother.hint${hint.action[0].toUpperCase()}${hint.action.slice(1)}`) as unknown as TKey;
+    // Localize the {agent} tool name (e.g. "Hermes 桌面端" in zh-Hans) using
+    // the same names map the tool cards use, so install chips match the
+    // cards instead of showing the raw English name. Falls back to the raw
+    // name when the tool isn't in the scanned registry yet.
+    const agentRaw = hint.agent || '';
+    const matched = agentRaw ? detectedTools.find((tool) => tool.name === agentRaw) : undefined;
+    const agentLabel = matched ? pickToolName(matched, locale) : agentRaw;
+    const label = t(i18nKey).replace('{agent}', agentLabel);
+    // Skip hints with no translation (label falls back to the raw key).
+    if (label === i18nKey) return null;
+    return (
+      <button
+        key={i}
+        // The chat textarea lives in MotherAgentMain with a local ref we
+        // can't reach from here; setting the shared input value is enough —
+        // the text appears and the user takes it from there.
+        onClick={() => setChatInput(label)}
+        className="min-w-0 grow px-3 py-1.5 text-xs rounded-lg bg-cyber-surface/60 text-cyber-text-secondary hover:bg-cyber-elevated/70 hover:text-cyber-text transition-colors"
+      >
+        {label}
+      </button>
+    );
+  };
+  const maintenanceActions = ['analyzeResiduals', 'analyzeDiskSpace'];
   const commands = hints
-    .map((hint, i) => {
-      // showSpecs swaps to a local-machine wording when 127.0.0.1 is
-      // selected — otherwise the agent often refuses, treating "server"
-      // prompts as a remote/privileged operation.
-      const isLocalShowSpecs = hint.action === 'showSpecs' && selectedServerId === 'local';
-      const i18nKey = (isLocalShowSpecs
-        ? 'mother.hintShowSpecsLocal'
-        : `mother.hint${hint.action[0].toUpperCase()}${hint.action.slice(1)}`) as unknown as TKey;
-      // Localize the {agent} tool name (e.g. "Hermes 桌面端" in zh-Hans) using
-      // the same names map the tool cards use, so install chips match the
-      // cards instead of showing the raw English name. Falls back to the raw
-      // name when the tool isn't in the scanned registry yet.
-      const agentRaw = hint.agent || '';
-      const matched = agentRaw ? detectedTools.find((tool) => tool.name === agentRaw) : undefined;
-      const agentLabel = matched ? pickToolName(matched, locale) : agentRaw;
-      const label = t(i18nKey).replace('{agent}', agentLabel);
-      // Skip hints with no translation (label falls back to the raw key).
-      if (label === i18nKey) return null;
-      return (
-        <button
-          key={i}
-          // The chat textarea lives in MotherAgentMain with a local ref we
-          // can't reach from here; setting the shared input value is enough —
-          // the text appears and the user takes it from there.
-          onClick={() => setChatInput(label)}
-          className="min-w-0 grow px-3 py-1.5 text-xs rounded-lg bg-cyber-surface/60 text-cyber-text-secondary hover:bg-cyber-elevated/70 hover:text-cyber-text transition-colors"
-        >
-          {label}
-        </button>
-      );
-    })
+    .filter((hint) => !maintenanceActions.includes(hint.action))
+    .map(renderCommand)
     .filter((command) => command !== null);
+  const maintenanceCommands = maintenanceActions.flatMap((action, index) => {
+    const hint = hints.find((item) => item.action === action);
+    const command = hint ? renderCommand(hint, -index - 1) : null;
+    return command ? [command] : [];
+  });
   const firstRowEnd = Math.ceil(commands.length * 0.4);
   const secondRowEnd = firstRowEnd + Math.ceil((commands.length - firstRowEnd) / 2);
   const rows = [
@@ -91,6 +99,11 @@ export function QuickCommandChips() {
           {row}
         </div>
       ))}
+      {maintenanceCommands.length > 0 && (
+        <div className="flex max-w-full gap-2" data-command-row="4">
+          {maintenanceCommands}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { motherMaintenanceLabels } from '../data/motherMaintenanceLabels';
 // Simplified Chinese translation
 import { Translations } from './types';
 const zhHans: Partial<Translations> = {
@@ -854,6 +855,8 @@ const zhHans: Partial<Translations> = {
   'mother.hintSecurityAudit': '检测可疑活动',
   'mother.hintDetectCuda': '检测CUDA模块状态',
   'mother.hintInstallCuda': '帮我安装CUDA模块',
+  'mother.hintAnalyzeDiskSpace': motherMaintenanceLabels.diskSpace['zh-Hans'],
+  'mother.hintAnalyzeResiduals': motherMaintenanceLabels.residuals['zh-Hans'],
   'mother.hintInstallGit': '帮我安装 Git',
   'mother.hintUnlockCodexPlugins': '帮我安装 ChatGPT 汉化插件',
   'mother.contextUsage': '上下文用量 {used}KB / {total}（{pct}%）',
