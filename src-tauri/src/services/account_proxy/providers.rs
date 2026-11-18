@@ -29,6 +29,8 @@ use super::protocol::{self, ChatDecoder, SseParser, WireProtocol};
 use super::{stream_response, ProxyError};
 
 const CODEX_BASE: &str = "https://chatgpt.com/backend-api/codex";
+// The Codex subscription backend gates models on the client version.
+const CODEX_CLIENT_VERSION: &str = "0.169.0";
 const CODE_ASSIST_BASE: &str = "https://daily-cloudcode-pa.googleapis.com";
 const METADATA_CACHE_LIMIT: usize = 64;
 const PROJECT_LIFETIME: Duration = Duration::from_secs(30);
@@ -381,8 +383,11 @@ fn signed(
         AccountProvider::Codex => {
             request = request
                 .header("originator", "codex_cli_rs")
-                .header("version", "0.159.0")
-                .header("user-agent", "codex_cli_rs/0.159.0 (EchoBird)")
+                .header("version", CODEX_CLIENT_VERSION)
+                .header(
+                    header::USER_AGENT,
+                    format!("codex_cli_rs/{CODEX_CLIENT_VERSION} (EchoBird)"),
+                )
                 .header("OpenAI-Beta", "responses=experimental");
             if let Some(account) = credentials["accountId"].as_str() {
                 request = request.header("chatgpt-account-id", account);
@@ -831,7 +836,9 @@ async fn fetch_models(
         AccountProvider::Kimi => kimi_catalog(credentials, client, true).await?,
         AccountProvider::Codex => {
             json_upstream(signed(
-                client.get(format!("{api}/models?client_version=0.159.0")),
+                client
+                    .get(format!("{api}/models"))
+                    .query(&[("client_version", CODEX_CLIENT_VERSION)]),
                 provider,
                 credentials,
             )?)
@@ -2422,6 +2429,14 @@ mod tests {
                 &json!({"models":{"gemini-test":{},"image-gen":{},"disabled":{"disabled":true}}}),
             );
         }
+        if path.starts_with("/models?") {
+            return json_response(&json!({"models":[
+                {"slug":"gpt-6.2-sol"},
+                {"slug":"gpt-6.2-astra"},
+                {"slug":"gpt-6.1-sol"},
+                {"slug":"hidden-model","visibility":"hide"}
+            ]}));
+        }
         if path == "/v3/config" {
             return json_response(
                 &json!({"code":0,"data":{"agents":[{"name":"cli","models":["workbuddy-test"]}]}}),
@@ -2692,6 +2707,46 @@ mod tests {
             }
         }
         assert_eq!(requests.lock().await.len(), 4);
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn codex_catalog_and_inference_use_the_same_supported_client_version() {
+        let (base, requests, server) = fixture().await;
+        let client = reqwest::Client::new();
+        let credentials = json!({"accessToken":"fixture","baseUrl":base});
+        let models = list_models(AccountProvider::Codex, credentials.clone(), &client)
+            .await
+            .unwrap();
+        assert_eq!(models, ["gpt-6.1-sol", "gpt-6.2-astra", "gpt-6.2-sol"]);
+
+        for model in &models {
+            let response = route(
+                AccountProvider::Codex,
+                credentials.clone(),
+                model,
+                json!({"stream":true,"messages":[{"role":"user","content":"hello"}]}),
+                &client,
+            )
+            .await
+            .unwrap();
+            let body = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+                .await
+                .unwrap();
+            assert!(String::from_utf8_lossy(&body).contains("\"content\":\"ok\""));
+        }
+
+        let recorded = requests.lock().await;
+        assert_eq!(recorded.len(), 4);
+        assert_eq!(recorded[0].0, "/models?client_version=0.169.0");
+        for (_, headers, _) in recorded.iter() {
+            assert_eq!(headers["version"], "0.169.0");
+            assert_eq!(headers["user-agent"], "codex_cli_rs/0.169.0 (EchoBird)");
+        }
+        for ((path, _, body), model) in recorded[1..].iter().zip(&models) {
+            assert_eq!(path, "/responses");
+            assert_eq!(body["model"].as_str(), Some(model.as_str()));
+        }
         server.abort();
     }
 
