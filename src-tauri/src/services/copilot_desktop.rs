@@ -167,6 +167,15 @@ pub(crate) struct Desktop {
 }
 
 impl Desktop {
+    #[cfg(test)]
+    pub(crate) async fn fixture(address: &str) -> Self {
+        let (socket, _) = tokio_tungstenite::connect_async(address).await.unwrap();
+        Self {
+            socket,
+            pid: std::process::id(),
+        }
+    }
+
     pub(crate) async fn connect() -> Result<Self, String> {
         let executable = super::super::tool_manager::get_tool_exe_path("copilotdesktop")
             .ok_or("accountError.initializeClient")?;

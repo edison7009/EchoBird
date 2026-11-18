@@ -336,38 +336,97 @@ fn desktop_payload(provider_id: &str, model: &ModelInfo) -> Result<(Value, Value
     Ok((provider, selected))
 }
 
-async fn write_desktop_model(
+fn desktop_model_entries(provider_id: &str, model: &ModelInfo) -> Result<Vec<Value>, String> {
+    let (_, selected) = desktop_payload(provider_id, model)?;
+    let mut entries = vec![selected["model"].clone()];
+    for entry in super::switching::models(model)? {
+        if Some(entry.id.as_str()) != model.model.as_deref() {
+            entries.push(json!({"providerId":provider_id,"modelId":entry.id,
+                "wireModel":entry.id,"displayName":entry.name}));
+        }
+    }
+    Ok(entries)
+}
+
+fn desktop_entries(connection: &rusqlite::Connection, id: &str) -> Result<Vec<Value>, String> {
+    let mut statement = connection.prepare(
+        "SELECT id, model_id, wire_model, display_name FROM provider_models WHERE provider_id=?1 ORDER BY model_id",
+    ).map_err(|_| "accountError.read")?;
+    let rows = statement
+        .query_map([id], |row| {
+            Ok(json!({"id":row.get::<_,String>(0)?,"providerId":id,
+            "modelId":row.get::<_,String>(1)?,"wireModel":row.get::<_,String>(2)?,
+            "displayName":row.get::<_,String>(3)?}))
+        })
+        .map_err(|_| "accountError.read")?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|_| "accountError.read".into())
+}
+
+async fn write_desktop_models(
     desktop: &mut super::super::copilot_accounts::desktop::Desktop,
+    connection: &mut rusqlite::Connection,
     id: &str,
     model: &ModelInfo,
+    entries: &[Value],
 ) -> Result<(), String> {
-    use rusqlite::OptionalExtension;
-    let (provider, mut selected) = desktop_payload(id, model)?;
+    let (provider, _) = desktop_payload(id, model)?;
+    let old = desktop_entries(connection, id)?;
     let response = desktop.request(provider, "model_provider_upserted").await?;
-    if response["provider"]["id"] != id {
-        return Err("accountError.write".into());
-    }
-    if model.api_key.as_deref().is_some_and(|key| !key.is_empty())
-        && response["provider"]["hasSecret"] != true
+    if response["provider"]["id"] != id
+        || (model.api_key.as_deref().is_some_and(|key| !key.is_empty())
+            && response["provider"]["hasSecret"] != true)
     {
         return Err("accountError.write".into());
     }
-    // Native models upsert by row UUID, with a separate unique provider/model ID.
-    // Reuse that UUID on repeat apply rather than creating a conflicting row.
-    let row_id: Option<String> = super::super::copilot_accounts::desktop::database()?
-        .query_row(
-            "SELECT id FROM provider_models WHERE provider_id=?1 AND model_id=?2",
-            rusqlite::params![id, MODEL],
-            |row| row.get(0),
-        )
-        .optional()
-        .map_err(|_| "accountError.read")?;
-    selected["model"]["id"] = json!(row_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string()));
-    let response = desktop.request(selected, "provider_model_upserted").await?;
-    if response["model"]["providerId"] != id || response["model"]["modelId"] != MODEL {
-        return Err("accountError.write".into());
+    for entry in entries {
+        let mut entry = entry.clone();
+        let row_id = old
+            .iter()
+            .find(|old| old["modelId"] == entry["modelId"])
+            .and_then(|old| old["id"].as_str())
+            .map(str::to_owned)
+            .or_else(|| entry["id"].as_str().map(str::to_owned))
+            .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+        entry["id"] = json!(row_id);
+        let response = desktop
+            .request(
+                json!({"type":"upsert_provider_model","model":entry}),
+                "provider_model_upserted",
+            )
+            .await?;
+        if response["model"]["providerId"] != id
+            || response["model"]["modelId"] != entry["modelId"]
+            || response["model"]["id"] != row_id
+        {
+            return Err("accountError.write".into());
+        }
+    }
+    for stale in old.iter().filter(|old| {
+        !entries
+            .iter()
+            .any(|entry| entry["modelId"] == old["modelId"])
+    }) {
+        let response = desktop
+            .request(
+                json!({"type":"delete_provider_model","model_id":stale["id"]}),
+                "provider_model_deleted",
+            )
+            .await?;
+        if response["model_id"] != stale["id"] {
+            return Err("accountError.write".into());
+        }
     }
     Ok(())
+}
+
+fn desktop_owns_selection(provider_id: &str, selection: &str) -> bool {
+    selection == format!("{provider_id}/{MODEL}")
+        || selection
+            .strip_prefix(&format!("{provider_id}/"))
+            .is_some_and(|model| {
+                model.starts_with(crate::services::smart_router::catalog::SELECTOR_PREFIX)
+            })
 }
 
 async fn delete_desktop_provider(
@@ -428,6 +487,16 @@ async fn apply_desktop_with_bridge(
     path: &Path,
     bridge: &mut super::super::copilot_accounts::desktop::Desktop,
 ) -> Result<(), String> {
+    let mut connection = super::super::copilot_accounts::desktop::database()?;
+    apply_desktop_with_connection(model, path, bridge, &mut connection).await
+}
+
+async fn apply_desktop_with_connection(
+    model: &ModelInfo,
+    path: &Path,
+    bridge: &mut super::super::copilot_accounts::desktop::Desktop,
+    connection: &mut rusqlite::Connection,
+) -> Result<(), String> {
     use super::super::copilot_accounts::desktop;
     let had_snapshot = path.exists();
     let mut snapshot = read_object(path)?;
@@ -436,9 +505,10 @@ async fn apply_desktop_with_bridge(
         .as_str()
         .map(str::to_string)
         .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
-    desktop_payload(&id, model)?;
+    let entries = desktop_model_entries(&id, model)?;
+    let old_entries = desktop_entries(connection, &id)?;
     let selected = format!("{id}/{MODEL}");
-    let previous = desktop::selected_model(&desktop::database()?)?;
+    let previous = desktop::selected_model(connection)?;
     let old_model = if snapshot.get("modelInfo").is_some() {
         Some(restored_model_info(&snapshot["modelInfo"])?)
     } else {
@@ -451,9 +521,9 @@ async fn apply_desktop_with_bridge(
     snapshot["pending"] = json!(true);
     super::super::cursor_auth::write(path, &snapshot)?;
     let written = async {
-        write_desktop_model(bridge, &id, model).await?;
-        desktop::set_selected_model(&mut desktop::database()?, Some(&selected))?;
-        if desktop::selected_model(&desktop::database()?)?.as_deref() != Some(&selected) {
+        write_desktop_models(bridge, connection, &id, model, &entries).await?;
+        desktop::set_selected_model(connection, Some(&selected))?;
+        if desktop::selected_model(connection)?.as_deref() != Some(&selected) {
             return Err("accountError.write".into());
         }
         snapshot["modelInfo"] = stored_model_info(model)?;
@@ -464,13 +534,17 @@ async fn apply_desktop_with_bridge(
     if let Err(error) = written {
         // Restore the previous owned provider/key after a partial native write.
         let rollback = if let Some(old_model) = old_model {
-            write_desktop_model(bridge, &id, &old_model).await
+            write_desktop_models(bridge, connection, &id, &old_model, &old_entries).await
         } else {
             delete_desktop_provider(bridge, &id).await
         };
-        let mut connection = desktop::database()?;
-        if desktop::selected_model(&connection)?.as_deref() == Some(&selected) {
-            desktop::set_selected_model(&mut connection, previous.as_deref())?;
+        let current = desktop::selected_model(connection)?;
+        if current
+            .as_deref()
+            .is_some_and(|value| desktop_owns_selection(&id, value))
+            || current.is_none()
+        {
+            desktop::set_selected_model(connection, previous.as_deref())?;
         }
         if rollback.is_err() {
             return Err("accountError.write".into());
@@ -490,20 +564,21 @@ pub(super) async fn read_copilot_desktop() -> Option<ModelInfo> {
 }
 
 fn read_desktop_at(path: &Path) -> Option<ModelInfo> {
+    read_desktop_from(path, &config_dir().join("data.db"))
+}
+
+fn read_desktop_from(path: &Path, database: &Path) -> Option<ModelInfo> {
     let snapshot = read_object(path).ok()?;
     if snapshot["pending"] == true {
         return None;
     }
     let id = snapshot["providerId"].as_str()?;
     // Passive navigation performs no IPC, processes, credential reads, or network.
-    let connection = rusqlite::Connection::open_with_flags(
-        config_dir().join("data.db"),
-        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
-    )
-    .ok()?;
-    if super::super::copilot_accounts::desktop::selected_model(&connection).ok()??
-        != format!("{id}/{MODEL}")
-    {
+    let connection =
+        rusqlite::Connection::open_with_flags(database, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+            .ok()?;
+    let selected = super::super::copilot_accounts::desktop::selected_model(&connection).ok()??;
+    if !desktop_owns_selection(id, &selected) {
         return None;
     }
     restored_model_info(&snapshot["modelInfo"]).ok()
@@ -546,6 +621,18 @@ async fn restore_desktop_with_bridge(
     path: &Path,
     bridge: &mut super::super::copilot_accounts::desktop::Desktop,
 ) -> Result<(), String> {
+    if !path.exists() {
+        return Ok(());
+    }
+    let mut connection = super::super::copilot_accounts::desktop::database()?;
+    restore_desktop_with_connection(path, bridge, &mut connection).await
+}
+
+async fn restore_desktop_with_connection(
+    path: &Path,
+    bridge: &mut super::super::copilot_accounts::desktop::Desktop,
+    connection: &mut rusqlite::Connection,
+) -> Result<(), String> {
     use super::super::copilot_accounts::desktop;
     if !path.exists() {
         return Ok(());
@@ -554,14 +641,16 @@ async fn restore_desktop_with_bridge(
     let id = snapshot["providerId"]
         .as_str()
         .ok_or("accountError.format")?;
-    let selected = format!("{id}/{MODEL}");
+    let selected = desktop::selected_model(connection)?;
     let mut pending = snapshot.clone();
     pending["pending"] = json!(true);
     super::super::cursor_auth::write(path, &pending)?;
     delete_desktop_provider(bridge, id).await?;
-    let mut connection = desktop::database()?;
-    if desktop::selected_model(&connection)?.as_deref() == Some(&selected) {
-        desktop::set_selected_model(&mut connection, snapshot["previousModel"].as_str())?;
+    if selected
+        .as_deref()
+        .is_some_and(|value| desktop_owns_selection(id, value))
+    {
+        desktop::set_selected_model(connection, snapshot["previousModel"].as_str())?;
     }
     fs::remove_file(path).map_err(|_| "accountError.write".into())
 }
@@ -954,3 +1043,7 @@ mod tests {
         fs::remove_dir_all(dir).unwrap();
     }
 }
+
+#[cfg(test)]
+#[path = "copilot_desktop_tests.rs"]
+mod desktop_tests;

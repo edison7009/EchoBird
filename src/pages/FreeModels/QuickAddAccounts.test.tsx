@@ -202,24 +202,27 @@ it('hides both entry points at seven groups, with a positive control below the c
   expect(buttons()).toHaveLength(0);
   expect(accounts.listProxyAccounts).not.toHaveBeenCalled();
 });
-it('offers the shared desktop entry only for switch-capable applications without selecting or applying on entry', async () => {
-  useNavigationStore.setState({ activePage: 'apps' });
-  await render(<CustomSwitchEntry toolId="claudedesktop" toolName="Claude Desktop" />);
-  expect(button('agent.addCustomSwitch')).toBeTruthy();
-  expect(accounts.listProxyAccounts).not.toHaveBeenCalled();
-  await click('agent.addCustomSwitch');
-  await click('common.confirm');
-  expect(createCustomRouterGroup).toHaveBeenCalledWith(
-    expect.any(Array),
-    'freeModels.router.title',
-    expect.any(Function),
-    'Claude Desktop · agent.customSwitch'
-  );
-  await act(async () =>
-    tree.update(<CustomSwitchEntry toolId="unsupported" toolName="Unsupported" />)
-  );
-  expect(buttons()).toHaveLength(0);
-});
+it.each(['claudedesktop', 'copilotdesktop'])(
+  'offers the shared desktop entry for %s without selecting or applying on entry',
+  async (toolId) => {
+    useNavigationStore.setState({ activePage: 'apps' });
+    await render(<CustomSwitchEntry toolId={toolId} toolName="Claude Desktop" />);
+    expect(button('agent.addCustomSwitch')).toBeTruthy();
+    expect(accounts.listProxyAccounts).not.toHaveBeenCalled();
+    await click('agent.addCustomSwitch');
+    await click('common.confirm');
+    expect(createCustomRouterGroup).toHaveBeenCalledWith(
+      expect.any(Array),
+      'freeModels.router.title',
+      expect.any(Function),
+      'Claude Desktop · agent.customSwitch'
+    );
+    await act(async () =>
+      tree.update(<CustomSwitchEntry toolId="unsupported" toolName="Unsupported" />)
+    );
+    expect(buttons()).toHaveLength(0);
+  }
+);
 it('cancels a desktop draft on tool/page changes and rejects late group completion', async () => {
   useNavigationStore.setState({ activePage: 'apps' });
   await render(<CustomSwitchEntry toolId="claudedesktop" toolName="Claude" />);

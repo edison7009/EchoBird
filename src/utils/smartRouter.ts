@@ -33,4 +33,5 @@ export const SMART_ROUTER_SWITCH_TOOLS = new Set([
   'musecode',
   'vscode',
   'copilot',
+  'copilotdesktop',
 ]);

@@ -46,6 +46,12 @@ pub(crate) fn with_test_models_at<T>(base_url: &str, run: impl FnOnce() -> T) ->
     )
 }
 
+#[cfg(test)]
+pub(crate) async fn with_test_models_async<T>(run: impl std::future::Future<Output = T>) -> T {
+    let catalog = with_test_models(|| TEST_MODELS.with(Clone::clone));
+    TEST_MODELS.scope(catalog, run).await
+}
+
 pub(crate) fn selector(internal_id: &str) -> String {
     format!(
         "{SELECTOR_PREFIX}{}",
