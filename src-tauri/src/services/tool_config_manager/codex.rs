@@ -14,6 +14,8 @@ use std::path::Path;
 /// Canonical Codex config identity. Every apply_codex run reuses this
 /// provider section so model switches do not accumulate stale sections.
 const CODEX_PROVIDER: &str = "OpenAI";
+const CODEX_PROVIDER_TABLE: &str = "model_providers.OpenAI";
+const CODEX_CAPABILITIES_TABLE: &str = "model_providers.OpenAI.capabilities";
 const DEEPSEEK_DESKTOP_EFFORTS: &str = r#"["low", "medium", "high", "xhigh", "ultra", "max"]"#;
 const CODEX_ROUTE_TOP_LEVEL_KEYS: &[&str] = &[
     "model",
@@ -72,6 +74,41 @@ fn codex_web_search_mode(base_url: &str, enabled: Option<bool>) -> &'static str 
     } else {
         "disabled"
     }
+}
+
+/// Only the official API endpoint is known to support native V2 by default.
+fn is_official_codex_endpoint(base_url: &str) -> bool {
+    url::Url::parse(base_url).is_ok_and(|url| {
+        url.scheme() == "https" && url.host_str() == Some("api.openai.com") && url.port().is_none()
+    })
+}
+
+fn configure_codex_compaction(content: &str, base_url: Option<&str>) -> String {
+    let previous_url = toml_read_table_value(content, CODEX_PROVIDER_TABLE, "base_url");
+    let previous_mode =
+        toml_read_table_value(content, CODEX_CAPABILITIES_TABLE, "remote_compaction");
+
+    if let Some(base_url) = base_url.filter(|url| !is_official_codex_endpoint(url)) {
+        if previous_url == base_url && previous_mode == "v2" {
+            // Keep an explicit native opt-in scoped to the same upstream.
+            return content.to_string();
+        }
+        return toml_write_table_value(
+            content,
+            CODEX_CAPABILITIES_TABLE,
+            "remote_compaction",
+            "unsupported",
+        );
+    }
+
+    // When leaving a third-party endpoint, let Codex use the official default.
+    if !previous_mode.is_empty()
+        && !previous_url.trim().is_empty()
+        && !is_official_codex_endpoint(&previous_url)
+    {
+        return toml_delete_table_value(content, CODEX_CAPABILITIES_TABLE, "remote_compaction");
+    }
+    content.to_string()
 }
 
 fn codex_responses_base_url(base_url: &str) -> String {
@@ -197,19 +234,20 @@ fn write_codex_canonical_fields(
     }
 
     // [model_providers.OpenAI] string keys.
-    let table = format!("model_providers.{}", CODEX_PROVIDER);
-    c = toml_write_table_value(&c, &table, "name", CODEX_PROVIDER);
-    c = toml_write_table_value(&c, &table, "base_url", codex_base_url);
-    c = toml_write_table_value(&c, &table, "wire_api", "responses");
+    let table = CODEX_PROVIDER_TABLE;
+    c = toml_write_table_value(&c, table, "name", CODEX_PROVIDER);
+    c = configure_codex_compaction(&c, Some(codex_base_url));
+    c = toml_write_table_value(&c, table, "base_url", codex_base_url);
+    c = toml_write_table_value(&c, table, "wire_api", "responses");
     // [model_providers.OpenAI] raw (bool).
-    c = toml_write_table_value_raw(&c, &table, "requires_openai_auth", "true");
+    c = toml_write_table_value_raw(&c, table, "requires_openai_auth", "true");
     if crate::services::smart_router::is_router_url(codex_base_url) {
-        c = toml_write_table_value_raw(&c, &table, "supports_websockets", "false");
+        c = toml_write_table_value_raw(&c, table, "supports_websockets", "false");
     } else if crate::services::smart_router::is_router_url(&toml_read_table_value(
-        content, &table, "base_url",
-    )) && toml_read_table_value(content, &table, "supports_websockets") == "false"
+        content, table, "base_url",
+    )) && toml_read_table_value(content, table, "supports_websockets") == "false"
     {
-        c = toml_delete_table_value(&c, &table, "supports_websockets");
+        c = toml_delete_table_value(&c, table, "supports_websockets");
     }
 
     if trailing_nl && !c.ends_with('\n') {
@@ -617,7 +655,8 @@ fn official_codex_config_from(content: &str) -> Result<String, String> {
         next = toml_delete_top(&next, key);
     }
 
-    let provider = "model_providers.OpenAI";
+    let provider = CODEX_PROVIDER_TABLE;
+    next = configure_codex_compaction(&next, None);
     next = toml_write_table_value(&next, provider, "name", CODEX_PROVIDER);
     next = toml_write_table_value(&next, provider, "wire_api", "responses");
     next = toml_write_table_value_raw(&next, provider, "requires_openai_auth", "true");
@@ -1480,6 +1519,70 @@ mod tests {
         assert!(!other.contains("model_supports_reasoning_summaries"));
         assert!(!other.contains("model_reasoning_summary"));
         assert!(other.contains("web_search = \"live\""));
+    }
+
+    #[test]
+    fn codex_compaction_is_scoped_to_the_selected_upstream() {
+        let upstream = "https://relay.example/v1";
+        let config = r#"
+[model_providers.OpenAI]
+base_url = "https://relay.example/v1"
+capabilities = { remote_compaction = "v2", external_web_access = false }
+
+[model_providers.Other.capabilities]
+remote_compaction = "v2"
+"#;
+        let mode = |content: &str| {
+            toml_read_table_value(content, CODEX_CAPABILITIES_TABLE, "remote_compaction")
+        };
+        let switched =
+            write_codex_canonical_fields(config, "http://127.0.0.1:1234/v1", "auto", 200_000, None);
+        assert_eq!(mode(&switched), "unsupported");
+        assert_eq!(
+            toml_read_table_value(&switched, CODEX_CAPABILITIES_TABLE, "external_web_access"),
+            "false"
+        );
+        assert_eq!(
+            toml_read_table_value(
+                &switched,
+                "model_providers.Other.capabilities",
+                "remote_compaction"
+            ),
+            "v2"
+        );
+        assert_eq!(mode(&official_codex_config_from(&switched).unwrap()), "");
+        assert_eq!(
+            mode(&write_codex_canonical_fields(
+                &switched,
+                "https://api.openai.com/v1",
+                "gpt-test",
+                200_000,
+                None,
+            )),
+            ""
+        );
+        assert_eq!(
+            mode(&write_codex_canonical_fields(
+                config, upstream, "model", 200_000, None
+            )),
+            "v2"
+        );
+        assert_eq!(
+            mode(&write_codex_canonical_fields(
+                "", upstream, "model", 200_000, None
+            )),
+            "unsupported"
+        );
+        assert_eq!(
+            mode(&write_codex_canonical_fields(
+                "",
+                "https://api.openai.com.example/v1",
+                "model",
+                200_000,
+                None,
+            )),
+            "unsupported"
+        );
     }
 
     #[test]
