@@ -1,5 +1,14 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ArrowUp, LoaderCircle, Mic, Plus, Square, X } from 'lucide-react';
+import {
+  ArrowUp,
+  ChevronLeft,
+  ChevronRight,
+  LoaderCircle,
+  Mic,
+  Plus,
+  Square,
+  X,
+} from 'lucide-react';
 import { useI18n } from '../hooks/useI18n';
 import { useNavigationStore } from '../stores/navigationStore';
 import { useSidebarStore } from '../stores/sidebarStore';
@@ -7,6 +16,7 @@ import { VoiceAppIcon } from '../pages/VoiceInput/VoiceAppIcon';
 import { VoiceFlow } from '../pages/VoiceInput/VoiceFlow';
 import '../pages/VoiceInput/VoiceInput.css';
 import './VoiceInputGuide.css';
+import { ImportGuideDemo } from './ImportGuideDemo';
 
 function VoiceGuideDemo() {
   const { t } = useI18n();
@@ -66,8 +76,16 @@ function VoiceGuideDemo() {
   );
 }
 
-export function VoiceInputGuide({ onClose }: { onClose: () => void }) {
+export function VoiceInputGuide({
+  onClose,
+  includeImport = false,
+}: {
+  onClose: () => void;
+  includeImport?: boolean;
+}) {
   const { t } = useI18n();
+  const [page, setPage] = useState(includeImport ? 0 : 1);
+  const isVoice = page === 1;
   const collapsed = useSidebarStore((state) => state.collapsed);
   const root = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLElement>(null);
@@ -85,7 +103,7 @@ export function VoiceInputGuide({ onClose }: { onClose: () => void }) {
   };
   const positioned = position !== null;
   useLayoutEffect(() => {
-    const anchor = document.getElementById('voice-input-nav');
+    const anchor = isVoice ? document.getElementById('voice-input-nav') : null;
     anchor?.scrollIntoView({ block: 'nearest' });
     const place = () => {
       const rect = anchor?.getBoundingClientRect();
@@ -98,7 +116,9 @@ export function VoiceInputGuide({ onClose }: { onClose: () => void }) {
       const center = rect ? rect.top + rect.height / 2 : window.innerHeight / 2;
       const top = Math.max(16, Math.min(center - height / 2, window.innerHeight - height - 16));
       setPosition({
-        left: Math.max(16, Math.min((rect?.right ?? 0) + 18, window.innerWidth - width - 16)),
+        left: rect
+          ? Math.max(16, Math.min(rect.right + 18, window.innerWidth - width - 16))
+          : Math.max(16, (window.innerWidth - width) / 2),
         top,
         width,
         arrow: Math.max(16, Math.min(center - top, height - 16)),
@@ -123,7 +143,7 @@ export function VoiceInputGuide({ onClose }: { onClose: () => void }) {
       window.removeEventListener('resize', place);
       window.removeEventListener('scroll', place, true);
     };
-  }, [collapsed]);
+  }, [collapsed, isVoice]);
   useEffect(() => {
     if (!positioned) return;
     const previous = document.activeElement as HTMLElement | null;
@@ -165,7 +185,7 @@ export function VoiceInputGuide({ onClose }: { onClose: () => void }) {
       className="voice-guide-root"
       role="dialog"
       aria-modal="true"
-      aria-label={t('voice.input')}
+      aria-label={t(isVoice ? 'voice.input' : 'settings.autoImport')}
       aria-describedby="voice-guide-description"
     >
       <div className="voice-guide-backdrop" onClick={onClose} />
@@ -188,17 +208,48 @@ export function VoiceInputGuide({ onClose }: { onClose: () => void }) {
       >
         {position?.anchor && <i className="voice-guide-arrow" style={{ top: position.arrow }} />}
         <section ref={panel} className="voice-guide-panel page-scroll">
-          <button
-            ref={close}
-            type="button"
-            className="voice-guide-close close-button"
-            onClick={onClose}
-            aria-label={t('btn.close')}
-          >
-            <X size={17} />
-          </button>
-          <VoiceGuideDemo />
-          <p id="voice-guide-description">{t('voice.guide.description')}</p>
+          <header className="voice-guide-header">
+            <h2 className="text-base font-bold">{t('guide.title')}</h2>
+            <button
+              ref={close}
+              type="button"
+              className="voice-guide-close close-button"
+              onClick={onClose}
+              aria-label={t('btn.close')}
+            >
+              <X size={17} />
+            </button>
+          </header>
+          {isVoice ? <VoiceGuideDemo /> : <ImportGuideDemo />}
+          <p id="voice-guide-description">
+            {t(isVoice ? 'voice.guide.description' : 'guide.importDescription')}
+          </p>
+          {includeImport && (
+            <nav className="voice-guide-pagination" aria-label={t('guide.pages')}>
+              <div className="voice-guide-pagination-controls">
+                <button
+                  type="button"
+                  aria-label={t('guide.previous')}
+                  aria-disabled={page === 0}
+                  onClick={() => setPage(0)}
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <span aria-live="polite">{`${page + 1}/2`}</span>
+                <button
+                  type="button"
+                  aria-label={t('guide.next')}
+                  aria-disabled={page === 1}
+                  onClick={() => setPage(1)}
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+              <button type="button" className="voice-guide-skip" onClick={onClose}>
+                {t('guide.skip')}
+              </button>
+            </nav>
+          )}
         </section>
       </aside>
     </div>

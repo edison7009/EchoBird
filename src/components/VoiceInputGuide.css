@@ -37,11 +37,15 @@
   box-shadow: 0 16px 60px #0004;
   color: #111;
 }
+.voice-guide-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 24px;
+  margin-bottom: 8px;
+}
 .voice-guide-close {
-  position: absolute;
-  z-index: 1;
-  top: 12px;
-  right: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -196,5 +200,147 @@
   .voice-guide-example {
     transition: none;
     transform: none;
+  }
+}
+
+.voice-guide-pagination {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  color: #253945;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.voice-guide-pagination button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #ffffff40;
+}
+.import-guide-demo {
+  position: relative;
+  height: 176px;
+}
+.import-guide-source,
+.import-guide-destination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid #fffd;
+  border-radius: 12px;
+  background: #ffffffe6;
+  box-shadow: 0 6px 20px #325b8018;
+  color: #56718b;
+}
+.import-guide-destination {
+  position: absolute;
+  bottom: 12px;
+  left: calc(50% - 28px);
+  width: 56px;
+  height: 56px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.import-guide-destination img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+.import-guide-source {
+  position: absolute;
+  top: 28px;
+  left: var(--import-start);
+  opacity: 0.55;
+  --import-start: calc(50% - 24px);
+  animation: import-guide-gather 3.2s ease-in-out infinite;
+}
+.import-guide-source:first-child {
+  color: #6650bd;
+  --import-start: calc(16.6667% - 10.6667px);
+}
+.import-guide-source:nth-child(2) {
+  color: #ac641d;
+}
+.import-guide-source:nth-child(3) {
+  color: #147a68;
+  --import-start: calc(83.3333% - 37.3333px);
+}
+.import-guide-destination {
+  z-index: 1;
+}
+.import-guide-action {
+  width: min(240px, 100%);
+  margin: 0 auto;
+}
+@keyframes import-guide-gather {
+  0%,
+  18% {
+    top: 28px;
+    left: var(--import-start);
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  65% {
+    opacity: 0.35;
+  }
+  82%,
+  100% {
+    top: 112px;
+    left: calc(50% - 24px);
+    opacity: 0;
+    transform: scale(0.65);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .import-guide-source {
+    animation: none;
+  }
+}
+
+.voice-guide-pagination::before {
+  content: '';
+}
+.voice-guide-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.voice-guide-pagination .voice-guide-skip {
+  justify-self: end;
+  width: auto;
+  padding: 0 4px;
+  background: transparent;
+  white-space: nowrap;
+}
+.import-guide-hand {
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  color: #253945;
+  pointer-events: none;
+  transform: translateY(-50%) scaleY(-1) rotate(-90deg);
+  animation: import-guide-point 1.8s ease-in-out infinite;
+}
+@keyframes import-guide-point {
+  0%,
+  100% {
+    transform: translate(4px, -50%) scaleY(-1) rotate(-90deg);
+  }
+  45%,
+  60% {
+    transform: translate(0, -50%) scaleY(-1) rotate(-90deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .import-guide-hand {
+    animation: none;
   }
 }

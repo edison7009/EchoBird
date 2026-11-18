@@ -105,12 +105,14 @@ interface ChangelogDialogProps {
   isOpen: boolean;
   onClose: () => void;
   showVoiceGuideOnClose?: boolean;
+  showImportGuideOnClose?: boolean;
 }
 
 export const ChangelogDialog: React.FC<ChangelogDialogProps> = ({
   isOpen,
   onClose,
   showVoiceGuideOnClose = false,
+  showImportGuideOnClose = false,
 }) => {
   const { t, locale } = useI18n();
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
@@ -176,7 +178,10 @@ export const ChangelogDialog: React.FC<ChangelogDialogProps> = ({
     return () => window.removeEventListener('keydown', handler);
   }, [isOpen, handleClose]);
 
-  if (!isOpen) return showGuide ? <VoiceInputGuide onClose={closeGuide} /> : null;
+  if (!isOpen)
+    return showGuide ? (
+      <VoiceInputGuide onClose={closeGuide} includeImport={showImportGuideOnClose} />
+    ) : null;
 
   const notes = manifest ? notesForLocale(manifest, locale) : '';
 

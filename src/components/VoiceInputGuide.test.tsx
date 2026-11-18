@@ -6,6 +6,19 @@ import { useSidebarStore } from '../stores/sidebarStore';
 import { loadLocale, translate, type TKey } from '../i18n';
 import * as voiceApi from '../api/voiceInput';
 
+import { useAutoImportStore, type ImportProgress } from '../stores/autoImportStore';
+import { useConfigBackupStore } from '../stores/configBackupStore';
+import { DesktopPrimaryButton } from './DesktopPrimaryButton';
+const importMocks = vi.hoisted(() => ({ invoke: vi.fn(), invalidate: vi.fn() }));
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: importMocks.invoke,
+  Channel: class {
+    onmessage?: (value: ImportProgress) => void;
+  },
+}));
+vi.mock('../stores/modelRepository', () => ({
+  modelRepository: { invalidate: importMocks.invalidate },
+}));
 const localization = vi.hoisted(() => ({ locale: 'en' }));
 vi.mock('../hooks/useI18n', () => ({
   useI18n: () => ({ t: (key: TKey) => translate(key, localization.locale) }),
@@ -47,6 +60,8 @@ const disconnected = vi.fn();
 beforeEach(async () => {
   vi.useFakeTimers();
   vi.clearAllMocks();
+  useAutoImportStore.setState({ running: false, progress: null, error: false, revision: 0 });
+  useConfigBackupStore.setState({ phase: 'idle' });
   localization.locale = 'en';
   await loadLocale('en');
   useSidebarStore.setState({ collapsed: false });
@@ -91,9 +106,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function mount() {
+function mount(includeImport = false) {
   act(() => {
-    view = create(<VoiceInputGuide onClose={dismissed} />, {
+    view = create(<VoiceInputGuide onClose={dismissed} includeImport={includeImport} />, {
       createNodeMock: (element) => {
         if (element.props.className === 'voice-guide-panel page-scroll')
           return { getBoundingClientRect: () => ({ height: panelHeight }) };
@@ -190,3 +205,106 @@ it('opens only the voice page from the guide action', () => {
   expect(voiceApi.saveVoiceConfig).not.toHaveBeenCalled();
   expect(fetch).not.toHaveBeenCalled();
 });
+
+it('starts with import on first install and flips pages without scanning or starting audio', () => {
+  mount(true);
+  expect(view.root.findByProps({ role: 'dialog' }).props['aria-label']).toBe(
+    translate('settings.autoImport', 'en')
+  );
+  expect(view.root.findAllByProps({ className: 'voice-guide-target' })).toHaveLength(0);
+  expect(JSON.stringify(view.toJSON())).toContain('1/2');
+  act(() => view.root.findByProps({ 'aria-label': translate('guide.next', 'en') }).props.onClick());
+  expect(JSON.stringify(view.toJSON())).toContain('2/2');
+  expect(view.root.findByProps({ className: 'voice-guide-desktop' })).toBeTruthy();
+  act(() =>
+    view.root.findByProps({ 'aria-label': translate('guide.previous', 'en') }).props.onClick()
+  );
+  expect(JSON.stringify(view.toJSON())).toContain('1/2');
+  expect(fetch).not.toHaveBeenCalled();
+  expect(importMocks.invoke).not.toHaveBeenCalled();
+  for (const call of Object.values(voiceApi)) expect(call).not.toHaveBeenCalled();
+});
+
+it('only imports on click, guards duplicate clicks, and completes after the guide closes', async () => {
+  let finish!: (value: ImportProgress) => void;
+  importMocks.invoke.mockReturnValue(
+    new Promise<ImportProgress>((resolve) => {
+      finish = resolve;
+    })
+  );
+  mount(true);
+  const button = () => view.root.findByType(DesktopPrimaryButton);
+  expect(importMocks.invoke).not.toHaveBeenCalled();
+  act(() => {
+    button().props.onClick();
+    button().props.onClick();
+  });
+  expect(importMocks.invoke).toHaveBeenCalledOnce();
+  expect(importMocks.invoke.mock.calls[0][0]).toBe('auto_import');
+  expect(useNavigationStore.getState().activePage).not.toBe('settings');
+  act(() => view.root.findByProps({ 'aria-label': translate('guide.next', 'en') }).props.onClick());
+  act(() =>
+    view.root.findByProps({ 'aria-label': translate('guide.previous', 'en') }).props.onClick()
+  );
+  expect(view.root.findByType(DesktopPrimaryButton).props['aria-busy']).toBe(true);
+  act(() => view.unmount());
+  expect(useAutoImportStore.getState().running).toBe(true);
+  await act(async () =>
+    finish({
+      completed: 1,
+      total: 1,
+      source: 'fixture',
+      models: 2,
+      accounts: 1,
+      duplicates: 0,
+      issues: [],
+    })
+  );
+  expect(useAutoImportStore.getState()).toMatchObject({
+    running: false,
+    revision: 1,
+    error: false,
+  });
+  expect(importMocks.invalidate).toHaveBeenCalledOnce();
+});
+
+it('keeps a failed import retryable inline without opening another dialog', async () => {
+  importMocks.invoke.mockRejectedValueOnce(new Error('fixture failure'));
+  mount(true);
+  await act(async () => view.root.findByType(DesktopPrimaryButton).props.onClick());
+  expect(JSON.stringify(view.toJSON())).toContain(translate('guide.retryImport', 'en'));
+  expect(view.root.findAllByProps({ role: 'dialog' })).toHaveLength(1);
+  importMocks.invoke.mockResolvedValueOnce({
+    completed: 1,
+    total: 1,
+    source: '',
+    models: 0,
+    accounts: 0,
+    duplicates: 0,
+    issues: [],
+  });
+  await act(async () => view.root.findByType(DesktopPrimaryButton).props.onClick());
+  expect(JSON.stringify(view.toJSON())).toContain(translate('guide.importDone', 'en'));
+});
+
+it('does not start import while backup or restore is pending', () => {
+  mount(true);
+  useConfigBackupStore.setState({ phase: 'working' });
+  act(() => view.root.findByType(DesktopPrimaryButton).props.onClick());
+  expect(importMocks.invoke).not.toHaveBeenCalled();
+});
+
+it.each([0, 1])(
+  'skips the entire guide from page %s without importing or opening voice',
+  (page) => {
+    mount(true);
+    if (page === 1)
+      act(() =>
+        view.root.findByProps({ 'aria-label': translate('guide.next', 'en') }).props.onClick()
+      );
+    act(() => view.root.findByProps({ className: 'voice-guide-skip' }).props.onClick());
+    expect(dismissed).toHaveBeenCalledOnce();
+    expect(importMocks.invoke).not.toHaveBeenCalled();
+    for (const call of Object.values(voiceApi)) expect(call).not.toHaveBeenCalled();
+  }
+);
