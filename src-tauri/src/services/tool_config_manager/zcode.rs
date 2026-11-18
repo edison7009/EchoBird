@@ -4,8 +4,28 @@ use super::{
     model_input_modalities_for, read_json_file, read_jsonc_file, write_json_file, ApplyResult,
     ModelInfo,
 };
-use crate::services::{tool_manager, zcode_paths};
+use crate::services::{native_account_files::Transaction, smart_router, tool_manager, zcode_paths};
 use std::path::Path;
+
+const DEFAULT_PROVIDER_ID: &str = "echobird";
+const ROUTER_PROVIDER_PREFIX: &str = "echobird-";
+
+fn router_provider_id(base_url: &str) -> Option<String> {
+    smart_router::catalog::profile_id_for_url(base_url)
+        .map(|id| format!("{ROUTER_PROVIDER_PREFIX}{id}"))
+}
+
+fn is_managed_provider(id: &str) -> bool {
+    id == DEFAULT_PROVIDER_ID
+        || id
+            .strip_prefix(ROUTER_PROVIDER_PREFIX)
+            .is_some_and(smart_router::profiles::is_router_id)
+}
+
+fn is_legacy_entry_for(base_url: &serde_json::Value, provider_id: &str) -> bool {
+    provider_id != DEFAULT_PROVIDER_ID
+        && base_url.as_str().and_then(router_provider_id).as_deref() == Some(provider_id)
+}
 
 const REASONING_LEVELS: [&str; 5] = ["disabled", "low", "medium", "high", "max"];
 
@@ -24,7 +44,7 @@ const ANTHROPIC_REASONING_MAP: &str = r#"reasoningLevel == "disabled"
 fn prepare_zcode_personal_config(
     path: &std::path::Path,
     model_id: &str,
-    provider_name: &str,
+    (provider_id, provider_name): (&str, &str),
     api_key: &str,
     base_url: &str,
     protocol: &str,
@@ -56,10 +76,21 @@ fn prepare_zcode_personal_config(
     } else {
         "openai-chat-completions"
     };
+    let replace_legacy = config
+        .get("providerConfigRules")
+        .and_then(|rules| rules["providerRules"].as_array())
+        .is_some_and(|rules| {
+            rules.iter().any(|rule| {
+                rule["providerId"] == DEFAULT_PROVIDER_ID
+                    && is_legacy_entry_for(&rule["config"]["api"]["baseUrl"], provider_id)
+            })
+        });
+    let is_replaced =
+        |id: &serde_json::Value| id == provider_id || (replace_legacy && id == DEFAULT_PROVIDER_ID);
     let reasoning_level = config
         .get("defaultModelSelection")
         .filter(|selection| {
-            selection["providerId"] == "echobird" && selection["modelId"] == model_id
+            is_replaced(&selection["providerId"]) && selection["modelId"] == model_id
         })
         .and_then(|selection| selection.pointer("/options/reasoningLevel"))
         .and_then(|level| level.as_str())
@@ -71,10 +102,9 @@ fn prepare_zcode_personal_config(
         .and_then(|v| v.get_mut("providerRules"))
         .and_then(|v| v.as_array_mut())
         .ok_or_else(|| format!("Invalid ZCode provider rules: {}", path.display()))?;
-    provider_rules
-        .retain(|rule| rule.get("providerId").and_then(|v| v.as_str()) != Some("echobird"));
+    provider_rules.retain(|rule| !is_replaced(&rule["providerId"]));
     provider_rules.push(serde_json::json!({
-        "providerId": "echobird",
+        "providerId": provider_id,
         "providerName": provider_name,
         "enabled": true,
         "config": {
@@ -95,13 +125,13 @@ fn prepare_zcode_personal_config(
             .get_mut(key)
             .and_then(|v| v.as_array_mut())
             .ok_or_else(|| format!("Invalid ZCode model rules: {}", path.display()))?;
-        rules.retain(|rule| rule.get("providerId").and_then(|v| v.as_str()) != Some("echobird"));
+        rules.retain(|rule| !is_replaced(&rule["providerId"]));
     }
     model_rules["providerModelRules"]
         .as_array_mut()
         .expect("providerModelRules was validated above")
         .push(serde_json::json!({
-            "providerId": "echobird",
+            "providerId": provider_id,
             "modelId": model_id,
             "config": { "properties": properties, "optionSpecs": { "reasoningLevel": {
                 "values": REASONING_LEVELS,
@@ -111,7 +141,7 @@ fn prepare_zcode_personal_config(
     config.insert(
         "defaultModelSelection".to_string(),
         serde_json::json!({
-            "providerId": "echobird", "modelId": model_id,
+            "providerId": provider_id, "modelId": model_id,
             "options": { "reasoningLevel": reasoning_level }
         }),
     );
@@ -119,8 +149,8 @@ fn prepare_zcode_personal_config(
         .get_mut("providerOrder")
         .and_then(|v| v.as_array_mut())
     {
-        order.retain(|id| id.as_str() != Some("echobird"));
-        order.push(serde_json::Value::String("echobird".to_string()));
+        order.retain(|id| !is_replaced(id));
+        order.push(serde_json::Value::String(provider_id.to_string()));
     }
 
     Ok(Some(root))
@@ -191,7 +221,17 @@ fn apply_zcode_at(model_info: &ModelInfo, dir: &Path) -> ApplyResult {
         config["provider"] = serde_json::json!({});
     }
 
-    let provider_id = "echobird";
+    let router_provider = router_provider_id(&base_url);
+    let provider_id = router_provider.as_deref().unwrap_or(DEFAULT_PROVIDER_ID);
+    if is_legacy_entry_for(
+        &config["provider"][DEFAULT_PROVIDER_ID]["options"]["baseURL"],
+        provider_id,
+    ) {
+        config["provider"]
+            .as_object_mut()
+            .unwrap()
+            .remove(DEFAULT_PROVIDER_ID);
+    }
     let display_name = model_info
         .name
         .as_deref()
@@ -257,7 +297,7 @@ fn apply_zcode_at(model_info: &ModelInfo, dir: &Path) -> ApplyResult {
     let mut personal = match prepare_zcode_personal_config(
         &personal_path,
         model_id,
-        display_name,
+        (provider_id, display_name),
         &api_key,
         &base_url,
         model_info.protocol.as_deref().unwrap_or("openai"),
@@ -273,48 +313,47 @@ fn apply_zcode_at(model_info: &ModelInfo, dir: &Path) -> ApplyResult {
     };
 
     if let Some(personal) = personal.as_mut() {
-        if let Err(message) = expand_personal_models(personal, model_info) {
+        if let Err(message) = expand_personal_models(personal, provider_id, model_info) {
             return ApplyResult {
                 success: false,
                 message,
             };
         }
     }
-    match write_json_file(&config_path, &config) {
-        Ok(_) => {
-            if let Some(personal) = personal {
-                if let Err(error) = write_json_file(&personal_path, &personal) {
-                    return ApplyResult {
-                        success: false,
-                        message: error,
-                    };
-                }
-            }
-            log::info!(
-                "[ToolConfigManager] ZCode config written to {:?}{}",
-                config_path,
-                if personal_path.exists() {
-                    format!(" and {}", personal_path.display())
-                } else {
-                    String::new()
-                }
-            );
-            ApplyResult {
-                success: true,
-                message: format!(
-                    "Model \"{}\" configured for ZCode. Restart ZCode to apply.",
-                    display_name
-                ),
-            }
+    let publish = || -> Result<(), String> {
+        let mut transaction = Transaction::guarded();
+        transaction.replace_private_file(
+            &config_path,
+            &serde_json::to_vec_pretty(&config).map_err(|error| error.to_string())?,
+        )?;
+        if let Some(personal) = personal {
+            transaction.replace_private_file(
+                &personal_path,
+                &serde_json::to_vec_pretty(&personal).map_err(|error| error.to_string())?,
+            )?;
         }
-        Err(e) => ApplyResult {
+        transaction.commit();
+        Ok(())
+    };
+    match publish() {
+        Ok(()) => ApplyResult {
+            success: true,
+            message: format!(
+                "Model \"{display_name}\" configured for ZCode. Restart ZCode to apply."
+            ),
+        },
+        Err(message) => ApplyResult {
             success: false,
-            message: e,
+            message,
         },
     }
 }
 
-fn expand_personal_models(root: &mut serde_json::Value, info: &ModelInfo) -> Result<(), String> {
+fn expand_personal_models(
+    root: &mut serde_json::Value,
+    provider_id: &str,
+    info: &ModelInfo,
+) -> Result<(), String> {
     let models = super::switching::models(info)?;
     if models.is_empty() {
         return Ok(());
@@ -324,7 +363,7 @@ fn expand_personal_models(root: &mut serde_json::Value, info: &ModelInfo) -> Res
         .as_array_mut()
         .unwrap()
         .iter_mut()
-        .find(|entry| entry["providerId"] == "echobird")
+        .find(|entry| entry["providerId"] == provider_id)
         .unwrap();
     let ids: Vec<_> = models.iter().map(|model| model.id.as_str()).collect();
     provider["config"]["personalModelIds"] = serde_json::json!(ids);
@@ -334,7 +373,7 @@ fn expand_personal_models(root: &mut serde_json::Value, info: &ModelInfo) -> Res
         .unwrap();
     let template = rules
         .iter()
-        .find(|entry| entry["providerId"] == "echobird")
+        .find(|entry| entry["providerId"] == provider_id)
         .unwrap()
         .clone();
     for model in models
@@ -356,7 +395,8 @@ fn read_zcode_personal_config(path: &std::path::Path) -> Option<ModelInfo> {
     }
     let config = root.get("config")?;
     let selected = config.get("defaultModelSelection")?;
-    if selected.get("providerId")?.as_str()? != "echobird" {
+    let provider_id = selected.get("providerId")?.as_str()?;
+    if !is_managed_provider(provider_id) {
         return None;
     }
     let model_id = selected.get("modelId")?.as_str()?;
@@ -364,7 +404,7 @@ fn read_zcode_personal_config(path: &std::path::Path) -> Option<ModelInfo> {
         .pointer("/providerConfigRules/providerRules")?
         .as_array()?
         .iter()
-        .find(|rule| rule.get("providerId").and_then(|v| v.as_str()) == Some("echobird"))?;
+        .find(|rule| rule.get("providerId").and_then(|v| v.as_str()) == Some(provider_id))?;
     let provider_config = provider.get("config")?;
     let api = provider_config.get("api")?;
     let protocol = if api.get("type").and_then(|v| v.as_str()) == Some("anthropic-messages") {
@@ -386,7 +426,7 @@ fn read_zcode_personal_config(path: &std::path::Path) -> Option<ModelInfo> {
         .and_then(|rules| {
             rules
                 .iter()
-                .find(|rule| rule["providerId"] == "echobird" && rule["modelId"] == model_id)
+                .find(|rule| rule["providerId"] == provider_id && rule["modelId"] == model_id)
         })
         .and_then(|rule| rule.pointer("/config/properties"));
 
@@ -487,14 +527,14 @@ pub(super) fn restore_zcode_to_official_at(dir: &std::path::Path) -> ApplyResult
             }
         };
         if let Some(provider) = config.get_mut("provider").and_then(|v| v.as_object_mut()) {
-            provider.remove("echobird");
+            provider.retain(|id, _| !is_managed_provider(id));
         }
         for key in ["model", "small_model"] {
             if config
                 .get(key)
                 .and_then(|v| v.as_str())
-                .map(|s| s.starts_with("echobird/"))
-                .unwrap_or(false)
+                .and_then(|value| value.split_once('/'))
+                .is_some_and(|(id, _)| is_managed_provider(id))
             {
                 tool_manager::delete_nested_value(&mut config, key);
             }
@@ -535,8 +575,7 @@ pub(super) fn restore_zcode_to_official_at(dir: &std::path::Path) -> ApplyResult
             .and_then(|v| v.get_mut("providerRules"))
             .and_then(|v| v.as_array_mut())
         {
-            rules
-                .retain(|rule| rule.get("providerId").and_then(|v| v.as_str()) != Some("echobird"));
+            rules.retain(|rule| !rule["providerId"].as_str().is_some_and(is_managed_provider));
         }
         if let Some(model_rules) = config
             .get_mut("modelConfigRules")
@@ -545,7 +584,7 @@ pub(super) fn restore_zcode_to_official_at(dir: &std::path::Path) -> ApplyResult
             for key in ["providerModelRules", "manualProviderModelRules"] {
                 if let Some(rules) = model_rules.get_mut(key).and_then(|v| v.as_array_mut()) {
                     rules.retain(|rule| {
-                        rule.get("providerId").and_then(|v| v.as_str()) != Some("echobird")
+                        !rule["providerId"].as_str().is_some_and(is_managed_provider)
                     });
                 }
             }
@@ -554,7 +593,7 @@ pub(super) fn restore_zcode_to_official_at(dir: &std::path::Path) -> ApplyResult
             .get("defaultModelSelection")
             .and_then(|v| v.get("providerId"))
             .and_then(|v| v.as_str())
-            == Some("echobird")
+            .is_some_and(is_managed_provider)
         {
             config.remove("defaultModelSelection");
         }
@@ -562,7 +601,7 @@ pub(super) fn restore_zcode_to_official_at(dir: &std::path::Path) -> ApplyResult
             .get_mut("providerOrder")
             .and_then(|v| v.as_array_mut())
         {
-            order.retain(|id| id.as_str() != Some("echobird"));
+            order.retain(|id| !id.as_str().is_some_and(is_managed_provider));
         }
         if let Err(error) = write_json_file(&personal_path, &root) {
             return ApplyResult {
@@ -586,6 +625,111 @@ pub(super) fn restore_zcode_to_official_at(dir: &std::path::Path) -> ApplyResult
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn applying_two_router_groups_keeps_both_native_providers_and_selects_the_last_group() {
+        use serde_json::json;
+        let dir = super::super::switching::TestDir::new();
+        let root = dir.path();
+        let group = "smart-router-08100ee6-d594-4b1a-ae27-f746cfe1d154";
+        let configs = root.join("config");
+        write_json_file(
+            &configs.join("smart-routers.json"),
+            &json!({"enabled":true,"ids":["smart-router",group]}),
+        )
+        .unwrap();
+        for (id, port) in [("smart-router", 53683), (group, 53684)] {
+            write_json_file(&configs.join(format!("{id}.json")), &json!({"port":port})).unwrap();
+        }
+        let legacy_path = root.join("config.json");
+        let personal_path = root.join("provider_config.json");
+        let first_url = "http://127.0.0.1:53683/v1";
+        let second_url = "http://127.0.0.1:53684/v1";
+        let mut fixture = personal_fixture();
+        fixture["config"]["providerOrder"] = json!(["existing", "echobird", "echobird-custom"]);
+        fixture["config"]["providerConfigRules"]["providerRules"]
+            .as_array_mut()
+            .unwrap()
+            .extend([
+                json!({"providerId":"echobird","config":{"api":{"baseUrl":first_url}}}),
+                json!({"providerId":"echobird-custom","config":{"keep":true}}),
+            ]);
+        write_json_file(&personal_path, &fixture).unwrap();
+        write_json_file(
+            &legacy_path,
+            &json!({"provider":{
+                "echobird":{"options":{"baseURL":first_url}},
+                "echobird-custom":{"keep":true}
+            }}),
+        )
+        .unwrap();
+
+        smart_router::profiles::with_fixture_root(root.to_path_buf(), || {
+            let apply = |url, name, protocol| {
+                let info = serde_json::from_value(json!({
+                    "model":"auto","name":name,"baseUrl":url,"apiKey":"fixture","protocol":protocol
+                }))
+                .unwrap();
+                smart_router::catalog::with_test_models_at(url, || {
+                    let result = apply_zcode_at(&info, root);
+                    assert!(result.success, "{}", result.message);
+                });
+            };
+            apply(first_url, "First", "openai");
+            apply(second_url, "Second", "anthropic");
+            assert_eq!(
+                read_zcode_at(root).unwrap().base_url.as_deref(),
+                Some(second_url)
+            );
+            apply(first_url, "First updated", "openai");
+
+            let first_id = "echobird-smart-router";
+            let second_id = format!("echobird-{group}");
+            let legacy = read_json_file(&legacy_path).unwrap();
+            assert_eq!(legacy["model"], format!("{first_id}/auto"));
+            assert_eq!(
+                legacy["provider"][first_id]["options"]["baseURL"],
+                first_url
+            );
+            assert_eq!(
+                legacy["provider"][&second_id]["options"]["baseURL"],
+                second_url
+            );
+            assert!(legacy["provider"].get(DEFAULT_PROVIDER_ID).is_none());
+
+            let personal = read_json_file(&personal_path).unwrap();
+            let config = &personal["config"];
+            assert_eq!(config["defaultModelSelection"]["providerId"], first_id);
+            let rules = config["providerConfigRules"]["providerRules"]
+                .as_array()
+                .unwrap();
+            assert_eq!(rules.len(), 4);
+            for id in [first_id, &second_id] {
+                let rule = rules.iter().find(|rule| rule["providerId"] == id).unwrap();
+                assert_eq!(
+                    rule["config"]["personalModelIds"].as_array().unwrap().len(),
+                    3
+                );
+                assert_eq!(
+                    rule["config"]["personalModelIds"],
+                    rule["config"]["modelOrder"]
+                );
+            }
+            assert_eq!(
+                read_zcode_at(root).unwrap().base_url.as_deref(),
+                Some(first_url)
+            );
+            assert!(restore_zcode_to_official_at(root).success);
+            assert!(read_zcode_at(root).is_none());
+            let legacy = read_json_file(&legacy_path).unwrap();
+            assert_eq!(legacy["provider"], json!({"echobird-custom":{"keep":true}}));
+            let personal = read_json_file(&personal_path).unwrap();
+            assert_eq!(
+                personal["config"]["providerOrder"],
+                json!(["existing", "echobird-custom"])
+            );
+        });
+    }
 
     #[test]
     fn capability_switches_round_trip_and_preserve_other_providers_and_video() {
@@ -701,7 +845,7 @@ mod tests {
         let updated = prepare_zcode_personal_config(
             &path,
             "vendor/model",
-            "My Provider",
+            (DEFAULT_PROVIDER_ID, "My Provider"),
             "secret",
             "https://example.com/v1",
             "openai",
@@ -743,7 +887,7 @@ mod tests {
         let updated = prepare_zcode_personal_config(
             &path,
             "claude-test",
-            "My Anthropic Provider",
+            (DEFAULT_PROVIDER_ID, "My Anthropic Provider"),
             "secret",
             "https://example.com/anthropic",
             "anthropic",
@@ -919,7 +1063,7 @@ mod tests {
             let updated = prepare_zcode_personal_config(
                 &path,
                 "vendor/model",
-                "Supplier",
+                (DEFAULT_PROVIDER_ID, "Supplier"),
                 "fixture",
                 "https://example.test",
                 "anthropic",
@@ -951,7 +1095,7 @@ mod tests {
                 prepare_zcode_personal_config(
                     &path,
                     "vendor/model",
-                    "Supplier",
+                    (DEFAULT_PROVIDER_ID, "Supplier"),
                     "fixture",
                     "https://example.test",
                     "anthropic",

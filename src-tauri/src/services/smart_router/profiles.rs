@@ -7,7 +7,7 @@ tokio::task_local! { static CURRENT: String; }
 tokio::task_local! { static FIXTURE_ROOT: PathBuf; }
 
 #[cfg(test)]
-pub(super) fn with_fixture_root<T>(root: PathBuf, run: impl FnOnce() -> T) -> T {
+pub(crate) fn with_fixture_root<T>(root: PathBuf, run: impl FnOnce() -> T) -> T {
     FIXTURE_ROOT.sync_scope(root, run)
 }
 static RUNNING_GROUPS: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
