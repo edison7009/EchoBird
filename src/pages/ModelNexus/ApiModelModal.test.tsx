@@ -469,3 +469,66 @@ it('switches regional editions in place, keeping a typed name and key', async ()
   expect(context.newModelForm).toMatchObject({ name: 'My MiniMax', baseUrl: variants[0].baseUrl });
   expectNoModelActions();
 });
+
+it('preserves the encrypted key and form when local decryption is unavailable', async () => {
+  await mount();
+  await act(async () => context.handleCardEdit(saved));
+  vi.mocked(api.decryptSecret).mockRejectedValueOnce(new Error('fixture identity unavailable'));
+  const lock = renderer!.root
+    .findAllByType('button')
+    .find((button) =>
+      button.findAllByType('svg').some((svg) => String(svg.props.className).includes('lucide-lock'))
+    )!;
+  expect(lock).toBeTruthy();
+  await act(async () => lock.props.onClick());
+  expect(context.newModelForm.apiKey).toBe(saved.apiKey);
+  expect(context.showAddModelModal).toBe(true);
+  expect(api.updateModel).not.toHaveBeenCalled();
+  expect(showToast).toHaveBeenCalledWith('error', 'key.decryptFailed');
+  const replace = renderer!.root
+    .findAllByType('button')
+    .find((button) => button.children.includes('key.replace'))!;
+  expect(replace).toBeTruthy();
+  act(() => replace.props.onClick());
+  expect(context.newModelForm.apiKey).toBe('');
+  expect(api.updateModel).not.toHaveBeenCalled();
+  expect(saved.apiKey).toBe('enc:v1:opaque-fixture');
+});
+
+it('ignores a late decryption result after the key has been edited', async () => {
+  await mount();
+  await act(async () => context.handleCardEdit(saved));
+  let finish!: (plain: string) => void;
+  vi.mocked(api.decryptSecret).mockReturnValueOnce(
+    new Promise((resolve) => {
+      finish = resolve;
+    })
+  );
+  const lock = renderer!.root
+    .findAllByType('button')
+    .find((button) =>
+      button.findAllByType('svg').some((svg) => String(svg.props.className).includes('lucide-lock'))
+    )!;
+  act(() => {
+    void lock.props.onClick();
+  });
+  act(() => context.setNewModelForm((current) => ({ ...current, apiKey: 'new-user-value' })));
+  await act(async () => finish('stale-plain-value'));
+  expect(context.newModelForm.apiKey).toBe('new-user-value');
+  expect(api.updateModel).not.toHaveBeenCalled();
+  expect(showToast).not.toHaveBeenCalled();
+});
+
+it('clears the old unavailable-key hint only after explicit replacement in the draft', async () => {
+  await mount();
+  vi.mocked(api.isKeyDestroyed).mockResolvedValueOnce(true);
+  await act(async () => context.handleCardEdit(saved));
+  expect(context.keyDestroyed).toBe(true);
+  const replace = renderer!.root
+    .findAllByType('button')
+    .find((button) => button.children.includes('key.replace'))!;
+  act(() => replace.props.onClick());
+  expect(context.keyDestroyed).toBe(false);
+  expect(context.newModelForm.apiKey).toBe('');
+  expect(api.updateModel).not.toHaveBeenCalled();
+});

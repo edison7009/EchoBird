@@ -802,7 +802,9 @@ const zhHant: Partial<Translations> = {
   'store.ver': '個版本',
   'store.ready': '✓ 就緒',
   'key.encrypted': '已全域加密，任何環境變動時 API Key 將自毀',
-  'key.destroyed': '偵測到環境已變動，API Key 已自毀，請重新輸入',
+  'key.destroyed': '無法解密，原金鑰已保留',
+  'key.replace': '重新輸入',
+  'key.decryptFailed': '金鑰暫時無法解密，原始資料已保留。',
   'hint.responsesRequired':
     'ChatGPT / Codex CLI 切換模型時，第三方模型必須支援 Responses 才能成功接入。',
   'hint.claudeHistoryMerged':

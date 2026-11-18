@@ -839,7 +839,9 @@ const ja: Partial<Translations> = {
   'store.ver': 'バージョン',
   'store.ready': '✓ 準備完了',
   'key.encrypted': '全体暗号化済み — 環境が変化すると API キーは自動消去されます',
-  'key.destroyed': '環境の変化を検出。API キーが自動消去されました。再度入力してください',
+  'key.destroyed': '復号できません。元のキーは保持されています',
+  'key.replace': '再入力',
+  'key.decryptFailed': 'キーを復号できませんでした。元のデータは保持されています。',
   'hint.responsesRequired':
     'ChatGPT / Codex CLI に接続するには、サードパーティモデルが Responses をサポートしている必要があります。',
   'hint.claudeHistoryMerged':

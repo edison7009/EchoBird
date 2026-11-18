@@ -3036,3 +3036,211 @@ async fn streamed_api_turns_request_usage_so_pet_credits_accrue() {
     assert!(sent[3].get("stream_options").is_none());
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn reliability_optional_usage_and_short_backoff_are_strictly_bounded() {
+    assert!(optional_usage_rejected(
+        StatusCode::BAD_REQUEST,
+        br#"{"error":{"code":"unsupported_parameter","param":"stream_options"}}"#
+    ));
+    assert!(!optional_usage_rejected(
+        StatusCode::BAD_REQUEST,
+        br#"{"error":{"code":"unsupported_parameter","param":"tools"}}"#
+    ));
+    assert!(!optional_usage_rejected(
+        StatusCode::BAD_REQUEST,
+        br#"{"error":{"message":"stream_options secret echo"}}"#
+    ));
+    assert!(!optional_usage_rejected(
+        StatusCode::FORBIDDEN,
+        br#"{"error":{"code":"unsupported_parameter","param":"stream_options"}}"#
+    ));
+    let now = Instant::now();
+    assert_eq!(
+        short_retry_delay(Some(Duration::ZERO), now, Duration::from_secs(5)),
+        Some(Duration::from_millis(100))
+    );
+    assert!(short_retry_delay(None, now, Duration::from_secs(5)).is_none());
+    assert!(short_retry_delay(Some(Duration::from_secs(3)), now, Duration::from_secs(5)).is_none());
+    assert!(short_retry_delay(
+        Some(Duration::from_secs(1)),
+        now,
+        Duration::from_millis(100)
+    )
+    .is_none());
+}
+
+#[tokio::test]
+async fn reliability_retries_only_explicit_short_backoff_on_a_single_api_candidate() {
+    for (status, header, expected_calls, recovered) in [
+        (StatusCode::TOO_MANY_REQUESTS, Some("0"), 2, true),
+        (StatusCode::SERVICE_UNAVAILABLE, Some("0"), 2, true),
+        (StatusCode::SERVICE_UNAVAILABLE, Some("0"), 2, false),
+        (StatusCode::SERVICE_UNAVAILABLE, None, 1, false),
+        (StatusCode::TOO_MANY_REQUESTS, Some("60"), 1, false),
+        (StatusCode::UNAUTHORIZED, Some("0"), 1, false),
+    ] {
+        let calls = Arc::new(AtomicUsize::new(0));
+        let addr = spawn_mock(Router::new().route("/v1/chat/completions", post({
+            let calls = calls.clone();
+            move || {
+                let ordinal = calls.fetch_add(1, Ordering::SeqCst);
+                async move {
+                    if ordinal == 0 || !recovered {
+                        let mut response = Response::builder().status(status);
+                        if let Some(header) = header { response = response.header("Retry-After", header); }
+                        response.body(Body::from(r#"{"error":{"message":"fixture upstream refusal"}}"#)).unwrap()
+                    } else {
+                        Json(json!({"choices":[{"message":{"content":"recovered"},"finish_reason":"stop"}]})).into_response()
+                    }
+                }
+            }
+        }))).await;
+        let mut state = AppState::for_tests().unwrap();
+        state.http_client = reqwest::Client::builder().no_proxy().build().unwrap();
+        let response = route_chat_with_candidates(
+            &state,
+            &HeaderMap::new(),
+            json!({"messages":[]}),
+            vec![candidate(addr, "retry")],
+        )
+        .await;
+        assert_eq!(
+            calls.load(Ordering::SeqCst),
+            expected_calls,
+            "{status} {header:?}"
+        );
+        if recovered {
+            assert_eq!(response.status(), StatusCode::OK);
+        }
+    }
+}
+
+#[tokio::test]
+async fn reliability_backups_still_win_over_waiting_on_a_failed_upstream() {
+    let calls = Arc::new(Mutex::new(Vec::<String>::new()));
+    let addr = spawn_mock(Router::new().route(
+        "/v1/chat/completions",
+        post({
+            let calls = calls.clone();
+            move |Json(body): Json<Value>| {
+                let calls = calls.clone();
+                async move {
+                    let model = body["model"].as_str().unwrap().to_string();
+                    calls.lock().unwrap().push(model.clone());
+                    if model == "first-model" {
+                        Response::builder()
+                            .status(429)
+                            .header("Retry-After", "0")
+                            .body(Body::from(r#"{"error":{"message":"limited"}}"#))
+                            .unwrap()
+                    } else {
+                        Json(json!({"choices":[{"message":{"content":"backup"}}]})).into_response()
+                    }
+                }
+            }
+        }),
+    ))
+    .await;
+    let mut state = AppState::for_tests().unwrap();
+    state.http_client = reqwest::Client::builder().no_proxy().build().unwrap();
+    let response = route_chat_with_candidates(
+        &state,
+        &HeaderMap::new(),
+        json!({"messages":[]}),
+        vec![candidate(addr, "first"), candidate(addr, "backup")],
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(*calls.lock().unwrap(), vec!["first-model", "backup-model"]);
+}
+
+#[tokio::test]
+async fn reliability_failure_details_use_static_reasons_never_upstream_secret_text() {
+    let addr = spawn_mock(Router::new().route("/v1/chat/completions", post(|| async {
+        (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"error":{"message":"api_key=sk-fixture-sensitive request=private-content"}})))
+    }))).await;
+    let mut state = AppState::for_tests().unwrap();
+    state.http_client = reqwest::Client::builder().no_proxy().build().unwrap();
+    let response = route_chat_with_candidates(
+        &state,
+        &HeaderMap::new(),
+        json!({"messages":[]}),
+        vec![candidate(addr, "safe")],
+    )
+    .await;
+    let bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let error: Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(
+        error["error"]["attempts"][0]["reason"],
+        "upstream temporarily unavailable or timed out"
+    );
+    let text = String::from_utf8(bytes.to_vec()).unwrap();
+    assert!(!text.contains("sk-fixture-sensitive"));
+    assert!(!text.contains("private-content"));
+}
+
+#[tokio::test]
+async fn reliability_auto_usage_downgrade_is_cached_without_removing_client_features() {
+    let root = tempfile::tempdir().unwrap();
+    let captured = Arc::new(Mutex::new(Vec::<Value>::new()));
+    let addr = spawn_mock(Router::new().route("/v1/chat/completions", post({
+        let captured = captured.clone();
+        move |Json(body): Json<Value>| {
+            captured.lock().unwrap().push(body.clone());
+            async move {
+                if body["stream_options"]["include_usage"] == true {
+                    (StatusCode::BAD_REQUEST, Json(json!({"error":{"code":"unsupported_parameter","param":"stream_options"}}))).into_response()
+                } else {
+                    Response::builder().header("Content-Type","text/event-stream").body(Body::from("data: {\"choices\":[{\"delta\":{\"content\":\"ok\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n")).unwrap()
+                }
+            }
+        }
+    }))).await;
+    let collector =
+        super::super::statistics::Collector::open(root.path().join("counts.json")).unwrap();
+    collector.configure(true);
+    let mut state = AppState::for_tests().unwrap();
+    state.http_client = reqwest::Client::builder().no_proxy().build().unwrap();
+    state.config_path = root.path().join("route.json");
+    state.protection_settings_path = root.path().join("settings.json");
+    state.statistics_collector = Some(collector.clone());
+    let body = json!({"stream":true,"messages":[],"tools":[{"type":"function","function":{"name":"fixture"}}],"store":false});
+    for _ in 0..2 {
+        let response = protected_route(
+            &state,
+            &HeaderMap::new(),
+            body.clone(),
+            vec![candidate(addr, "usage")],
+            ClientProtocol::Chat,
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::OK);
+        response.into_body().collect().await.unwrap();
+    }
+    let snapshot = collector.snapshot(1, None).unwrap();
+    assert_eq!(snapshot.rows[0].counts.attempts, 2);
+    assert_eq!(snapshot.rows[0].counts.completed, 2);
+    // A client's explicit usage request is not silently downgraded, even after caching.
+    let mut explicit = body.clone();
+    explicit["stream_options"] = json!({"include_usage":true});
+    let response = protected_route(
+        &state,
+        &HeaderMap::new(),
+        explicit,
+        vec![candidate(addr, "usage")],
+        ClientProtocol::Chat,
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let sent = captured.lock().unwrap();
+    assert_eq!(sent.len(), 4);
+    assert_eq!(sent[3]["stream_options"]["include_usage"], true);
+    assert_eq!(sent[0]["stream_options"]["include_usage"], true);
+    assert!(sent[1].get("stream_options").is_none());
+    assert!(sent[2].get("stream_options").is_none());
+    for body in sent.iter() {
+        assert_eq!(body["store"], false);
+        assert_eq!(body["tools"][0]["function"]["name"], "fixture");
+    }
+}

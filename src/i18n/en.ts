@@ -823,7 +823,9 @@ const en: Translations = {
   'store.ready': '✓ Ready',
   // API Key encryption + model compatibility hint
   'key.encrypted': 'Encrypted globally — API Key will self-destruct if environment changes',
-  'key.destroyed': 'Environment change detected — API Key has self-destructed, please re-enter',
+  'key.destroyed': 'Cannot decrypt — original key preserved',
+  'key.replace': 'Enter a new key',
+  'key.decryptFailed': 'The key could not be decrypted. The saved value has been preserved.',
   'hint.responsesRequired':
     'Third-party models must support Responses to connect successfully with ChatGPT / Codex CLI.',
   'hint.claudeHistoryMerged':

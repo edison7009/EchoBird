@@ -865,7 +865,7 @@ async fn ping_endpoint(endpoint: &str, batch_id: Option<&str>) -> PingResult {
     }
 }
 
-/// Check if an encrypted key has been destroyed (decryption fails)
+/// Legacy command name: report local decryption unavailability, not proof of destroyed data.
 pub fn is_key_destroyed(internal_id: &str) -> bool {
     let models = get_raw_user_models();
     let model = match models.iter().find(|m| m.internal_id == internal_id) {

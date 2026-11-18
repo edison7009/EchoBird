@@ -768,6 +768,8 @@ export type TKey =
   // API Key encryption status
   | 'key.encrypted'
   | 'key.destroyed'
+  | 'key.replace'
+  | 'key.decryptFailed'
   // App hints
   | 'hint.responsesRequired'
   | 'hint.claudeHistoryMerged'

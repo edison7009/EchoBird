@@ -312,6 +312,8 @@ struct RouteMemory {
     #[serde(skip)]
     unsupported_responses: HashMap<String, u64>,
     #[serde(skip)]
+    unsupported_stream_usage: HashMap<String, u64>,
+    #[serde(skip)]
     zen_refused_until: HashMap<String, u64>,
 }
 
@@ -346,6 +348,7 @@ impl Default for RouteMemory {
             recovering: HashMap::new(),
             credential_refreshes: HashMap::new(),
             unsupported_responses: HashMap::new(),
+            unsupported_stream_usage: HashMap::new(),
             zen_refused_until: HashMap::new(),
         }
     }
@@ -406,6 +409,19 @@ enum FailureClass {
     RateLimit,
     Transient,
     RequestIncompatible,
+}
+
+impl FailureClass {
+    fn description(self) -> &'static str {
+        match self {
+            Self::Authentication => "upstream authentication failed",
+            Self::Billing => "upstream quota or balance unavailable",
+            Self::ModelUnavailable => "requested model unavailable upstream",
+            Self::RateLimit => "upstream rate limit reached",
+            Self::Transient => "upstream temporarily unavailable or timed out",
+            Self::RequestIncompatible => "upstream does not support this request",
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -1334,6 +1350,40 @@ async fn responses_from_chat(
     )
 }
 
+fn optional_usage_rejected(status: StatusCode, bytes: &[u8]) -> bool {
+    if !matches!(status.as_u16(), 400 | 422) {
+        return false;
+    }
+    let Ok(value) = serde_json::from_slice::<Value>(bytes) else {
+        return false;
+    };
+    let error = value.get("error").unwrap_or(&value);
+    let parameter = error["param"]
+        .as_str()
+        .or_else(|| error["parameter"].as_str());
+    matches!(
+        parameter,
+        Some("stream_options" | "stream_options.include_usage")
+    ) && [
+        "unsupported_parameter",
+        "unknown_parameter",
+        "unrecognized_parameter",
+    ]
+    .iter()
+    .any(|code| error["code"].as_str() == Some(code))
+}
+
+fn short_retry_delay(
+    retry_after: Option<Duration>,
+    started: Instant,
+    budget: Duration,
+) -> Option<Duration> {
+    let delay = retry_after?.max(Duration::from_millis(100));
+    (delay <= Duration::from_secs(2)
+        && budget.checked_sub(started.elapsed())? > delay + Duration::from_millis(50))
+    .then_some(delay)
+}
+
 /// OpenAI-compatible upstreams only report streamed usage on request; without
 /// it Smart Access statistics and TokenPet credits never see streamed turns.
 /// Only recorded turns ask (probes stay minimal); an explicit client choice is kept.
@@ -1360,7 +1410,13 @@ async fn send_api_request(
     let mut body = body.clone();
     if protocol == RouteProtocol::Chat {
         crate::services::account_proxy::strip_response_metadata(&mut body);
-        if state.request_statistics.is_some() {
+        let unsupported = state.route_memory.lock().ok().is_some_and(|memory| {
+            memory
+                .unsupported_stream_usage
+                .get(&candidate.fingerprint)
+                .is_some_and(|until| *until > now_ms())
+        });
+        if state.request_statistics.is_some() && !unsupported {
             request_stream_usage(&mut body);
         }
     } else {
@@ -1508,13 +1564,24 @@ async fn route_with_policy(
 
     let mut available = available.into_iter();
     let mut authentication_retry: Option<(Candidate, Option<Value>)> = None;
-    while let Some((mut candidate, refreshed_credentials)) = authentication_retry
+    let mut local_retry: Option<Candidate> = None;
+    let mut backoff_retried = std::collections::HashSet::new();
+    while let Some((mut candidate, refreshed_credentials, retried_locally)) = local_retry
         .take()
-        .or_else(|| available.next().map(|candidate| (candidate, None)))
+        .map(|candidate| (candidate, None, true))
+        .or_else(|| {
+            authentication_retry
+                .take()
+                .map(|(candidate, credentials)| (candidate, credentials, false))
+        })
+        .or_else(|| available.next().map(|candidate| (candidate, None, false)))
     {
         let authentication_retried = refreshed_credentials.is_some();
-        if (authentication_retried && candidate_is_cooling_down(state, &candidate))
-            || (!authentication_retried && !try_begin_attempt(state, &mut candidate))
+        if ((authentication_retried || retried_locally)
+            && candidate_is_cooling_down(state, &candidate))
+            || (!authentication_retried
+                && !retried_locally
+                && !try_begin_attempt(state, &mut candidate))
         {
             continue;
         }
@@ -1537,7 +1604,7 @@ async fn route_with_policy(
             break;
         };
         let mut upstream_body = body.clone();
-        if !authentication_retried {
+        if !authentication_retried && !retried_locally {
             if let Some(statistics) = &state.request_statistics {
                 let group = state
                     .config_path
@@ -1714,6 +1781,74 @@ async fn route_with_policy(
                 );
                 copy_response_headers(&mut response, &response_headers);
                 return response;
+            }
+            if protocol == RouteProtocol::Chat
+                && candidate.account_source.is_none()
+                && state.request_statistics.is_some()
+                && body["stream"] == true
+                && body.get("stream_options").is_none_or(|options| {
+                    options.is_null()
+                        || options
+                            .as_object()
+                            .is_some_and(|options| options.is_empty())
+                })
+                && optional_usage_rejected(status, &response_body)
+                && !state.route_memory.lock().ok().is_some_and(|memory| {
+                    memory
+                        .unsupported_stream_usage
+                        .get(&candidate.fingerprint)
+                        .is_some_and(|until| *until > now_ms())
+                })
+            {
+                if let Ok(mut memory) = state.route_memory.lock() {
+                    memory
+                        .unsupported_stream_usage
+                        .retain(|_, until| *until > now_ms());
+                    if memory.unsupported_stream_usage.len() >= 1024 {
+                        memory.unsupported_stream_usage.clear();
+                    }
+                    memory
+                        .unsupported_stream_usage
+                        .insert(candidate.fingerprint.clone(), now_ms() + 30 * 60 * 1000);
+                }
+                attempts.push(AttemptRecord {
+                    candidate_id: candidate.internal_id.clone(),
+                    model_id: candidate.model_id.clone(),
+                    failure: FailureClass::RequestIncompatible,
+                    status: Some(status.as_u16()),
+                });
+                local_retry = Some(candidate);
+                continue;
+            }
+            // A configured backup wins over waiting. Only a single API candidate
+            // gets one explicit short Retry-After before any downstream output.
+            if protocol == RouteProtocol::Chat
+                && candidate.account_source.is_none()
+                && configured_candidates.len() == 1
+                && !backoff_retried.contains(&candidate.fingerprint)
+                && matches!(status.as_u16(), 429 | 503)
+                && matches!(
+                    classify_failure(status, &response_body),
+                    Some(FailureClass::Transient | FailureClass::RateLimit)
+                )
+            {
+                if let Some(delay) =
+                    short_retry_delay(retry_after, routing_started, policy.time_budget)
+                {
+                    backoff_retried.insert(candidate.fingerprint.clone());
+                    attempts.push(AttemptRecord {
+                        candidate_id: candidate.internal_id.clone(),
+                        model_id: candidate.model_id.clone(),
+                        failure: classify_failure(status, &response_body).unwrap(),
+                        status: Some(status.as_u16()),
+                    });
+                    tokio::select! {
+                        _ = state.shutdown.cancelled() => break,
+                        _ = tokio::time::sleep(delay) => {}
+                    }
+                    local_retry = Some(candidate);
+                    continue;
+                }
             }
             if let Some(failure) = mark_upstream_failure(
                 state,
@@ -2250,7 +2385,12 @@ async fn route_with_policy(
         }
     }
 
-    let detail = serde_json::to_value(&attempts).unwrap_or_else(|_| json!([]));
+    let mut detail = serde_json::to_value(&attempts).unwrap_or_else(|_| json!([]));
+    if let Some(records) = detail.as_array_mut() {
+        for (record, attempt) in records.iter_mut().zip(&attempts) {
+            record["reason"] = json!(attempt.failure.description());
+        }
+    }
     if !attempts.is_empty()
         && attempts
             .iter()
@@ -2261,12 +2401,21 @@ async fn route_with_policy(
         }
     }
     log::error!("[SmartRouter] all candidates failed: {detail}");
+    let failure_message = attempts.last().map_or_else(
+        || "All Auto Router models failed".to_string(),
+        |attempt| {
+            format!(
+                "All Auto Router models failed: {}",
+                attempt.failure.description()
+            )
+        },
+    );
     json_error(
         StatusCode::SERVICE_UNAVAILABLE,
         if zen_refused {
             zen_free::REFUSED_MESSAGE
         } else {
-            "All Auto Router models failed"
+            &failure_message
         },
         Some(detail),
     )
@@ -2549,9 +2698,10 @@ use health_transitions::{
 #[path = "server/failure_policy.rs"]
 mod failure_policy;
 #[cfg(test)]
-use failure_policy::{classify_failure, cooldown_for_failure};
+use failure_policy::cooldown_for_failure;
 use failure_policy::{
-    is_context_limit_body, remaining_timeout, retry_after, shortened_first_content_timeout,
+    classify_failure, is_context_limit_body, remaining_timeout, retry_after,
+    shortened_first_content_timeout,
 };
 
 fn chat_completions_url(base_url: &str) -> String {

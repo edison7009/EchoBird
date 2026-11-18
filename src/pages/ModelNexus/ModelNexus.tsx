@@ -609,6 +609,8 @@ export function AddModelModal() {
   const voiceState = useVoiceInputStore();
   const activePage = useNavigationStore((state) => state.activePage);
   const voiceAttempt = useRef(0);
+  const keyAttempt = useRef(0);
+  const [keyDecryptError, setKeyDecryptError] = useState<string | null>(null);
   const { addSelectedModel, updateSelectedModel } = useFreeModels();
   const {
     showAddModelModal,
@@ -618,6 +620,7 @@ export function AddModelModal() {
     newModelForm,
     setNewModelForm,
     keyDestroyed,
+    setKeyDestroyed,
     closeModelModal,
     setUserModels,
     updateUserModel,
@@ -629,6 +632,16 @@ export function AddModelModal() {
   useLayoutEffect(() => {
     voiceAttempt.current += 1;
   }, [showAddModelModal, modelModalAnimatingOut, modelModalDestination, activePage]);
+  useLayoutEffect(() => {
+    keyAttempt.current += 1;
+  }, [
+    showAddModelModal,
+    modelModalAnimatingOut,
+    modelModalDestination,
+    activePage,
+    editingModelId,
+    newModelForm.apiKey,
+  ]);
   useEffect(() => {
     if (showAddModelModal && modelModalDestination === 'voiceInput' && activePage !== 'voice')
       closeModelModal();
@@ -857,6 +870,19 @@ export function AddModelModal() {
                     className="w-full bg-cyber-input border border-cyber-border px-2 py-1.5 pr-20 text-xs text-cyber-text font-mono focus:border-cyber-border focus:outline-none rounded-button"
                     readOnly={newModelForm.apiKey.startsWith('enc:v1:')}
                   />
+                  {newModelForm.apiKey.startsWith('enc:v1:') &&
+                    (keyDestroyed || keyDecryptError === newModelForm.apiKey) && (
+                      <button
+                        type="button"
+                        className="absolute right-8 top-1/2 -translate-y-1/2 text-xs text-cyber-text-secondary"
+                        onClick={() => {
+                          setKeyDestroyed(false);
+                          setNewModelForm((current) => ({ ...current, apiKey: '' }));
+                        }}
+                      >
+                        {t('key.replace')}
+                      </button>
+                    )}
                   {/* One-click paste from clipboard — plain text affordance (no
                     border / button styling, no hover effect, label never
                     changes). Shown only while the key is editable (plaintext);
@@ -885,20 +911,28 @@ export function AddModelModal() {
                       type="button"
                       disabled={!newModelForm.apiKey}
                       onClick={async () => {
+                        const attempt = ++keyAttempt.current;
                         if (newModelForm.apiKey.startsWith('enc:v1:')) {
                           try {
                             const plain = await api.decryptSecret(newModelForm.apiKey);
+                            if (attempt !== keyAttempt.current) return;
                             const newKey = plain || '';
+                            setKeyDestroyed(false);
                             setNewModelForm((prev) => ({ ...prev, apiKey: newKey }));
                           } catch {
-                            setNewModelForm((prev) => ({ ...prev, apiKey: '' }));
+                            if (attempt === keyAttempt.current) {
+                              setKeyDecryptError(newModelForm.apiKey);
+                              showToast('error', t('key.decryptFailed'));
+                            }
                           }
                         } else {
                           try {
                             const encrypted = await api.encryptSecret(newModelForm.apiKey);
+                            if (attempt !== keyAttempt.current) return;
+                            setKeyDestroyed(false);
                             setNewModelForm((prev) => ({ ...prev, apiKey: encrypted }));
                           } catch (error) {
-                            showToast('error', String(error));
+                            if (attempt === keyAttempt.current) showToast('error', String(error));
                           }
                         }
                       }}

@@ -1,3 +1,47 @@
+#[cfg(windows)]
+pub(crate) fn native_username() -> Option<String> {
+    #[link(name = "advapi32")]
+    extern "system" {
+        fn GetUserNameW(buffer: *mut u16, size: *mut u32) -> i32;
+    }
+    let mut buffer = [0_u16; 257];
+    let mut size = buffer.len() as u32;
+    // Node's os.userInfo() uses the OS account, not the mutable USERNAME variable.
+    // SAFETY: the buffer is writable for size UTF-16 units; the API bounds its writes.
+    if unsafe { GetUserNameW(buffer.as_mut_ptr(), &mut size) } == 0 || size == 0 {
+        return None;
+    }
+    String::from_utf16(&buffer[..size as usize - 1]).ok()
+}
+
+#[cfg(unix)]
+pub(crate) fn native_username() -> Option<String> {
+    let mut buffer = vec![0_u8; 16384];
+    let mut result = std::ptr::null_mut();
+    // SAFETY: getpwuid_r initializes the supplied record and writes only into the
+    // owned buffer. The name is copied before that buffer is dropped.
+    unsafe {
+        let mut passwd: libc::passwd = std::mem::zeroed();
+        if libc::getpwuid_r(
+            libc::geteuid(),
+            &mut passwd,
+            buffer.as_mut_ptr().cast(),
+            buffer.len(),
+            &mut result,
+        ) != 0
+            || result.is_null()
+            || passwd.pw_name.is_null()
+        {
+            return None;
+        }
+        Some(
+            std::ffi::CStr::from_ptr(passwd.pw_name)
+                .to_string_lossy()
+                .into_owned(),
+        )
+    }
+}
+
 // Platform detection and command utilities.
 mod probe;
 use probe::version_output;

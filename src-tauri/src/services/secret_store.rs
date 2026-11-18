@@ -8,11 +8,7 @@ pub(crate) const ENCRYPTED_PREFIX: &str = "enc:v1:";
 /// Linux: /etc/machine-id
 fn get_machine_fingerprint() -> String {
     static FINGERPRINT: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
-    machine_fingerprint_with(
-        &FINGERPRINT,
-        probe_machine_fingerprint,
-        fallback_machine_fingerprint,
-    )
+    machine_fingerprint_with(&FINGERPRINT, probe_machine_fingerprint, String::new)
 }
 
 pub(crate) fn machine_fingerprint_with(
@@ -39,20 +35,13 @@ pub(crate) fn machine_fingerprint_with(
 fn probe_machine_fingerprint() -> Option<String> {
     #[cfg(windows)]
     {
-        if let Ok(output) = crate::utils::process::command("reg")
-            .args([
-                "query",
-                r"HKLM\SOFTWARE\Microsoft\Cryptography",
-                "/v",
-                "MachineGuid",
-            ])
-            .output()
+        use winreg::{enums::HKEY_LOCAL_MACHINE, RegKey};
+        if let Ok(key) =
+            RegKey::predef(HKEY_LOCAL_MACHINE).open_subkey(r"SOFTWARE\Microsoft\Cryptography")
         {
-            let text = String::from_utf8_lossy(&output.stdout);
-            // Output format: "    MachineGuid    REG_SZ    <guid>"
-            if let Some(line) = text.lines().find(|l| l.contains("MachineGuid")) {
-                if let Some(guid) = line.split_whitespace().last() {
-                    return Some(guid.to_string());
+            if let Ok(value) = key.get_value::<String, _>("MachineGuid") {
+                if !value.trim().is_empty() {
+                    return Some(value);
                 }
             }
         }
@@ -60,7 +49,7 @@ fn probe_machine_fingerprint() -> Option<String> {
 
     #[cfg(target_os = "macos")]
     {
-        if let Ok(output) = crate::utils::process::command("ioreg")
+        if let Ok(output) = crate::utils::process::command("/usr/sbin/ioreg")
             .args(["-rd1", "-c", "IOPlatformExpertDevice"])
             .output()
         {
@@ -151,7 +140,7 @@ fn key_at(path: &Path, create: bool) -> Result<Vec<u8>, String> {
     }
 }
 
-fn encryption_key(create: bool) -> Result<[u8; 32], String> {
+fn encryption_keys(create: bool) -> Result<Vec<[u8; 32]>, String> {
     let path = echobird_dir().join("config/.encryption_key");
     let file_key = if create {
         fs::create_dir_all(path.parent().ok_or("Missing key directory")?)
@@ -161,17 +150,57 @@ fn encryption_key(create: bool) -> Result<[u8; 32], String> {
     } else {
         key_at(&path, false)?
     };
-    let username = std::env::var("USERNAME")
-        .or_else(|_| std::env::var("USER"))
-        .unwrap_or_else(|_| "default".into());
-    derive_encryption_key(&file_key, &get_machine_fingerprint(), &username)
+    let native = crate::utils::platform::native_username().filter(|value| !value.is_empty());
+    let fingerprint = get_machine_fingerprint();
+    if create && (native.is_none() || fingerprint.is_empty()) {
+        return Err(
+            "Stable device or OS account identity is unavailable; existing secrets were preserved"
+                .into(),
+        );
+    }
+    let mut identities: Vec<String> = native.into_iter().collect();
+    if !create {
+        identities.extend(
+            [std::env::var("USERNAME").ok(), std::env::var("USER").ok()]
+                .into_iter()
+                .flatten(),
+        );
+        identities.push("default".into());
+    }
+    let mut fingerprints = vec![fingerprint];
+    if !create {
+        fingerprints.push(fallback_machine_fingerprint());
+        fingerprints.push("echobird-fallback".into());
+    }
+    identity_keys(&file_key, &fingerprints, &identities)
+}
+
+fn identity_keys(
+    file_key: &[u8],
+    fingerprints: &[String],
+    identities: &[String],
+) -> Result<Vec<[u8; 32]>, String> {
+    let mut keys = Vec::new();
+    for fingerprint in fingerprints {
+        for identity in identities {
+            let key = derive_encryption_key(file_key, fingerprint, identity)?;
+            if !keys.contains(&key) {
+                keys.push(key);
+            }
+        }
+    }
+    Ok(keys)
 }
 
 pub fn encrypt(plain: &str) -> Result<String, String> {
     if plain.is_empty() || plain == "local" || plain.starts_with(ENCRYPTED_PREFIX) {
         return Ok(plain.into());
     }
-    encrypt_with_key(plain, &encryption_key(true)?)
+    let keys = encryption_keys(true)?;
+    let key = keys
+        .first()
+        .ok_or("Stable encryption identity is unavailable")?;
+    encrypt_with_key(plain, key)
 }
 
 fn encrypt_with_key(plain: &str, key: &[u8; 32]) -> Result<String, String> {
@@ -192,7 +221,17 @@ pub fn decrypt(stored: &str) -> Result<String, String> {
     if !stored.starts_with(ENCRYPTED_PREFIX) {
         return Ok(stored.into());
     }
-    decrypt_with_key(stored, &encryption_key(false)?)
+    let keys = encryption_keys(false)?;
+    decrypt_with_keys(stored, &keys)
+}
+
+fn decrypt_with_keys(stored: &str, keys: &[[u8; 32]]) -> Result<String, String> {
+    for key in keys {
+        if let Ok(plain) = decrypt_with_key(stored, key) {
+            return Ok(plain);
+        }
+    }
+    Err("Secret could not be decrypted with the available local identities; original data was preserved".into())
 }
 
 fn decrypt_with_key(stored: &str, key: &[u8; 32]) -> Result<String, String> {
@@ -215,6 +254,53 @@ fn decrypt_with_key(stored: &str, key: &[u8; 32]) -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn stable_os_identity_and_legacy_launch_identities_remain_compatible_without_rewriting() {
+        let file = [4; 32];
+        let fingerprint = "fixture-machine".to_string();
+        let stable = identity_keys(
+            &file,
+            std::slice::from_ref(&fingerprint),
+            &["os-user".into()],
+        )
+        .unwrap();
+        let stored = encrypt_with_key("fixture-secret", &stable[0]).unwrap();
+        let with_changed_env = identity_keys(
+            &file,
+            std::slice::from_ref(&fingerprint),
+            &["os-user".into(), "changed-env".into(), "default".into()],
+        )
+        .unwrap();
+        assert_eq!(stable[0], with_changed_env[0]);
+        assert_eq!(
+            decrypt_with_keys(&stored, &with_changed_env).unwrap(),
+            "fixture-secret"
+        );
+        let old_default = derive_encryption_key(&file, &fingerprint, "default").unwrap();
+        let legacy = encrypt_with_key("legacy-secret", &old_default).unwrap();
+        assert_eq!(
+            decrypt_with_keys(&legacy, &with_changed_env).unwrap(),
+            "legacy-secret"
+        );
+        let legacy_empty = derive_encryption_key(&file, "", "default").unwrap();
+        let empty_stored = encrypt_with_key("legacy-empty-host", &legacy_empty).unwrap();
+        let legacy_keys = identity_keys(
+            &file,
+            &[fingerprint.clone(), String::new()],
+            &["os-user".into(), "default".into()],
+        )
+        .unwrap();
+        assert_eq!(
+            decrypt_with_keys(&empty_stored, &legacy_keys).unwrap(),
+            "legacy-empty-host"
+        );
+        assert!(decrypt_with_keys(&stored, &[[99; 32]]).is_err());
+        assert_eq!(
+            decrypt_with_keys(&stored, &stable).unwrap(),
+            "fixture-secret"
+        );
+    }
+
     #[test]
     fn legacy_envelopes_round_trip_and_malformed_input_never_panics() {
         let key = [7; 32];

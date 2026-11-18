@@ -1,4 +1,5 @@
 //! ZCode desktop accounts. Protocol and native storage follow zai-org/ZCode v3.14.3.
+use crate::utils::platform::native_username;
 use aes_gcm::{aead::Aead, Aes256Gcm, KeyInit, Nonce};
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use rand::RngCore;
@@ -170,50 +171,6 @@ fn save(accounts: &BTreeMap<String, Saved>) -> Result<(), String> {
         saved.refresh_token = saved.refresh_token.as_deref().map(protect).transpose()?;
     }
     super::cursor_auth::write(&store_path()?, &encrypted)
-}
-
-#[cfg(windows)]
-fn native_username() -> Option<String> {
-    #[link(name = "advapi32")]
-    extern "system" {
-        fn GetUserNameW(buffer: *mut u16, size: *mut u32) -> i32;
-    }
-    let mut buffer = [0_u16; 257];
-    let mut size = buffer.len() as u32;
-    // Node's os.userInfo() uses the OS account, not the mutable USERNAME variable.
-    // SAFETY: the buffer is writable for size UTF-16 units; the API bounds its writes.
-    if unsafe { GetUserNameW(buffer.as_mut_ptr(), &mut size) } == 0 || size == 0 {
-        return None;
-    }
-    String::from_utf16(&buffer[..size as usize - 1]).ok()
-}
-
-#[cfg(unix)]
-fn native_username() -> Option<String> {
-    let mut buffer = vec![0_u8; 16384];
-    let mut result = std::ptr::null_mut();
-    // SAFETY: getpwuid_r initializes the supplied record and writes only into the
-    // owned buffer. The name is copied before that buffer is dropped.
-    unsafe {
-        let mut passwd: libc::passwd = std::mem::zeroed();
-        if libc::getpwuid_r(
-            libc::geteuid(),
-            &mut passwd,
-            buffer.as_mut_ptr().cast(),
-            buffer.len(),
-            &mut result,
-        ) != 0
-            || result.is_null()
-            || passwd.pw_name.is_null()
-        {
-            return None;
-        }
-        Some(
-            std::ffi::CStr::from_ptr(passwd.pw_name)
-                .to_string_lossy()
-                .into_owned(),
-        )
-    }
 }
 
 fn cipher_key() -> Result<[u8; 32], String> {

@@ -766,7 +766,9 @@ const zhHans: Partial<Translations> = {
   'store.ver': '个版本',
   'store.ready': '✓ 就绪',
   'key.encrypted': '已全局加密，任何环境改变 API Key 将自毁',
-  'key.destroyed': '检测到环境已改变，API Key 已自毁，请重新输入',
+  'key.destroyed': '无法解密，原密钥已保留',
+  'key.replace': '重新输入',
+  'key.decryptFailed': '密钥暂时无法解密，原始数据已保留。',
   'hint.responsesRequired':
     'ChatGPT / Codex CLI 切换模型时，第三方模型必须支持 Responses 才能成功接入。',
   'hint.claudeHistoryMerged':
