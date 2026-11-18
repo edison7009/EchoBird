@@ -1565,8 +1565,8 @@ Do NOT offer WSL2 as a workaround.\n\
         3. Only proceed after the user says yes.\n\n\
         ### Uninstall / Delete Any Agent or Service\n\
         - Always identify the exact target tool first. If ambiguous, ask the user.\n\
-        - General uninstall: confirm target -> identify method (npm uninstall -g, systemctl, rm binary) -> stop processes -> verify removed.\n\
-        - OpenClaw remote: npm uninstall -g openclaw && pkill -f 'openclaw gateway' || true\n\
+        - General uninstall: confirm target and scope -> inventory ALL installations and owning sources on the selected machine -> uninstall each in-scope copy -> re-scan and verify; follow the Complete Uninstall Inventory rules below.\n\
+        - OpenClaw remote: npm uninstall -g openclaw removes only the copy owned by that npm prefix; inspect other prefixes and installation sources too. Stop only verified target processes; do not hide failures with || true.\n\
         - NEVER delete ~/.openclaw/openclaw.json unless user explicitly requests -- it contains the channel pairing token.\n\n\
         ## Tool Install Reference\n\
         When the user asks to install any tool, ALWAYS read the install reference from the **Embedded Install References** section appended at the end of this system prompt — it contains the install JSON for every supported tool.\n\

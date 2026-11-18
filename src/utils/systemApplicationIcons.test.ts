@@ -1,12 +1,17 @@
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
+import { fitSystemApplicationIcon } from './systemApplicationIconSizing';
 import { getSystemApplicationIcon } from '../api/tauri';
 
+vi.mock('./systemApplicationIconSizing', () => ({
+  fitSystemApplicationIcon: vi.fn((src: string) => src),
+}));
 vi.mock('../api/tauri', () => ({ getSystemApplicationIcon: vi.fn() }));
 const png = (id: string) => `data:image/png;base64,${id}`;
 const decode = vi.fn().mockResolvedValue(undefined);
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
+  vi.mocked(fitSystemApplicationIcon).mockImplementation((src) => src);
   decode.mockResolvedValue(undefined);
   vi.stubGlobal(
     'Image',
@@ -324,4 +329,20 @@ it('releases decoded images on refresh, including an obsolete request that finis
   await old;
   expect(images.getDecodedImage(png('late'))).toBeUndefined();
   expect(cache.cachedSystemApplicationIcon('late')).toBeUndefined();
+});
+
+it('decodes and caches fitted native artwork before publishing it to either desktop tab', async () => {
+  vi.mocked(fitSystemApplicationIcon).mockReturnValue(png('fitted'));
+  const cache = await import('./systemApplicationIcons');
+  expect(await cache.loadSystemApplicationIcon('one')).toBe(png('fitted'));
+  expect(await cache.loadSystemApplicationIcon('one')).toBe(png('fitted'));
+  expect(getSystemApplicationIcon).toHaveBeenCalledOnce();
+  expect(fitSystemApplicationIcon).toHaveBeenCalledOnce();
+  expect(decode).toHaveBeenCalledTimes(2);
+});
+it('falls back to the decoded source if the fitted image cannot decode', async () => {
+  vi.mocked(fitSystemApplicationIcon).mockReturnValue(png('fitted-failure'));
+  decode.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('Decode failed'));
+  const cache = await import('./systemApplicationIcons');
+  expect(await cache.loadSystemApplicationIcon('fit-failure')).toBe(png('fit-failure'));
 });

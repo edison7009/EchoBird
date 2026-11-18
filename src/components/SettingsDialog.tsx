@@ -69,7 +69,9 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [appVersion, setAppVersion] = useState<string>('');
-  const [closeToTray, setCloseToTray] = useState<boolean | null>(false);
+  // Do not paint a provisional left-hand choice before the saved value arrives.
+  // The first real canvas target snaps into place; explicit changes still slide.
+  const [closeToTray, setCloseToTray] = useState<boolean | null | undefined>(undefined);
   const [settingsReady, setSettingsReady] = useState(false);
   const [protectionEnabled, setProtectionEnabled] = useState(false);
   const protectionPending = useProtectionStore((s) => s.pending);

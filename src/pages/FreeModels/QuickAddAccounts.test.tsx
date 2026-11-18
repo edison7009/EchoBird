@@ -305,7 +305,7 @@ it('uses saved API models when upstream discovery fails and keeps them in a new 
   await click('common.confirm');
   expect(vi.mocked(createCustomRouterGroup).mock.calls[0][0][0].existing).toEqual(savedApi);
 });
-it('keeps ready sources in their columns while skeletons resolve and does not submit early', async () => {
+it('keeps source nodes stable in the balanced flow while skeletons resolve and does not submit early', async () => {
   const pending = deferred<string[]>();
   vi.mocked(accounts.getAccountProxyModels).mockImplementation(async (source) =>
     source.provider === 'codex' ? pending.promise : ['ready']
@@ -314,11 +314,20 @@ it('keeps ready sources in their columns while skeletons resolve and does not su
   const ready = tree.root
     .findAllByType('section')
     .find((section) => section.findAllByProps({ 'aria-label': 'ready' }).length)!;
-  const column = ready.parent!.props['data-quick-add-column'];
+  const flow = ready.parent!;
+  expect(flow.props['data-quick-add-layout']).toBe('balanced');
+  expect(flow.props.className).toContain('md:columns-2');
+  expect(ready.props.className).toContain('break-inside-avoid');
   expect(tree.root.findAllByProps({ 'aria-label': 'voice.loading' })).toHaveLength(1);
   expect(button('common.confirm').props.disabled).toBe(true);
   await act(async () => pending.resolve(Array.from({ length: 30 }, (_, i) => `loaded-${i}`)));
-  expect(ready.parent!.props['data-quick-add-column']).toBe(column);
+  expect(ready.parent).toBe(flow);
+  expect(
+    tree.root
+      .findAllByType('section')
+      .find((section) => section.findAllByProps({ 'aria-label': 'ready' }).length)
+  ).toBe(ready);
+  expect(JSON.stringify(tree.toJSON())).not.toContain('data-quick-add-column');
   expect(button('common.confirm').props.disabled).toBe(false);
 });
 it('uses official provider logos and the default box for an unknown API channel', async () => {
@@ -461,3 +470,150 @@ it.each([false, true])(
     expect(tree.root.findAllByProps({ role: 'dialog' })).toHaveLength(1);
   }
 );
+
+it('bulk collapse and expand preserve choices, while clearing also clears hidden choices without refetching', async () => {
+  await open();
+  const sections = tree.root.findAllByType('section');
+  const headers = () =>
+    sections.map(
+      (section) =>
+        section.findAllByType('button').find((node) => node.props['aria-expanded'] !== undefined)!
+    );
+  const reads = vi.mocked(accounts.getAccountProxyModels).mock.calls.length;
+  expect(headers().every((header) => header.props['aria-expanded'])).toBe(true);
+  expect(tree.root.findAllByProps({ 'aria-pressed': true })).toHaveLength(4);
+  await click('freeModels.quickAdd.collapseAll');
+  expect(headers().every((header) => !header.props['aria-expanded'])).toBe(true);
+  await click('freeModels.quickAdd.expandAll');
+  expect(tree.root.findAllByProps({ 'aria-pressed': true })).toHaveLength(4);
+  await click('freeModels.quickAdd.collapseAll');
+  await click('freeModels.quickAdd.clearSelection');
+  expect(button('common.confirm').props.disabled).toBe(true);
+  await click('freeModels.quickAdd.expandAll');
+  expect(headers().every((header) => header.props['aria-expanded'])).toBe(true);
+  expect(tree.root.findAllByProps({ 'aria-pressed': true })).toHaveLength(0);
+  expect(vi.mocked(accounts.getAccountProxyModels).mock.calls.length).toBe(reads);
+  expect(createCustomRouterGroup).not.toHaveBeenCalled();
+  await click('alpha');
+  await click('common.confirm');
+  expect(vi.mocked(createCustomRouterGroup).mock.calls[0][0]).toHaveLength(1);
+});
+
+it('respects bulk collapse and clear-selection intent before source loading finishes', async () => {
+  const gate = deferred<void>();
+  vi.mocked(accounts.listProxyAccounts).mockImplementation(async (provider) => {
+    await gate.promise;
+    return [{ source: { provider, accountId: `${provider}-late` }, label: 'Late account' }];
+  });
+  await open();
+  await click('freeModels.quickAdd.collapseAll');
+  await click('freeModels.quickAdd.clearSelection');
+  await act(async () => gate.resolve());
+  const sections = tree.root.findAllByType('section');
+  expect(sections).toHaveLength(2);
+  expect(sections.every((section) => section.findByProps({ 'aria-expanded': false }))).toBe(true);
+  await click('freeModels.quickAdd.expandAll');
+  expect(tree.root.findAllByProps({ 'aria-pressed': true })).toHaveLength(0);
+  expect(button('common.confirm').props.disabled).toBe(true);
+});
+
+it('does not reselect late model catalogs after clearing selection', async () => {
+  const catalog = deferred<string[]>();
+  vi.mocked(accounts.getAccountProxyModels).mockReturnValue(catalog.promise);
+  await open();
+  await click('freeModels.quickAdd.clearSelection');
+  await act(async () => catalog.resolve(['late-1', 'late-2', 'late-3']));
+  expect(tree.root.findAllByProps({ 'aria-pressed': true })).toHaveLength(0);
+  expect(button('common.confirm').props.disabled).toBe(true);
+});
+
+it('locks bulk actions during group submission without altering its saved choices', async () => {
+  const pending = deferred<SmartRouterConfig>();
+  vi.mocked(createCustomRouterGroup).mockReturnValue(pending.promise);
+  await open();
+  await click('common.confirm');
+  for (const label of ['collapseAll', 'expandAll', 'clearSelection']) {
+    const action = button(`freeModels.quickAdd.${label}`);
+    expect(action.props.disabled).toBe(true);
+    await act(async () => action.props.onClick());
+  }
+  const search = tree.root.findByType('input');
+  expect(search.props.disabled).toBe(true);
+  await act(async () => search.props.onChange({ target: { value: 'beta' } }));
+  expect(tree.root.findByType('input').props.value).toBe('');
+  expect(tree.root.findAllByProps({ 'aria-pressed': true })).toHaveLength(4);
+  expect(tree.root.findAllByProps({ 'aria-expanded': false })).toHaveLength(0);
+  expect(vi.mocked(createCustomRouterGroup).mock.calls[0][0]).toHaveLength(4);
+  await act(async () => pending.resolve(newGroup));
+});
+
+async function searchModels(value: string) {
+  await act(async () => {
+    tree.root.findByType('input').props.onChange({ target: { value } });
+  });
+}
+
+it('filters model IDs locally without changing selected or submitted models hidden by the query', async () => {
+  vi.mocked(accounts.getAccountProxyModels).mockImplementation(async (source) =>
+    source.provider === 'codex'
+      ? ['gpt-alpha', 'gpt-beta', 'gpt-gamma']
+      : ['sonnet', 'haiku', 'opus']
+  );
+  await open();
+  const reads = vi.mocked(accounts.getAccountProxyModels).mock.calls.length;
+  await searchModels('  GPT-BE  ');
+  expect(tree.root.findAllByType('section')).toHaveLength(1);
+  expect(button('gpt-beta').props['aria-pressed']).toBe(true);
+  expect(button('gpt-alpha')).toBeUndefined();
+  expect(button('sonnet')).toBeUndefined();
+  expect(vi.mocked(accounts.getAccountProxyModels).mock.calls.length).toBe(reads);
+  await click('common.confirm');
+  expect(
+    vi
+      .mocked(createCustomRouterGroup)
+      .mock.calls[0][0].map((choice) => choice.input.modelId)
+      .sort()
+  ).toEqual(['gpt-alpha', 'gpt-beta', 'haiku', 'sonnet']);
+});
+
+it('search reveals matches, bulk folding works within results, and clearing restores the original fold state', async () => {
+  await open();
+  await click('freeModels.quickAdd.collapseAll');
+  await searchModels('beta');
+  expect(tree.root.findAllByProps({ 'aria-expanded': true })).toHaveLength(2);
+  expect(tree.root.findAllByProps({ 'aria-label': 'beta' })).toHaveLength(2);
+  await click('freeModels.quickAdd.collapseAll');
+  expect(tree.root.findAllByProps({ 'aria-expanded': false })).toHaveLength(2);
+  await click('freeModels.quickAdd.expandAll');
+  expect(tree.root.findAllByProps({ 'aria-label': 'beta' })).toHaveLength(2);
+  await click('plugins.clear');
+  expect(tree.root.findByType('input').props.value).toBe('');
+  expect(tree.root.findAllByProps({ 'aria-expanded': false })).toHaveLength(2);
+  await click('freeModels.quickAdd.expandAll');
+  expect(tree.root.findAllByProps({ 'aria-pressed': true })).toHaveLength(4);
+  expect(vi.mocked(accounts.getAccountProxyModels)).toHaveBeenCalledTimes(2);
+});
+
+it('reports no matches and clears every selected model including hidden choices', async () => {
+  await open();
+  await searchModels('nonexistent-model');
+  expect(tree.root.findAllByType('section')).toHaveLength(0);
+  expect(JSON.stringify(tree.toJSON())).toContain('freeModels.quickAdd.noSearchResults');
+  await click('freeModels.quickAdd.clearSelection');
+  expect(button('common.confirm').props.disabled).toBe(true);
+  await click('plugins.clear');
+  expect(tree.root.findAllByProps({ 'aria-pressed': true })).toHaveLength(0);
+  expect(createCustomRouterGroup).not.toHaveBeenCalled();
+});
+
+it('filters a late catalog without refetching or showing a premature no-results message', async () => {
+  const catalog = deferred<string[]>();
+  vi.mocked(accounts.getAccountProxyModels).mockReturnValue(catalog.promise);
+  await open();
+  await searchModels('late-2');
+  expect(JSON.stringify(tree.toJSON())).not.toContain('freeModels.quickAdd.noSearchResults');
+  await act(async () => catalog.resolve(['late-1', 'late-2', 'late-3']));
+  expect(tree.root.findAllByProps({ 'aria-label': 'late-2' })).toHaveLength(2);
+  expect(button('late-1')).toBeUndefined();
+  expect(vi.mocked(accounts.getAccountProxyModels)).toHaveBeenCalledTimes(2);
+});

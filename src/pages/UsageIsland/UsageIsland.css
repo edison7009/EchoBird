@@ -880,8 +880,7 @@
 .usage-island-theme-light img[src*='/icons/models/openrouter.svg'],
 .usage-island-theme-light img[src*='/icons/models/kimi.svg'],
 .usage-island-theme-light img[src*='/icons/models/together.svg'],
-.usage-island-theme-light img[src*='/icons/tools/codex.svg'],
-.usage-island-theme-light img[src*='/icons/tools/chatgptdesktop.svg'] {
+.usage-island-theme-light img[src*='/icons/tools/codex.svg'] {
   filter: invert(1) brightness(0.9) !important;
 }
 

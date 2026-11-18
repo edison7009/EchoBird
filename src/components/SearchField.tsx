@@ -5,26 +5,39 @@ export function SearchField({
   onChange,
   label,
   clearLabel,
+  disabled = false,
 }: {
   value: string;
   onChange: (value: string) => void;
   label: string;
   clearLabel: string;
+  disabled?: boolean;
 }) {
   return (
     <div className="page-search">
-      <Search size={16} aria-hidden="true" />
+      <Search size={16} className="shrink-0" aria-hidden="true" />
       <input
         aria-label={label}
         placeholder={label}
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        disabled={disabled}
+        onChange={(event) => {
+          if (!disabled) onChange(event.target.value);
+        }}
       />
-      {value && (
-        <button type="button" aria-label={clearLabel} onClick={() => onChange('')}>
-          <X size={15} aria-hidden="true" />
-        </button>
-      )}
+      <button
+        type="button"
+        disabled={disabled || !value}
+        aria-label={clearLabel}
+        aria-hidden={!value || undefined}
+        tabIndex={value ? undefined : -1}
+        className={`shrink-0 ${value ? '' : 'invisible'}`}
+        onClick={() => {
+          if (!disabled && value) onChange('');
+        }}
+      >
+        <X size={15} aria-hidden="true" />
+      </button>
     </div>
   );
 }

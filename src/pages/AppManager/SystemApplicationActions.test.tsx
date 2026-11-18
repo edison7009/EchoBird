@@ -1,12 +1,13 @@
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, expect, it, vi } from 'vitest';
 import { AppManagerContext, type AppManagerContextType } from './context';
-import { AppManagerBottom, AppManagerPanel } from './AppManagerComponents';
+import { AppManagerBottom, AppManagerPanel, ModelListSection } from './AppManagerComponents';
+import { useSystemApplicationsStore } from '../../stores/systemApplicationsStore';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { ApplicationActions, ApplicationDetailsPanel } from './ApplicationDetailsPanel';
 import { DesktopPrimaryButton } from '../../components/DesktopPrimaryButton';
 import * as api from '../../api/tauri';
-import type { LocalTool } from '../../api/types';
+import type { LocalTool, ModelConfig } from '../../api/types';
 
 vi.mock('../../components', () => ({ getModelIcon: () => null }));
 vi.mock('../ModelNexus/context', () => ({ useModelNexus: () => ({}) }));
@@ -41,6 +42,7 @@ vi.mock('../../hooks/useI18n', () => ({
 let renderer: ReactTestRenderer;
 afterEach(() => {
   act(() => renderer?.unmount());
+  useSystemApplicationsStore.setState(useSystemApplicationsStore.getInitialState(), true);
   useNavigationStore.setState(useNavigationStore.getInitialState(), true);
 });
 
@@ -149,7 +151,7 @@ it('keeps the same action buttons and labels without opacity or value skeleton c
   });
   const buttons = renderer.root.findByType(ApplicationActions).findAllByType('button');
   const labels = renderer.root.findAllByType('dt');
-  expect(buttons).toHaveLength(2);
+  expect(buttons).toHaveLength(3);
   expect(buttons.every((button) => button.props.disabled)).toBe(true);
   const classes = buttons.map((button) => button.props.className);
   expect(classes.every((className) => !className.includes('opacity'))).toBe(true);
@@ -229,4 +231,114 @@ it('attributes a failed new read to the selected app and releases the previous d
   expect(renderer.root.findByType(ApplicationDetailsPanel).props.tool).toBe(second);
   expect(renderer.root.findByProps({ role: 'status' }).children).toContain('Error: Unavailable');
   expect(JSON.stringify(renderer.toJSON())).not.toContain('/apps/first/start');
+});
+
+it('places managed applications without account/model controls in the same detail-and-action layout as System', async () => {
+  const tool: LocalTool = {
+    id: 'plain-managed-app',
+    name: 'Plain managed app',
+    category: 'Desktop',
+    installed: true,
+    noModelConfig: true,
+    version: '1.0',
+    detectedPath: '/apps/plain/start',
+  };
+  vi.mocked(api.getSystemApplicationDetails).mockClear();
+  await act(async () => {
+    renderer = create(renderPanel(tool));
+  });
+  const details = renderer.root.findByType(ApplicationDetailsPanel);
+  expect(details.findAllByType(ApplicationActions)).toHaveLength(1);
+  expect(renderer.root.findAllByType(ApplicationActions)).toHaveLength(1);
+  const content = JSON.stringify(renderer.toJSON());
+  expect(content.indexOf('打开文件夹')).toBeLessThan(content.indexOf('plugins.version'));
+  expect(content).toContain('/apps/plain/start');
+  expect(api.getSystemApplicationDetails).not.toHaveBeenCalled();
+});
+
+it.each([0, 1, 80])(
+  'keeps application actions directly after the model list with %s saved models',
+  async (count) => {
+    const tool: LocalTool = {
+      id: 'generic-api-tool',
+      name: 'API tool',
+      category: 'CLI',
+      installed: true,
+      apiProtocol: ['openai'],
+      detectedPath: '/apps/api/tool',
+    };
+    const context = {
+      selectedTool: tool.id,
+      selectedToolData: tool,
+      userModels: Array.from(
+        { length: count },
+        (_, index): ModelConfig => ({
+          internalId: `api-${index}`,
+          name: `API ${index}`,
+          modelType: 'CLOUD',
+          modelId: `model-${index}`,
+          baseUrl: 'https://api.invalid/v1',
+          apiKey: 'fixture-key',
+        })
+      ),
+      toolModelConfig: {},
+      isLaunching: false,
+      viewMode: 'all',
+    } as unknown as AppManagerContextType;
+    await act(async () => {
+      renderer = create(
+        <AppManagerContext.Provider value={context}>
+          <AppManagerPanel />
+        </AppManagerContext.Provider>
+      );
+    });
+    const list = renderer.root.findByType(ModelListSection);
+    const group = list.parent!.parent!;
+    expect(group.props.className).toBe('flex flex-col gap-2');
+    expect(list.parent!.props.className).toBeUndefined();
+    const actions = renderer.root.findByType(ApplicationActions);
+    expect(actions.parent!.parent).toBe(group.parent);
+    expect(group.parent!.children.indexOf(group)).toBeLessThan(
+      group.parent!.children.indexOf(actions.parent!)
+    );
+    expect(renderer.root.findAllByType(ApplicationDetailsPanel)).toHaveLength(0);
+  }
+);
+
+it('preserves the account-only login panel and its action row without adding a detail panel', async () => {
+  const add = vi.fn();
+  const tool: LocalTool = {
+    id: 'antigravity',
+    name: 'Antigravity CLI',
+    category: 'CLI',
+    installed: true,
+    noModelConfig: true,
+    detectedPath: '/apps/antigravity',
+  };
+  const context = {
+    selectedTool: tool.id,
+    selectedToolData: tool,
+    userModels: [],
+    toolModelConfig: {},
+    isLaunching: false,
+    viewMode: 'all',
+    antigravityAccounts: {
+      accounts: [],
+      selectedId: null,
+      busy: false,
+      refreshing: new Set(),
+      add,
+    },
+  } as unknown as AppManagerContextType;
+  await act(async () => {
+    renderer = create(
+      <AppManagerContext.Provider value={context}>
+        <AppManagerPanel />
+      </AppManagerContext.Provider>
+    );
+  });
+  expect(renderer.root.findAllByType(ApplicationDetailsPanel)).toHaveLength(0);
+  expect(renderer.root.findAllByType(ApplicationActions)).toHaveLength(1);
+  expect(JSON.stringify(renderer.toJSON())).toContain('agent.addCurrentAccount');
+  expect(add).not.toHaveBeenCalled();
 });

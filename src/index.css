@@ -1092,8 +1092,7 @@ html.is-macos .scrollbar-stable {
 [data-theme='light'] img[src*='/icons/models/openrouter.svg'],
 [data-theme='light'] img[src*='/icons/models/kimi.svg'],
 [data-theme='light'] img[src*='/icons/models/together.svg'],
-[data-theme='light'] img[src*='/icons/tools/codex.svg'],
-[data-theme='light'] img[src*='/icons/tools/chatgptdesktop.svg'] {
+[data-theme='light'] img[src*='/icons/tools/codex.svg'] {
   filter: invert(1) brightness(0.88);
 }
 

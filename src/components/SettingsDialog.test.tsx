@@ -805,3 +805,50 @@ it('has no update section and does not fetch an update manifest on opening', asy
   expect(JSON.stringify(view.toJSON())).not.toContain('settings.updates');
   expect(fetch).not.toHaveBeenCalled();
 });
+
+it.each([false, true, null] as const)(
+  'waits for the saved close behavior %s instead of painting an initial left selection',
+  async (saved) => {
+    let restore!: (value: object) => void;
+    mocks.get.mockReturnValueOnce(
+      new Promise((resolve) => {
+        restore = resolve;
+      })
+    );
+    await act(async () => {
+      view = create(<SettingsDialog {...props} />);
+    });
+    const labels = ['settings.closeDirectly', 'settings.closeToTray', 'settings.alwaysAsk'];
+    const buttons = () =>
+      labels.map(
+        (label) =>
+          view.root.findAllByType('button').find((button) => button.props.children === label)!
+      );
+    expect(buttons().every((button) => button.props['aria-pressed'] === false)).toBe(true);
+    expect(mocks.save).not.toHaveBeenCalled();
+    await act(async () => restore({ closeToTray: saved, closeWindowBehaviorSet: true }));
+    const index = saved === null ? 2 : saved ? 1 : 0;
+    expect(buttons().map((button) => button.props['aria-pressed'])).toEqual(
+      labels.map((_, i) => i === index)
+    );
+    expect(mocks.save).not.toHaveBeenCalled();
+    const manual = !saved;
+    await act(async () => buttons()[manual ? 1 : 0].props.onClick());
+    expect(mocks.save).toHaveBeenCalledExactlyOnceWith({
+      closeToTray: manual,
+      closeWindowBehaviorSet: true,
+    });
+    let reload!: (value: object) => void;
+    mocks.get.mockReturnValueOnce(
+      new Promise((resolve) => {
+        reload = resolve;
+      })
+    );
+    await act(async () => view.update(<SettingsDialog {...props} isOpen={false} />));
+    await act(async () => view.update(<SettingsDialog {...props} />));
+    expect(buttons()[manual ? 1 : 0].props['aria-pressed']).toBe(true);
+    await act(async () => reload({ closeToTray: manual, closeWindowBehaviorSet: true }));
+    expect(buttons()[manual ? 1 : 0].props['aria-pressed']).toBe(true);
+    expect(mocks.save).toHaveBeenCalledTimes(1);
+  }
+);

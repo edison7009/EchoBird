@@ -15,6 +15,7 @@ import type { AccountSource, ModelConfig } from '../../api/types';
 import * as modelsApi from '../../api/models';
 import { getModelIcon } from '../../components/cards/ModelCard';
 import { PageActionButton } from '../../components/PageActionButton';
+import { SearchField } from '../../components/SearchField';
 import { CapabilitySelection } from '../AppManager/CapabilityToggles';
 import { accountProxyIdentityLabel, accountProxyPlanLabel } from '../AppManager/accountPlanLabel';
 import { ACCOUNT_NAME_MASK, useAccountPrivacyStore } from '../../stores/accountPrivacyStore';
@@ -38,7 +39,6 @@ interface Channel {
   models: string[];
   loading: boolean;
   failed: boolean;
-  column?: 0 | 1;
   estimatedModels?: number;
 }
 const sourceKey = (source: AccountSource) => JSON.stringify([source.provider, source.accountId]);
@@ -84,14 +84,11 @@ function apiChannels(models: ModelConfig[]): Channel[] {
   return [...groups.values()];
 }
 
-function placeChannels(rows: Channel[]) {
-  const heights = [0, 0];
+function prepareChannels(rows: Channel[]) {
   return rows.map((row) => {
     const cached = row.account ? getCachedAccountProxyModels(row.account.source) : undefined;
     const estimatedModels = cached?.length ?? 6;
-    const column: 0 | 1 = heights[0] <= heights[1] ? 0 : 1;
-    if (!row.failed) heights[column] += 64 + Math.max(1, Math.ceil(estimatedModels / 3)) * 32;
-    return { ...row, column, estimatedModels };
+    return { ...row, estimatedModels };
   });
 }
 function ModelChoicesSkeleton({ count = 6 }: { count?: number }) {
@@ -211,6 +208,9 @@ function QuickAddDialog({
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(new Set<string>());
   const [collapsed, setCollapsed] = useState(new Set<string>());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchCollapsed, setSearchCollapsed] = useState(new Set<string>());
+  const query = searchQuery.trim().toLocaleLowerCase();
   const channelId = useId();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -218,6 +218,9 @@ function QuickAddDialog({
   const savingRef = useRef(false);
   const dialog = useRef<HTMLDivElement>(null);
   const initializedAccounts = useRef(new Set<string>());
+  const autoSelectDefaults = useRef(true);
+  const collapseIncoming = useRef(false);
+  const collapseSearchIncoming = useRef(false);
   const origin = useRef({ page, tab, appsTab: useNavigationStore.getState().appsTab });
   const isCurrent = () =>
     alive.current &&
@@ -269,8 +272,11 @@ function QuickAddDialog({
           : [{ key: p.id, name: p.name, icon: p.icon, models: [], loading: false, failed: true }];
       });
       rows.push(...apiChannels(savedModels));
-      const placedRows = placeChannels(rows);
+      const placedRows = prepareChannels(rows);
       setChannels(placedRows);
+      if (collapseIncoming.current) setCollapsed(new Set(placedRows.map((row) => row.key)));
+      if (collapseSearchIncoming.current)
+        setSearchCollapsed(new Set(placedRows.map((row) => row.key)));
       setLoading(false);
       const queue = placedRows.filter((row) => row.account || row.apiModels);
       let cursor = 0;
@@ -309,10 +315,12 @@ function QuickAddDialog({
               if (!initializedAccounts.current.has(row.key)) {
                 initializedAccounts.current.add(row.key);
                 const defaults = options.slice(0, 2);
-                setSelected(
-                  (selection) =>
-                    new Set([...selection, ...defaults.map((id) => channelChoiceKey(row, id))])
-                );
+                if (autoSelectDefaults.current) {
+                  setSelected(
+                    (selection) =>
+                      new Set([...selection, ...defaults.map((id) => channelChoiceKey(row, id))])
+                  );
+                }
               }
             } catch {
               update(row.key, { loading: false, failed: true });
@@ -358,7 +366,27 @@ function QuickAddDialog({
   const close = () => {
     if (!savingRef.current) onClose();
   };
-  const visibleChannels = channels.filter((row) => !row.failed);
+  const setAllCollapsed = (value: boolean) => {
+    if (savingRef.current) return;
+    const next = value ? new Set(channels.map((row) => row.key)) : new Set<string>();
+    if (query) {
+      collapseSearchIncoming.current = value;
+      setSearchCollapsed(next);
+    } else {
+      collapseIncoming.current = value;
+      setCollapsed(next);
+    }
+  };
+  const clearSelections = () => {
+    if (savingRef.current) return;
+    autoSelectDefaults.current = false;
+    setSelected(new Set());
+  };
+  const visibleChannels = channels.filter(
+    (row) =>
+      !row.failed &&
+      (!query || row.loading || row.models.some((id) => id.toLocaleLowerCase().includes(query)))
+  );
   const catalogsPending = loading || channels.some((row) => row.loading);
   const confirm = async () => {
     if (savingRef.current || selected.size === 0 || catalogsPending) return;
@@ -424,8 +452,9 @@ function QuickAddDialog({
           close();
         }
         if (event.key === 'Tab') {
-          const controls =
-            dialog.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)');
+          const controls = dialog.current?.querySelectorAll<HTMLInputElement | HTMLButtonElement>(
+            'input:not(:disabled), button:not(:disabled)'
+          );
           const first = controls?.[0],
             last = controls?.[controls.length - 1];
           if (
@@ -450,7 +479,7 @@ function QuickAddDialog({
         aria-labelledby="quick-add-title"
         className="relative flex h-[90vh] w-[90vw] flex-col overflow-hidden rounded-xl border border-cyber-border/30 bg-cyber-surface shadow-2xl outline-none"
       >
-        <div className="flex items-center justify-between px-6 pb-4 pt-6 md:px-12 md:pt-12">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-6 pb-4 pt-6 md:px-12 md:pt-12">
           <h2
             id="quick-add-title"
             className="flex items-center gap-2 text-base font-bold text-cyber-text"
@@ -458,125 +487,156 @@ function QuickAddDialog({
             <ListPlus size={18} className="text-cyber-text-secondary" aria-hidden="true" />
             {t('freeModels.selectSwitchModels')}
           </h2>
-          <button
-            type="button"
-            disabled={saving}
-            onClick={close}
-            aria-label={t('btn.close')}
-            className="close-button text-cyber-text-secondary"
-          >
-            <X size={18} />
-          </button>
+          <div className="flex max-w-full flex-wrap items-center gap-2">
+            <SearchField
+              value={searchQuery}
+              disabled={saving}
+              onChange={(value) => {
+                if (savingRef.current) return;
+                setSearchQuery(value);
+                collapseSearchIncoming.current = false;
+                setSearchCollapsed(new Set());
+              }}
+              label={t('freeModels.quickAdd.searchModels')}
+              clearLabel={t('plugins.clear')}
+            />
+            {(['collapseAll', 'expandAll', 'clearSelection'] as const).map((action) => (
+              <button
+                key={action}
+                type="button"
+                disabled={saving}
+                onClick={() => {
+                  if (action === 'clearSelection') clearSelections();
+                  else setAllCollapsed(action === 'collapseAll');
+                }}
+                className="h-9 whitespace-nowrap rounded-button border border-cyber-border px-2 text-xs text-cyber-text-secondary enabled:hover:bg-cyber-elevated enabled:hover:text-cyber-text"
+              >
+                {t(`freeModels.quickAdd.${action}`)}
+              </button>
+            ))}
+            <button
+              type="button"
+              disabled={saving}
+              onClick={close}
+              aria-label={t('btn.close')}
+              className="close-button ml-2 text-cyber-text-secondary"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-2 md:px-12">
           {loading && <QuickAddSkeleton label={t('accountCenter.loading')} />}
           {!loading && visibleChannels.length === 0 && (
             <p className="col-span-full py-6 text-sm text-cyber-text-secondary">
               {t(
-                channels.length === 0 ? 'freeModels.quickAdd.empty' : 'freeModels.quickAdd.noModels'
+                query
+                  ? 'freeModels.quickAdd.noSearchResults'
+                  : channels.length === 0
+                    ? 'freeModels.quickAdd.empty'
+                    : 'freeModels.quickAdd.noModels'
               )}
             </p>
           )}
-          <div className="grid grid-cols-1 items-start gap-x-12 md:grid-cols-2">
-            {([0, 1] as const).map((column) => (
-              <div key={column} className="min-w-0" data-quick-add-column={column}>
-                {visibleChannels
-                  .filter((row) => row.column === column)
-                  .map((row) => {
-                    const choices = row.models;
-                    const isCollapsed = collapsed.has(row.key);
-                    const modelsId = `${channelId}-channel-${channels.indexOf(row)}`;
-                    return (
-                      <section
-                        key={row.key}
-                        className="min-w-0 py-4 [&_.capability-toggle]:max-w-full [&_.capability-toggle]:truncate [&_.capability-toggle[aria-pressed='false']]:border-dashed"
+          <div
+            className="columns-1 gap-12 md:columns-2 [column-fill:balance]"
+            data-quick-add-layout="balanced"
+          >
+            {visibleChannels.map((row) => {
+              const choices = query
+                ? row.models.filter((id) => id.toLocaleLowerCase().includes(query))
+                : row.models;
+              const isCollapsed = (query ? searchCollapsed : collapsed).has(row.key);
+              const modelsId = `${channelId}-channel-${channels.indexOf(row)}`;
+              return (
+                <section
+                  key={row.key}
+                  className="inline-block w-full min-w-0 break-inside-avoid py-4 align-top [&_.capability-toggle]:max-w-full [&_.capability-toggle]:truncate [&_.capability-toggle[aria-pressed='false']]:border-dashed"
+                >
+                  <button
+                    type="button"
+                    disabled={saving}
+                    aria-expanded={!isCollapsed}
+                    aria-controls={modelsId}
+                    onClick={() =>
+                      (query ? setSearchCollapsed : setCollapsed)((current) => {
+                        const next = new Set(current);
+                        if (next.has(row.key)) next.delete(row.key);
+                        else next.add(row.key);
+                        return next;
+                      })
+                    }
+                    className={`flex w-full flex-wrap items-center gap-x-3 gap-y-2 rounded-button text-left text-sm text-cyber-text outline-none focus-visible:ring-2 focus-visible:ring-cyber-accent ${isCollapsed ? '' : 'mb-3'}`}
+                  >
+                    <span className="flex min-w-0 flex-1 basis-full items-center gap-2">
+                      <QuickAddChannelIcon row={row} />
+                      <span
+                        className={
+                          row.apiModels
+                            ? 'min-w-0 truncate font-semibold'
+                            : 'shrink-0 font-semibold'
+                        }
                       >
-                        <button
-                          type="button"
-                          disabled={saving}
-                          aria-expanded={!isCollapsed}
-                          aria-controls={modelsId}
-                          onClick={() =>
-                            setCollapsed((current) => {
-                              const next = new Set(current);
-                              if (next.has(row.key)) next.delete(row.key);
-                              else next.add(row.key);
-                              return next;
-                            })
-                          }
-                          className={`flex w-full flex-wrap items-center gap-x-3 gap-y-2 rounded-button text-left text-sm text-cyber-text outline-none focus-visible:ring-2 focus-visible:ring-cyber-accent ${isCollapsed ? '' : 'mb-3'}`}
-                        >
-                          <span className="flex min-w-0 flex-1 basis-full items-center gap-2">
-                            <QuickAddChannelIcon row={row} />
-                            <span
-                              className={
-                                row.apiModels
-                                  ? 'min-w-0 truncate font-semibold'
-                                  : 'shrink-0 font-semibold'
-                              }
-                            >
-                              {row.name}
-                            </span>
-                            {row.apiModels && (
-                              <span className="min-w-0 truncate text-cyber-text-secondary">
-                                {row.apiModels[0].baseUrl || row.apiModels[0].anthropicUrl}
-                              </span>
-                            )}
-                            {row.account && (
-                              <>
-                                <span className="min-w-0 truncate text-cyber-text-secondary">
-                                  {privacy
-                                    ? ACCOUNT_NAME_MASK
-                                    : accountProxyIdentityLabel(row.account, t)}
-                                </span>
-                                <span className="shrink-0 whitespace-nowrap text-xs text-cyber-text-secondary">
-                                  {accountProxyPlanLabel(row.account, t)}
-                                </span>
-                              </>
-                            )}
-                            <ChevronDown
-                              size={14}
-                              aria-hidden="true"
-                              className={`ml-auto shrink-0 text-cyber-text-muted ${isCollapsed ? '-rotate-90' : ''}`}
-                            />
+                        {row.name}
+                      </span>
+                      {row.apiModels && (
+                        <span className="min-w-0 truncate text-cyber-text-secondary">
+                          {row.apiModels[0].baseUrl || row.apiModels[0].anthropicUrl}
+                        </span>
+                      )}
+                      {row.account && (
+                        <>
+                          <span className="min-w-0 truncate text-cyber-text-secondary">
+                            {privacy
+                              ? ACCOUNT_NAME_MASK
+                              : accountProxyIdentityLabel(row.account, t)}
                           </span>
-                        </button>
-                        <div id={modelsId} hidden={isCollapsed}>
-                          {!isCollapsed &&
-                            (row.loading ? (
-                              <div role="status" aria-label={t('voice.loading')}>
-                                <ModelChoicesSkeleton count={row.estimatedModels} />
-                              </div>
-                            ) : row.models.length === 0 ? (
-                              <p className="text-xs text-cyber-text-secondary">
-                                {t('freeModels.quickAdd.noModels')}
-                              </p>
-                            ) : (
-                              <>
-                                <CapabilitySelection
-                                  disabled={saving}
-                                  toggles={choices.map((id) => ({
-                                    id,
-                                    label: row.account?.modelLabels?.[id] ?? id,
-                                    checked: selected.has(channelChoiceKey(row, id)),
-                                    onChange: (checked) =>
-                                      setSelected((current) => {
-                                        const next = new Set(current);
-                                        const key = channelChoiceKey(row, id);
-                                        if (checked) next.add(key);
-                                        else next.delete(key);
-                                        return next;
-                                      }),
-                                  }))}
-                                />
-                              </>
-                            ))}
+                          <span className="shrink-0 whitespace-nowrap text-xs text-cyber-text-secondary">
+                            {accountProxyPlanLabel(row.account, t)}
+                          </span>
+                        </>
+                      )}
+                      <ChevronDown
+                        size={14}
+                        aria-hidden="true"
+                        className={`ml-auto shrink-0 text-cyber-text-muted ${isCollapsed ? '-rotate-90' : ''}`}
+                      />
+                    </span>
+                  </button>
+                  <div id={modelsId} hidden={isCollapsed}>
+                    {!isCollapsed &&
+                      (row.loading ? (
+                        <div role="status" aria-label={t('voice.loading')}>
+                          <ModelChoicesSkeleton count={row.estimatedModels} />
                         </div>
-                      </section>
-                    );
-                  })}
-              </div>
-            ))}
+                      ) : row.models.length === 0 ? (
+                        <p className="text-xs text-cyber-text-secondary">
+                          {t('freeModels.quickAdd.noModels')}
+                        </p>
+                      ) : (
+                        <>
+                          <CapabilitySelection
+                            disabled={saving}
+                            toggles={choices.map((id) => ({
+                              id,
+                              label: row.account?.modelLabels?.[id] ?? id,
+                              checked: selected.has(channelChoiceKey(row, id)),
+                              onChange: (checked) =>
+                                setSelected((current) => {
+                                  const next = new Set(current);
+                                  const key = channelChoiceKey(row, id);
+                                  if (checked) next.add(key);
+                                  else next.delete(key);
+                                  return next;
+                                }),
+                            }))}
+                          />
+                        </>
+                      ))}
+                  </div>
+                </section>
+              );
+            })}
           </div>
         </div>
         <div className="shrink-0 border-t border-cyber-border">

@@ -3563,3 +3563,258 @@ describe('system applications navigation', () => {
     }
   });
 });
+
+describe('system applications in My', () => {
+  let renderer: ReactTestRenderer | undefined;
+  let context!: ReturnType<typeof useAppManager>;
+  function Harness() {
+    context = useAppManager();
+    return null;
+  }
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useSystemApplicationsStore.setState(useSystemApplicationsStore.getInitialState(), true);
+    useNavigationStore.setState(useNavigationStore.getInitialState(), true);
+    useToolsStore
+      .getState()
+      .setDetectedTools([
+        { id: 'managed-fixture', name: 'Managed', category: 'Desktop', installed: true },
+      ]);
+    vi.mocked(api.listSystemApplications).mockResolvedValue([
+      { id: 'system:one', name: 'Custom app', path: '/custom/app' },
+      { id: 'system:other', name: 'Other app', path: '/custom/other' },
+    ]);
+  });
+  afterEach(() => {
+    act(() => renderer?.unmount());
+    renderer = undefined;
+    useSystemApplicationsStore.setState(useSystemApplicationsStore.getInitialState(), true);
+    useToolsStore.getState().setDetectedTools([]);
+    useNavigationStore.setState(useNavigationStore.getInitialState(), true);
+  });
+  it('loads saved choices on entry, retains native launch and removes only My visibility', async () => {
+    useSystemApplicationsStore.getState().setInMyApplications('system:one', true);
+    useSystemApplicationsStore.getState().setInMyApplications('system:missing', true);
+    await act(async () => {
+      renderer = create(
+        <AppManagerProvider>
+          <Harness />
+        </AppManagerProvider>
+      );
+    });
+    expect(api.listSystemApplications).toHaveBeenCalledExactlyOnceWith(false);
+    expect(context.detectedTools.map((tool) => tool.id)).toEqual(['managed-fixture', 'system:one']);
+    act(() => context.setSelectedTool('system:one'));
+    expect(context.selectedToolData).toMatchObject({
+      systemAppId: 'system:one',
+      noModelConfig: true,
+      noCwdPrompt: true,
+    });
+    expect(api.launchSystemApplication).not.toHaveBeenCalled();
+    expect(api.startTool).not.toHaveBeenCalled();
+    expect(api.startCodexLogin).not.toHaveBeenCalled();
+    expect(api.refreshCodexAccountQuota).not.toHaveBeenCalled();
+    expect(api.applyModelToTool).not.toHaveBeenCalled();
+    expect(openDialog).not.toHaveBeenCalled();
+    await act(async () => context.handleLaunch());
+    expect(api.launchSystemApplication).toHaveBeenCalledExactlyOnceWith('system:one');
+    expect(api.startTool).not.toHaveBeenCalled();
+    act(() => useSystemApplicationsStore.getState().setInMyApplications('system:one', false));
+    expect(context.detectedTools.map((tool) => tool.id)).toEqual(['managed-fixture']);
+    expect(context.selectedToolData).toBeUndefined();
+    await act(async () => context.setViewMode('all'));
+    expect(context.detectedTools.map((tool) => tool.id)).toEqual(['system:one', 'system:other']);
+    act(() => context.setSelectedTool('system:one'));
+    expect(context.selectedToolData?.systemAppId).toBe('system:one');
+    expect(api.listSystemApplications).toHaveBeenCalledOnce();
+  });
+  it('does not scan the system inventory on My entry without saved choices', async () => {
+    await act(async () => {
+      renderer = create(
+        <AppManagerProvider>
+          <Harness />
+        </AppManagerProvider>
+      );
+    });
+    expect(api.listSystemApplications).not.toHaveBeenCalled();
+    expect(context.detectedTools.map((tool) => tool.id)).toEqual(['managed-fixture']);
+  });
+  it('preserves a cached pinned app on inventory failure and omits it after verified removal', async () => {
+    useSystemApplicationsStore.getState().setInMyApplications('system:one', true);
+    await act(async () => {
+      renderer = create(
+        <AppManagerProvider>
+          <Harness />
+        </AppManagerProvider>
+      );
+    });
+    vi.mocked(api.listSystemApplications).mockRejectedValueOnce(new Error('Unavailable'));
+    await act(async () => useSystemApplicationsStore.getState().load(true));
+    expect(context.detectedTools.map((tool) => tool.id)).toContain('system:one');
+    expect(context.applyError).toBeNull();
+    vi.mocked(api.listSystemApplications).mockResolvedValueOnce([]);
+    await act(async () => useSystemApplicationsStore.getState().load(true));
+    expect(context.detectedTools.map((tool) => tool.id)).toEqual(['managed-fixture']);
+    expect(useSystemApplicationsStore.getState().myApplicationIds).toEqual(['system:one']);
+  });
+});
+
+describe('catalog defaults reuse system applications', () => {
+  let renderer: ReactTestRenderer | undefined;
+  let context!: ReturnType<typeof useAppManager>;
+  function Harness() {
+    context = useAppManager();
+    return null;
+  }
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useSystemApplicationsStore.setState(useSystemApplicationsStore.getInitialState(), true);
+    useNavigationStore.setState(useNavigationStore.getInitialState(), true);
+  });
+  afterEach(() => {
+    act(() => renderer?.unmount());
+    renderer = undefined;
+    useSystemApplicationsStore.setState(useSystemApplicationsStore.getInitialState(), true);
+    useToolsStore.getState().setDetectedTools([]);
+    useNavigationStore.setState(useNavigationStore.getInitialState(), true);
+  });
+  it.each([
+    ['coffeecli', 'Coffee CLI'],
+    ['clashverge', 'Clash Verge'],
+  ])(
+    'defaults %s into My, shares native launch and keeps the fixed entry without duplicates',
+    async (id, name) => {
+      useToolsStore
+        .getState()
+        .setDetectedTools([
+          { id, name, category: 'Desktop', installed: false, noModelConfig: true },
+        ]);
+      vi.mocked(api.listSystemApplications).mockResolvedValue([
+        { id: 'system:one', name, path: '/Applications/Example.app' },
+      ]);
+      await act(async () => {
+        renderer = create(
+          <AppManagerProvider>
+            <Harness />
+          </AppManagerProvider>
+        );
+      });
+      expect(api.listSystemApplications).toHaveBeenCalledExactlyOnceWith(false);
+      expect(context.detectedTools.map((tool) => tool.id)).toEqual([id]);
+      act(() => context.setSelectedTool(id));
+      expect(context.selectedToolData).toMatchObject({
+        id,
+        systemAppId: 'system:one',
+        installed: true,
+        noModelConfig: true,
+        noCwdPrompt: true,
+        defaultInMyApplications: true,
+      });
+      expect(api.startTool).not.toHaveBeenCalled();
+      expect(api.launchSystemApplication).not.toHaveBeenCalled();
+      expect(api.applyModelToTool).not.toHaveBeenCalled();
+      expect(api.startCodexLogin).not.toHaveBeenCalled();
+      expect(api.refreshCodexAccountQuota).not.toHaveBeenCalled();
+      expect(openDialog).not.toHaveBeenCalled();
+      await act(async () => context.handleLaunch());
+      expect(api.launchSystemApplication).toHaveBeenCalledExactlyOnceWith('system:one');
+      expect(api.startTool).not.toHaveBeenCalled();
+      act(() => useSystemApplicationsStore.getState().setInMyApplications('system:one', false));
+      expect(context.detectedTools.map((tool) => tool.id)).toEqual([id]);
+      await act(async () => context.setViewMode('all'));
+      expect(context.detectedTools).toHaveLength(1);
+      expect(context.detectedTools[0]).toMatchObject({
+        id: 'system:one',
+        defaultInMyApplications: true,
+      });
+      act(() => useSystemApplicationsStore.getState().setInMyApplications('system:one', true));
+      await act(async () => context.setViewMode('desktop'));
+      expect(context.detectedTools.map((tool) => tool.id)).toEqual([id]);
+      await act(async () => context.setViewMode('install'));
+      expect(context.detectedTools.find((tool) => tool.id === id)?.installed).toBe(true);
+      expect(api.listSystemApplications).toHaveBeenCalledOnce();
+    }
+  );
+  it('keeps an uninstalled catalog entry in Store without launching or writing anything', async () => {
+    useToolsStore.getState().setDetectedTools([
+      {
+        id: 'coffeecli',
+        name: 'Coffee CLI',
+        category: 'Desktop',
+        installed: false,
+        noModelConfig: true,
+      },
+    ]);
+    useNavigationStore.getState().setAppsTab('install');
+    vi.mocked(api.listSystemApplications).mockResolvedValue([]);
+    await act(async () => {
+      renderer = create(
+        <AppManagerProvider>
+          <Harness />
+        </AppManagerProvider>
+      );
+    });
+    act(() => context.setSelectedTool('coffeecli'));
+    expect(context.selectedToolData).toMatchObject({ id: 'coffeecli', installed: false });
+    expect(api.launchSystemApplication).not.toHaveBeenCalled();
+    expect(api.startTool).not.toHaveBeenCalled();
+    expect(api.applyModelToTool).not.toHaveBeenCalled();
+  });
+});
+
+it('keeps managed AI apps fixed in My, suppresses their System add action and avoids pinned duplicates', async () => {
+  vi.clearAllMocks();
+  useNavigationStore.setState(useNavigationStore.getInitialState(), true);
+  useSystemApplicationsStore.setState(useSystemApplicationsStore.getInitialState(), true);
+  useSystemApplicationsStore.getState().setInMyApplications('system:ai', true);
+  const managed = {
+    id: 'managed-ai-fixture',
+    name: 'AI Studio',
+    category: 'IDE',
+    installed: true,
+    detectedPath: '/Applications/AI Studio.app/Contents/MacOS/main',
+    icon: '/catalog.svg',
+  };
+  useToolsStore.getState().setDetectedTools([managed]);
+  vi.mocked(api.listSystemApplications).mockResolvedValue([
+    { id: 'system:ai', name: 'AI Studio', path: '/Applications/AI Studio.app' },
+  ]);
+  let context!: ReturnType<typeof useAppManager>;
+  function Harness() {
+    context = useAppManager();
+    return null;
+  }
+  let renderer: ReactTestRenderer | undefined;
+  try {
+    await act(async () => {
+      renderer = create(
+        <AppManagerProvider>
+          <Harness />
+        </AppManagerProvider>
+      );
+    });
+    expect(context.detectedTools).toEqual([managed]);
+    act(() => context.setSelectedTool(managed.id));
+    expect(context.selectedToolData?.systemAppId).toBeUndefined();
+    expect(context.selectedToolData?.icon).toBe('/catalog.svg');
+    await act(async () => context.setViewMode('all'));
+    expect(context.detectedTools).toHaveLength(1);
+    expect(context.detectedTools[0]).toMatchObject({
+      systemAppId: 'system:ai',
+      defaultInMyApplications: true,
+    });
+    act(() => useSystemApplicationsStore.getState().setInMyApplications('system:ai', false));
+    await act(async () => context.setViewMode('desktop'));
+    expect(context.detectedTools).toEqual([managed]);
+    expect(api.launchSystemApplication).not.toHaveBeenCalled();
+    expect(api.startTool).not.toHaveBeenCalled();
+    expect(api.applyModelToTool).not.toHaveBeenCalled();
+    expect(api.startCodexLogin).not.toHaveBeenCalled();
+    expect(api.refreshCodexAccountQuota).not.toHaveBeenCalled();
+  } finally {
+    act(() => renderer?.unmount());
+    useSystemApplicationsStore.setState(useSystemApplicationsStore.getInitialState(), true);
+    useToolsStore.getState().setDetectedTools([]);
+    useNavigationStore.setState(useNavigationStore.getInitialState(), true);
+  }
+});

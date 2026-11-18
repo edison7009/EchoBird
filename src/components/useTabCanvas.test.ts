@@ -12,17 +12,17 @@ it.each([false, true])(
   'tracks selection, pauses hidden paint and releases resources (independent=%s)',
   (independent) => {
     let width = 120;
-    let selectedX = 1;
+    let selectedX = independent ? 1 : 60;
     let hidden = false;
     let reduced = false;
     let hasSelection = true;
     const tasks = new Map<number, FrameRequestCallback>();
     let serial = 0;
     const observers: { callback: () => void; disconnect: ReturnType<typeof vi.fn> }[] = [];
-    const frame = () => {
+    const frame = (delay = 300) => {
       const entries = [...tasks];
       tasks.clear();
-      entries.forEach(([, callback]) => callback(performance.now() + 300));
+      entries.forEach(([, callback]) => callback(performance.now() + delay));
     };
     const canvas = {
       className: '',
@@ -110,7 +110,7 @@ it.each([false, true])(
     vi.stubGlobal('MutationObserver', Observer);
     const remembered = { current: null };
     const cleanup = mountTabCanvas(group as unknown as HTMLDivElement, remembered, independent);
-    frame();
+    frame(0);
     expect(paintTabCanvas).toHaveBeenCalled();
     if (independent)
       expect(vi.mocked(paintTabCanvas).mock.calls[0][4]).toEqual([
@@ -119,16 +119,21 @@ it.each([false, true])(
       ]);
     else
       expect(vi.mocked(paintTabCanvas).mock.calls[0][4]).toMatchObject({
-        x: 0,
+        x: 60,
         y: 0,
-        width: 51,
+        width: 50,
         height: 32,
       });
-    selectedX = 60;
+    selectedX = independent ? 60 : 1;
     observers[1].callback();
+    frame(0);
+    if (!independent) {
+      const moving = vi.mocked(paintTabCanvas).mock.calls.slice(-1)[0][4];
+      expect(Array.isArray(moving) ? moving[0].x : moving.x).toBeGreaterThan(0);
+    }
     frame();
-    const next = vi.mocked(paintTabCanvas).mock.calls[1][4];
-    expect(Array.isArray(next) ? next[0].x : next.x).toBe(60);
+    const next = vi.mocked(paintTabCanvas).mock.calls.slice(-1)[0][4];
+    expect(Array.isArray(next) ? next[0].x : next.x).toBe(independent ? 60 : 0);
     hidden = true;
     doc.addEventListener.mock.calls[0][1]();
     frame();

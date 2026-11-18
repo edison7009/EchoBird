@@ -1,4 +1,4 @@
-import { beforeEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import {
   invalidateSystemApplicationIcons,
   preloadSystemApplicationIcons,
@@ -89,4 +89,67 @@ it('leaves icon work to the active page and invalidates icons on explicit refres
   } finally {
     vi.useRealTimers();
   }
+});
+
+afterEach(() => vi.unstubAllGlobals());
+
+it('persists only IDs, deduplicates repeated adds and keeps inventory when hiding', () => {
+  const values = new Map<string, string>();
+  const setItem = vi.fn((key: string, value: string) => values.set(key, value));
+  vi.stubGlobal('localStorage', { getItem: (key: string) => values.get(key) ?? null, setItem });
+  store.setState({
+    applications: [{ id: 'system:one', name: 'One', installed: true, category: 'Desktop' }],
+  });
+  store.getState().setInMyApplications('system:one', true);
+  store.getState().setInMyApplications('system:one', true);
+  expect(store.getState().myApplicationIds).toEqual(['system:one']);
+  expect(setItem).toHaveBeenCalledExactlyOnceWith(
+    'echobird_my_system_applications',
+    '["system:one"]'
+  );
+  store.getState().setInMyApplications('system:one', false);
+  expect(store.getState().myApplicationIds).toEqual([]);
+  expect(store.getState().applications).toHaveLength(1);
+  expect(values.get('echobird_my_system_applications')).toBe('[]');
+  expect(values.get('echobird_hidden_system_applications')).toBe('["system:one"]');
+  expect(api.listSystemApplications).not.toHaveBeenCalled();
+});
+
+it.each([
+  ['["system:one", "system:one", null, 7, ""]', ['system:one']],
+  ['{}', []],
+  ['broken', []],
+])('hydrates valid display IDs on a new session (%s)', async (raw, expected) => {
+  vi.stubGlobal('localStorage', { getItem: () => raw });
+  vi.resetModules();
+  const { useSystemApplicationsStore: nextSession } = await import('./systemApplicationsStore');
+  expect(nextSession.getState().myApplicationIds).toEqual(expected);
+  expect(nextSession.getState().applications).toEqual([]);
+  expect(api.listSystemApplications).not.toHaveBeenCalled();
+});
+
+it('keeps session choices usable if preference storage is unavailable', () => {
+  vi.stubGlobal('localStorage', {
+    setItem: () => {
+      throw new Error('Storage denied');
+    },
+  });
+  expect(() => store.getState().setInMyApplications('system:one', true)).not.toThrow();
+  expect(store.getState().myApplicationIds).toEqual(['system:one']);
+});
+
+it('remembers hiding a default entry across sessions and clears that override when restored', async () => {
+  const values = new Map<string, string>();
+  const setItem = vi.fn((key: string, value: string) => values.set(key, value));
+  vi.stubGlobal('localStorage', { getItem: (key: string) => values.get(key) ?? null, setItem });
+  store.getState().setInMyApplications('system:default', false);
+  store.getState().setInMyApplications('system:default', false);
+  expect(setItem).toHaveBeenCalledTimes(2);
+  vi.resetModules();
+  const { useSystemApplicationsStore: nextSession } = await import('./systemApplicationsStore');
+  expect(nextSession.getState().myApplicationIds).toEqual([]);
+  expect(nextSession.getState().hiddenApplicationIds).toEqual(['system:default']);
+  nextSession.getState().setInMyApplications('system:default', true);
+  expect(nextSession.getState().hiddenApplicationIds).toEqual([]);
+  expect(values.get('echobird_hidden_system_applications')).toBe('[]');
 });

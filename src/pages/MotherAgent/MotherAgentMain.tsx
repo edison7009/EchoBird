@@ -50,6 +50,7 @@ export function MotherAgentMain() {
     contextSizeEditable,
     setContextSize,
   } = useMotherAgent();
+  const composingRef = useRef(false);
   // A first-visit chunk can arrive after the provider's prefill focus timer.
   const initialInput = useRef(chatInput);
   useLayoutEffect(() => {
@@ -376,7 +377,25 @@ export function MotherAgentMain() {
               if (chatPrefillRef) chatPrefillRef.current = null;
               setChatInput(e.target.value);
             }}
+            onCompositionStart={() => {
+              composingRef.current = true;
+            }}
+            onCompositionEnd={() => {
+              composingRef.current = false;
+            }}
+            onBlur={() => {
+              composingRef.current = false;
+            }}
             onKeyDown={(e) => {
+              // WebKit can end composition before the confirming Enter keydown.
+              // Its legacy 229 code still identifies that IME event.
+              if (
+                composingRef.current ||
+                e.nativeEvent?.isComposing ||
+                e.nativeEvent?.keyCode === 229
+              ) {
+                return;
+              }
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 if (!isProcessing) handleChatSend();

@@ -3,6 +3,7 @@ import * as api from '../../api/tauri';
 import type { LocalTool } from '../../api/types';
 import { DesktopToolImage, toolDisplayName } from '../../components/DesktopToolIcon';
 import { useI18n } from '../../hooks/useI18n';
+import { useSystemApplicationsStore } from '../../stores/systemApplicationsStore';
 import { useNavigationStore } from '../../stores/navigationStore';
 
 // Inventory objects change on refresh, so cached details expire with their snapshot.
@@ -168,6 +169,10 @@ export function ApplicationActions({
   const activePage = useNavigationStore((state) => state.activePage);
   const appsTab = useNavigationStore((state) => state.appsTab);
   const goToMother = useNavigationStore((state) => state.goToMother);
+  const inMyApplications = useSystemApplicationsStore((state) =>
+    state.myApplicationIds.includes(tool.systemAppId ?? '')
+  );
+  const setInMyApplications = useSystemApplicationsStore((state) => state.setInMyApplications);
   const [folderError, setFolderError] = useState<{ id: string; message: string } | null>(null);
   const detectedPath = tool.detectedPath || tool.path;
   const shellTarget = detectedPath?.startsWith('shell:') ? detectedPath : null;
@@ -219,6 +224,20 @@ export function ApplicationActions({
           {t('btn.uninstall')}
         </button>
       </div>
+      {tool.systemAppId && !tool.defaultInMyApplications && (
+        <button
+          type="button"
+          className={`${buttonClassName} mt-2 w-full`}
+          disabled={disabled}
+          aria-pressed={inMyApplications}
+          onClick={() => {
+            if (disabled || !tool.systemAppId) return;
+            setInMyApplications(tool.systemAppId, !inMyApplications);
+          }}
+        >
+          {t(inMyApplications ? 'aiDesktop.removeFromMy' : 'aiDesktop.addToMy')}
+        </button>
+      )}
     </div>
   );
 }

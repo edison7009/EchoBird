@@ -2803,6 +2803,19 @@ fn resolve_tool_website(website: Option<&str>, install_ref: Option<&str>) -> Opt
     url
 }
 
+/// Resolve launch-only catalog aliases before associating them with OS applications.
+/// Keep other tools' displayed discovery paths and executable lookup unchanged.
+fn system_catalog_detected_path(tool_id: &str, path: String) -> String {
+    let path = if matches!(tool_id, "coffeecli" | "clashverge") {
+        fs::canonicalize(&path)
+            .map(|resolved| resolved.to_string_lossy().into_owned())
+            .unwrap_or(path)
+    } else {
+        path
+    };
+    normalize_for_display(path)
+}
+
 /// Scan a single tool definition — runs detection, skills, version, and model reads.
 /// Extracted so scan_tools() can run all tools concurrently via tokio::spawn.
 async fn scan_single_tool(def: ToolDefinition) -> DetectedTool {
@@ -2891,7 +2904,7 @@ async fn scan_single_tool(def: ToolDefinition) -> DetectedTool {
         // PATH-discovered CLI tools (e.g. `which coffee-cli` under Git Bash)
         // return forward-slash paths. Normalize so the card shows `\` on
         // Windows — same treatment the always_installed branch already gets.
-        installed_path.map(normalize_for_display)
+        installed_path.map(|path| system_catalog_detected_path(&def.id, path))
     };
 
     DetectedTool {
@@ -3920,6 +3933,47 @@ mod tests {
                 Some("https://github.com/owner/tool")
             );
         }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn system_catalog_detection_resolves_symlinks_without_changing_other_tools() {
+        let root =
+            std::env::temp_dir().join(format!("system-catalog-link-{}", uuid::Uuid::new_v4()));
+        let real = root.join("Applications/Coffee CLI.app/Contents/MacOS/coffee-cli");
+        let link = root.join("bin/coffee-cli");
+        fs::create_dir_all(real.parent().unwrap()).unwrap();
+        fs::create_dir_all(link.parent().unwrap()).unwrap();
+        fs::write(&real, b"fixture").unwrap();
+        std::os::unix::fs::symlink(&real, &link).unwrap();
+        let alias = link.to_string_lossy().into_owned();
+        let target = fs::canonicalize(&real)
+            .unwrap()
+            .to_string_lossy()
+            .into_owned();
+        for id in ["coffeecli", "clashverge"] {
+            assert_eq!(
+                super::system_catalog_detected_path(id, alias.clone()),
+                target
+            );
+        }
+        assert_eq!(
+            super::system_catalog_detected_path("codex", alias.clone()),
+            alias
+        );
+        assert!(link.is_symlink());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn system_catalog_detection_preserves_unavailable_paths() {
+        let absent =
+            std::env::temp_dir().join(format!("absent-system-catalog-{}", uuid::Uuid::new_v4()));
+        let path = absent.to_string_lossy().into_owned();
+        assert_eq!(
+            super::system_catalog_detected_path("coffeecli", path.clone()),
+            super::normalize_for_display(path)
+        );
     }
 
     #[test]

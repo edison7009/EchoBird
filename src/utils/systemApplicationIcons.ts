@@ -1,3 +1,4 @@
+import { fitSystemApplicationIcon } from './systemApplicationIconSizing';
 import { getSystemApplicationIcon } from '../api/tauri';
 import { getDecodedImage, preloadToolImage, releaseToolImage } from './toolIcons';
 
@@ -121,7 +122,13 @@ function rememberIcon(id: string, src: string | null): void {
 
 async function decodeIcon(src: string | null): Promise<string | null> {
   if (!src || typeof Image === 'undefined') return src;
-  return (await preloadToolImage(src)) ? src : null;
+  const image = await preloadToolImage(src);
+  if (!image) return null;
+  const fitted = fitSystemApplicationIcon(src, image);
+  if (fitted === src) return src;
+  if (!(await preloadToolImage(fitted))) return src;
+  releaseUnusedImage(src);
+  return fitted;
 }
 
 export function loadSystemApplicationIcon(id: string): Promise<string | null> {

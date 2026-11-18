@@ -7,6 +7,7 @@ import {
   ApplicationActions,
   useApplicationDetails,
 } from './ApplicationDetailsPanel';
+import { useSystemApplicationsStore } from '../../stores/systemApplicationsStore';
 import { useNavigationStore } from '../../stores/navigationStore';
 
 vi.mock('../../api/tauri', () => ({ getSystemApplicationDetails: vi.fn(), openFolder: vi.fn() }));
@@ -36,6 +37,7 @@ let renderer: ReactTestRenderer;
 beforeEach(() => {
   tool = { ...tool };
   vi.clearAllMocks();
+  useSystemApplicationsStore.setState(useSystemApplicationsStore.getInitialState(), true);
   useNavigationStore.setState(useNavigationStore.getInitialState(), true);
   vi.mocked(api.getSystemApplicationDetails).mockResolvedValue(details);
   vi.mocked(api.openFolder).mockResolvedValue(undefined);
@@ -75,7 +77,7 @@ it('reads only the selected application and opens its directory only on explicit
   expect(text()).toContain(details.launchTarget);
   expect(text()).toContain('1.2.3');
   expect(renderer.root.findByType(ApplicationActions).findAllByType('svg')).toHaveLength(0);
-  expect(renderer.root.findByType(ApplicationActions).findAllByType('button')).toHaveLength(2);
+  expect(renderer.root.findByType(ApplicationActions).findAllByType('button')).toHaveLength(3);
   await act(async () => locate().props.onClick());
   expect(api.openFolder).toHaveBeenCalledExactlyOnceWith('/opt/Local app');
 });
@@ -360,4 +362,49 @@ it('includes Store package location and its distinct activation entry', () => {
   expect(useNavigationStore.getState().motherPrefill).toBe(
     `Completely uninstall Local app\naiDesktop.fileLocation ${path}\naiDesktop.launchTarget ${target}`
   );
+});
+
+it.each(['all', 'desktop'] as const)(
+  'toggles My visibility below the actions while retaining system details (%s)',
+  async (tab) => {
+    useNavigationStore.getState().setAppsTab(tab);
+    await act(async () => {
+      renderer = create(<Details tool={tool} />);
+    });
+    const toggle = () =>
+      renderer.root
+        .findAllByType('button')
+        .find(
+          (button) =>
+            button.children.includes('aiDesktop.addToMy') ||
+            button.children.includes('aiDesktop.removeFromMy')
+        )!;
+    const markup = text();
+    expect(markup.indexOf('aiDesktop.addToMy')).toBeGreaterThan(markup.indexOf('btn.uninstall'));
+    expect(toggle().props['aria-pressed']).toBe(false);
+    act(() => toggle().props.onClick());
+    expect(useSystemApplicationsStore.getState().myApplicationIds).toEqual([tool.systemAppId]);
+    expect(toggle().children).toContain('aiDesktop.removeFromMy');
+    expect(text()).toContain(details.path);
+    expect(text()).toContain(details.version);
+    expect(api.getSystemApplicationDetails).toHaveBeenCalledOnce();
+    expect(api.openFolder).not.toHaveBeenCalled();
+    expect(useNavigationStore.getState().activePage).toBe('apps');
+    act(() => toggle().props.onClick());
+    expect(useSystemApplicationsStore.getState().myApplicationIds).toEqual([]);
+    expect(toggle().children).toContain('aiDesktop.addToMy');
+  }
+);
+
+it('keeps fixed My entries free of add/remove controls in the system panel', async () => {
+  const original = { ...tool, defaultInMyApplications: true };
+  await act(async () => {
+    renderer = create(<Details tool={original} />);
+  });
+  const actions = renderer.root.findByType(ApplicationActions).findAllByType('button');
+  expect(actions.map((button) => button.children)).toEqual([
+    ['aiDesktop.openLocation'],
+    ['btn.uninstall'],
+  ]);
+  expect(useSystemApplicationsStore.getState().myApplicationIds).toEqual([]);
 });

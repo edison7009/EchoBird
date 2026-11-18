@@ -31,3 +31,50 @@ it('uses the rem-based toolbar height in apps and centers the full-height input'
   expect(input).toContain('padding: 0;');
   expect(input).toContain('line-height: normal;');
 });
+
+it('keeps input and clear locked during submission without changing search styling', () => {
+  const onChange = vi.fn();
+  const renderer = create(
+    <SearchField disabled value="model" onChange={onChange} label="Model ID" clearLabel="Clear" />
+  );
+  try {
+    const input = renderer.root.findByType('input');
+    const clear = renderer.root.findByType('button');
+    expect(input.props.disabled).toBe(true);
+    expect(clear.props.disabled).toBe(true);
+    act(() => input.props.onChange({ target: { value: 'different' } }));
+    act(() => clear.props.onClick());
+    expect(onChange).not.toHaveBeenCalled();
+    expect(renderer.root.findByProps({ className: 'page-search' })).toBeDefined();
+  } finally {
+    act(() => renderer.unmount());
+  }
+});
+
+it('reserves the clear-button slot when empty and removes the hidden control from keyboard actions', () => {
+  const onChange = vi.fn();
+  const render = (value: string) => (
+    <SearchField value={value} onChange={onChange} label="Search" clearLabel="Clear" />
+  );
+  const renderer = create(render(''));
+  try {
+    const clear = renderer.root.findByType('button');
+    expect(clear.props.className).toContain('invisible');
+    expect(clear.props['aria-hidden']).toBe(true);
+    expect(clear.props.disabled).toBe(true);
+    expect(clear.props.tabIndex).toBe(-1);
+    act(() => clear.props.onClick());
+    expect(onChange).not.toHaveBeenCalled();
+    act(() => renderer.update(render('model')));
+    expect(renderer.root.findByType('button')).toBe(clear);
+    expect(clear.props.className).not.toContain('invisible');
+    expect(clear.props.disabled).toBe(false);
+    act(() => clear.props.onClick());
+    expect(onChange).toHaveBeenCalledExactlyOnceWith('');
+    act(() => renderer.update(render('')));
+    expect(renderer.root.findByType('button')).toBe(clear);
+    expect(clear.props.className).toContain('invisible');
+  } finally {
+    act(() => renderer.unmount());
+  }
+});

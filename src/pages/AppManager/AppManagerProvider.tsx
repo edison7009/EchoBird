@@ -1,3 +1,9 @@
+import {
+  catalogSystemApplicationIds,
+  isSystemCatalogTool,
+  linkCatalogSystemApplications,
+} from './catalogSystemApplications';
+import type { LocalTool } from '../../api/types';
 import { useSystemApplicationsStore } from '../../stores/systemApplicationsStore';
 import { isSmartRouterId } from '../../utils/smartRouter';
 import { isDirectModelAllowedForTool } from '../../utils/directModelPolicy';
@@ -7,7 +13,7 @@ import { AccountDirectoryContext } from '../../features/accounts/context';
 import { useAccountDirectory } from '../../features/accounts/useAccountDirectory';
 import { useModelRepository } from '../../hooks/useModelRepository';
 import { ClaudeCodeLoginDialog } from './ClaudeCodeLoginDialog';
-import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } from 'react';
 import { useI18n } from '../../hooks/useI18n';
 import * as api from '../../api/tauri';
 import { AppManagerContext } from './context';
@@ -18,6 +24,25 @@ import { accountCenterProviders } from '../AccountCenter/accountCenterData';
 import { useRewardClaimStore } from '../../stores/rewardClaimStore';
 import { useOptionalToast } from '../../components/Toast';
 import { getOfficialEndpoint, isOfficialModelSentinel } from '../../data/officialEndpoints';
+
+// System entries retain their native identity; they are never AI tool adapters.
+function activeDesktopTools(
+  managed: LocalTool[],
+  system: LocalTool[],
+  tab: string,
+  hidden: string[],
+  represented: Set<string>
+) {
+  if (tab !== 'desktop') return managed;
+  const known = new Set([
+    ...represented,
+    ...managed.flatMap((tool) => (tool.systemAppId ? [tool.systemAppId] : [])),
+  ]);
+  return [
+    ...managed,
+    ...system.filter((tool) => !known.has(tool.systemAppId ?? '') && !hidden.includes(tool.id)),
+  ];
+}
 
 // ===== Provider =====
 
@@ -55,25 +80,98 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
   } = useToolsStore();
   const developerMode = useNavigationStore((state) => state.developerMode);
   const appsTab = useNavigationStore((state) => state.appsTab);
-  const managedTools = scannedTools;
   const viewMode = useNavigationStore((state) => state.toolTab);
   const systemApplications = useSystemApplicationsStore();
+  const managedTools = useMemo(
+    () => linkCatalogSystemApplications(scannedTools, systemApplications.applications),
+    [scannedTools, systemApplications.applications]
+  );
+  const defaultSystemIds = useMemo(
+    () => catalogSystemApplicationIds(managedTools, systemApplications.applications),
+    [managedTools, systemApplications.applications]
+  );
+  const visibleSystemApplications = useMemo(
+    () =>
+      systemApplications.applications.map((tool) =>
+        defaultSystemIds.has(tool.id) ? { ...tool, defaultInMyApplications: true } : tool
+      ),
+    [systemApplications.applications, defaultSystemIds]
+  );
+  const needsSystemApplications =
+    systemApplications.myApplicationIds.length > 0 || scannedTools.some(isSystemCatalogTool);
+  const activePage = useNavigationStore((state) => state.activePage);
   const systemApplicationsActive = useNavigationStore(
     (state) => state.activePage === 'apps' && state.appsTab === 'all'
   );
-  const detectedTools = systemApplicationsActive ? systemApplications.applications : managedTools;
-  const isScanning = systemApplicationsActive ? systemApplications.loading : isScanningTools;
+  const mySystemApplications = useMemo(
+    () =>
+      systemApplications.applications.filter((tool) =>
+        systemApplications.myApplicationIds.includes(tool.id)
+      ),
+    [systemApplications.applications, systemApplications.myApplicationIds]
+  );
+  const detectedTools = useMemo(
+    () =>
+      systemApplicationsActive
+        ? visibleSystemApplications
+        : activeDesktopTools(
+            managedTools,
+            mySystemApplications,
+            appsTab,
+            systemApplications.hiddenApplicationIds,
+            defaultSystemIds
+          ),
+    [
+      systemApplicationsActive,
+      visibleSystemApplications,
+      systemApplications.hiddenApplicationIds,
+      managedTools,
+      mySystemApplications,
+      defaultSystemIds,
+      appsTab,
+    ]
+  );
+  const isScanning = systemApplicationsActive
+    ? systemApplications.loading
+    : isScanningTools ||
+      ((appsTab === 'desktop' || appsTab === 'install') &&
+        needsSystemApplications &&
+        systemApplications.loading);
   const loadSystemApplications = systemApplications.load;
   const scanTools = useCallback(async () => {
     if (systemApplicationsActive) await loadSystemApplications(true);
-    else await scanManagedTools();
-  }, [systemApplicationsActive, loadSystemApplications, scanManagedTools]);
+    else {
+      await Promise.all([
+        scanManagedTools(),
+        ...((appsTab === 'desktop' || appsTab === 'install') && needsSystemApplications
+          ? [loadSystemApplications(true)]
+          : []),
+      ]);
+    }
+  }, [
+    systemApplicationsActive,
+    loadSystemApplications,
+    scanManagedTools,
+    appsTab,
+    needsSystemApplications,
+  ]);
   useEffect(() => {
-    if (systemApplicationsActive) {
+    if (
+      systemApplicationsActive ||
+      (activePage === 'apps' &&
+        (appsTab === 'desktop' || appsTab === 'install') &&
+        needsSystemApplications)
+    ) {
       void loadSystemApplications();
     }
-  }, [systemApplicationsActive, loadSystemApplications]);
-  const { activePage, goToMother } = useNavigationStore();
+  }, [
+    systemApplicationsActive,
+    activePage,
+    appsTab,
+    needsSystemApplications,
+    loadSystemApplications,
+  ]);
+  const { goToMother } = useNavigationStore();
   const isActive = activePage === 'apps' && (appsTab === 'desktop' || appsTab === 'install');
 
   // Wrapped navigation: build prefill and go to Mother Agent (model check happens there)

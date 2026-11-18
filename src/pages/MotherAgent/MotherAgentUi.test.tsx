@@ -151,6 +151,98 @@ it.each([false, true])(
   }
 );
 
+describe('composer IME confirmation', () => {
+  beforeEach(() => {
+    state = { ...state, chatInput: 'zhongwen', handleChatSend: vi.fn() };
+    act(() => {
+      renderer = create(<MotherAgentMain />);
+    });
+  });
+
+  it.each(['lifecycle', 'native', 'webkit'])(
+    'does not send or consume the confirming Enter (%s)',
+    (source) => {
+      const input = renderer!.root.findByType('textarea');
+      if (source === 'lifecycle' || source === 'webkit') {
+        act(() => input.props.onCompositionStart());
+      }
+      if (source === 'webkit') act(() => input.props.onCompositionEnd());
+      const preventDefault = vi.fn();
+      act(() =>
+        input.props.onKeyDown({
+          key: 'Enter',
+          shiftKey: false,
+          nativeEvent: {
+            isComposing: source === 'native',
+            keyCode: source === 'webkit' ? 229 : 13,
+          },
+          preventDefault,
+        })
+      );
+      expect(preventDefault).not.toHaveBeenCalled();
+      expect(state.handleChatSend).not.toHaveBeenCalled();
+      expect(state.setChatInput).not.toHaveBeenCalled();
+      act(() => {
+        input.props.onCompositionEnd();
+        input.props.onChange({ target: { value: '中文' } });
+      });
+      expect(state.setChatInput).toHaveBeenCalledWith('中文');
+      state = { ...state, chatInput: '中文' };
+      act(() => renderer!.update(<MotherAgentMain />));
+      act(() =>
+        renderer!.root.findByType('textarea').props.onKeyDown({
+          key: 'Enter',
+          shiftKey: false,
+          nativeEvent: { isComposing: false, keyCode: 13 },
+          preventDefault,
+        })
+      );
+      expect(preventDefault).toHaveBeenCalledOnce();
+      expect(state.handleChatSend).toHaveBeenCalledOnce();
+    }
+  );
+
+  it('preserves Shift+Enter and the pending-send guard', () => {
+    const preventDefault = vi.fn();
+    act(() =>
+      renderer!.root.findByType('textarea').props.onKeyDown({
+        key: 'Enter',
+        shiftKey: true,
+        nativeEvent: {},
+        preventDefault,
+      })
+    );
+    expect(preventDefault).not.toHaveBeenCalled();
+    expect(state.handleChatSend).not.toHaveBeenCalled();
+    state = { ...state, isProcessing: true };
+    act(() => renderer!.update(<MotherAgentMain />));
+    act(() =>
+      renderer!.root.findByType('textarea').props.onKeyDown({
+        key: 'Enter',
+        shiftKey: false,
+        nativeEvent: {},
+        preventDefault,
+      })
+    );
+    expect(state.handleChatSend).not.toHaveBeenCalled();
+  });
+
+  it('resets an interrupted composition on blur', () => {
+    const input = renderer!.root.findByType('textarea');
+    act(() => {
+      input.props.onCompositionStart();
+      input.props.onBlur();
+      input.props.onKeyDown({
+        key: 'Enter',
+        shiftKey: false,
+        nativeEvent: {},
+        preventDefault: vi.fn(),
+      });
+    });
+    expect(state.handleChatSend).toHaveBeenCalledOnce();
+  });
+});
+
 it('fits typed and prefilled drafts, shrinks after clearing, and resizes on return', () => {
   let notifyResize: () => void = () => {};
   vi.stubGlobal(

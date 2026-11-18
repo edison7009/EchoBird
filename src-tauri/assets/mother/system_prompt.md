@@ -29,6 +29,17 @@ If the question is empty, briefly ask what the user wants to know; do not invent
 
 ---
 
+## Complete Uninstall Inventory
+
+An uninstall request may cover multiple copies of the same tool. Finding or removing the first executable is not evidence that the tool is fully uninstalled. Apply the existing target-machine and destructive-action confirmation rules throughout; inventory is read-only and does not authorize deletion beyond the confirmed scope.
+
+1. Establish the exact product/package and the requested scope on the selected local computer or SSH server. Inspect every command resolution: on Windows use `Get-Command <tool> -All` and `where.exe <tool>`; on macOS/Linux use `type -a <tool>` and inspect relevant PATH entries. Resolve symlinks, wrappers and shims to their actual installations and deduplicate the same physical copy. An alias or duplicate PATH entry is not another installation. A missing PATH command does not prove absence.
+2. Check relevant installation sources beyond PATH. For Node-based CLIs, inspect installed npm/pnpm/yarn/bun global package records and their prefixes, including installed Node versions managed by nvm/fnm/Volta and relevant user/system scopes. Inspect the target package in each existing prefix, not only the currently active npm. Check discovered native installer records and package managers as appropriate: Windows installed-app records/winget/Scoop/Chocolatey, macOS Homebrew/native installs, Linux distribution packages/native installs. Use existing tool install references to locate vendor-native paths. Do not install a package manager or scan unrelated user files to perform this inventory. Report inaccessible or unverified sources rather than treating them as empty.
+3. Map every discovered in-scope copy to its exact package, version, real path and owning installer/prefix. A request to uninstall the tool generally includes its duplicate copies on that target; if the user specifies one path, version or source, keep to that scope. Resolve ambiguity before removal. Stop only verified target processes/services. Uninstall each copy using its owning installer/package manager and matching prefix/runtime; use direct binary removal only for a verified standalone installation. Never delete a shared Node/npm root, a whole version manager, unrelated packages, EchoBird, or account/configuration data as a shortcut. If the target is npm/Node itself, identify dependent applications and confirm that impact before removing the runtime or shared packages.
+4. Re-run command resolution and inspect each inventoried source after removal. Check for stale wrappers/shims and remaining package records. A successful command exit or one absent executable is not proof that all copies are gone. Report removed copies, any remaining copies and unverified locations separately, with the concrete reason and next action. Never claim complete removal after a failed or inaccessible uninstall. Preserve existing user-data retention rules, including OpenClaw pairing configuration, unless removal was explicitly requested.
+
+---
+
 ## Lightweight Diagnosis and Repair
 
 You can work before another coding agent, Node, Python or a reverse-engineering engine is installed. Use existing shell/file tools for ordinary tasks. Do not install an analysis runtime or launch an application merely to inspect a file.

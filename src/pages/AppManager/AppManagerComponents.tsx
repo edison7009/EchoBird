@@ -451,15 +451,16 @@ export const AppManagerMain: React.FC = () => {
         ? searchedTools
         : installedOrdered;
   const systemApplicationsActive = useNavigationStore(
-    (state) => state.activePage === 'apps' && state.appsTab === 'all'
+    (state) =>
+      state.activePage === 'apps' && (state.appsTab === 'all' || state.appsTab === 'desktop')
   );
   const documentVisible = useDocumentVisible();
   const systemIconIds = useMemo(
     () =>
-      viewMode === 'all'
-        ? searchedTools.flatMap((tool) => (tool.systemAppId ? [tool.systemAppId] : []))
+      viewMode === 'all' || viewMode === 'desktop'
+        ? candidateTools.flatMap((tool) => (tool.systemAppId ? [tool.systemAppId] : []))
         : [],
-    [viewMode, searchedTools]
+    [viewMode, candidateTools]
   );
   useEffect(() => {
     if (!systemApplicationsActive || !documentVisible || !systemIconIds.length) return;
@@ -1213,6 +1214,28 @@ export const AppManagerPanel: React.FC = () => {
   const routingControls = capabilityToggles.length > 0 && (
     <CapabilityToggles toggles={capabilityToggles} disabled={isLaunching} />
   );
+  const accountPanel =
+    selectedTool === 'manus' || selectedTool === 'cue' ? (
+      <ManusAccountSection tool={selectedTool} />
+    ) : selectedTool === 'antigravity' || selectedTool === 'antigravitydesktop' ? (
+      <AntigravityAccountSection />
+    ) : selectedTool === 'grokbot' || selectedTool === 'cursor' || selectedTool === 'cursorcli' ? (
+      <CursorAccountSection tool={selectedTool} />
+    ) : selectedTool === 'kirocrew' || selectedTool === 'kirocli' ? (
+      <KiroAccountSection />
+    ) : selectedTool === 'trae' || selectedTool === 'traecn' ? (
+      <TraeAccountSection />
+    ) : selectedTool === 'devin' || selectedTool === 'devincli' ? (
+      <DevinAccountSection />
+    ) : selectedTool === 'doubaowork' || selectedTool === 'dola' ? (
+      <DoubaoAccountSection />
+    ) : selectedTool === 'dumate' ? (
+      <DuMateAccountSection />
+    ) : selectedTool === 'qwenwork' || selectedTool === 'qwenworkcn' ? (
+      <QwenWorkAccountSection />
+    ) : null;
+  const detailsIncludeActions =
+    !!selectedToolData?.systemAppId || (!!selectedToolData?.noModelConfig && !accountPanel);
   const applicationActions = panelTool && (
     <ApplicationActions
       tool={panelTool}
@@ -1310,30 +1333,14 @@ export const AppManagerPanel: React.FC = () => {
                 </a>
               </div>
             )
-          ) : selectedTool === 'manus' || selectedTool === 'cue' ? (
-            <ManusAccountSection tool={selectedTool} />
-          ) : selectedTool === 'antigravity' || selectedTool === 'antigravitydesktop' ? (
-            <AntigravityAccountSection />
-          ) : selectedTool === 'grokbot' ||
-            selectedTool === 'cursor' ||
-            selectedTool === 'cursorcli' ? (
-            <CursorAccountSection tool={selectedTool} />
-          ) : selectedTool === 'kirocrew' || selectedTool === 'kirocli' ? (
-            <KiroAccountSection />
-          ) : selectedTool === 'trae' || selectedTool === 'traecn' ? (
-            <TraeAccountSection />
-          ) : selectedTool === 'devin' || selectedTool === 'devincli' ? (
-            <DevinAccountSection />
-          ) : selectedTool === 'doubaowork' || selectedTool === 'dola' ? (
-            <DoubaoAccountSection />
-          ) : selectedTool === 'dumate' ? (
-            <DuMateAccountSection />
-          ) : selectedTool === 'qwenwork' || selectedTool === 'qwenworkcn' ? (
-            <QwenWorkAccountSection />
+          ) : accountPanel ? (
+            accountPanel
           ) : selectedToolData.noModelConfig ? (
-            <ApplicationDetailsPanel tool={selectedToolData} state={applicationDetails} />
+            <ApplicationDetailsPanel tool={selectedToolData} state={applicationDetails}>
+              {applicationActions}
+            </ApplicationDetailsPanel>
           ) : (
-            <div className="flex h-full flex-col gap-2">
+            <div className="flex flex-col gap-2">
               {selectedTool === 'opendesign' && <OpenDesignAccountSection showDivider />}
               {selectedTool === 'codearts' && (
                 <CodeArtsAccountSection showDivider={hasVisibleModels} />
@@ -1375,7 +1382,7 @@ export const AppManagerPanel: React.FC = () => {
                 <ClaudeCodeAccountSection desktop showDivider={hasVisibleModels || show1mToggle} />
               )}
               {routingControls}
-              <div className="flex-1">
+              <div>
                 {selectedTool &&
                   selectedToolData.installed &&
                   SMART_ROUTER_SWITCH_TOOLS.has(selectedTool) && (
@@ -1421,7 +1428,7 @@ export const AppManagerPanel: React.FC = () => {
             <p className="text-cyber-text-secondary text-center">{t('agent.selectTool')}</p>
           </div>
         )}
-        {selectedToolData && !selectedToolData.systemAppId && (
+        {selectedToolData && !detailsIncludeActions && (
           <div className="px-3 pt-4">{applicationActions}</div>
         )}
       </div>
