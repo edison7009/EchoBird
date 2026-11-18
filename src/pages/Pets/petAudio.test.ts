@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { createPetAudio } from './petAudio';
+import { createPetAudio, createRewardAudio } from './petAudio';
 
 afterEach(() => vi.unstubAllGlobals());
 it('loads only after explicit preparation, chooses one cue and releases media on exit', async () => {
@@ -43,4 +43,65 @@ it('loads only after explicit preparation, chooses one cue and releases media on
         clip.load.mock.calls.length === 1
     )
   ).toBe(true);
+});
+
+it('prepares the local tear cue once on demand, catches blocked playback and releases it', async () => {
+  const clip = {
+    play: vi.fn(() => Promise.reject(new Error('blocked'))),
+    pause: vi.fn(),
+    currentTime: 0,
+    removeAttribute: vi.fn(),
+    load: vi.fn(),
+  };
+  const Audio = vi.fn(function (_url: string) {
+    return clip;
+  });
+  vi.stubGlobal('Audio', Audio);
+  const sound = createRewardAudio();
+  expect(Audio).not.toHaveBeenCalled();
+  sound.prepare();
+  sound.prepare();
+  sound.play();
+  await Promise.resolve();
+  expect(Audio).toHaveBeenCalledOnce();
+  expect(Audio.mock.calls[0][0]).toContain('pack-tear.wav');
+  expect(clip.play).toHaveBeenCalledOnce();
+  sound.dispose();
+  expect(clip.pause).toHaveBeenCalled();
+  expect(clip.removeAttribute).toHaveBeenCalledWith('src');
+  expect(clip.load).toHaveBeenCalledOnce();
+});
+
+it('silently primes the gesture and does not let a late unlock stop the delayed tear cue', async () => {
+  let unlock!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    unlock = resolve;
+  });
+  const clip = {
+    volume: 1,
+    currentTime: 0,
+    play: vi.fn(() => Promise.resolve()).mockImplementationOnce(() => pending),
+    pause: vi.fn(),
+    removeAttribute: vi.fn(),
+    load: vi.fn(),
+  };
+  vi.stubGlobal(
+    'Audio',
+    vi.fn(function () {
+      return clip;
+    })
+  );
+  const sound = createRewardAudio();
+  sound.prepare();
+  sound.prime();
+  expect(clip.volume).toBe(0);
+  sound.play();
+  expect(clip.volume).toBe(0.4);
+  clip.currentTime = 0.15;
+  const pauses = clip.pause.mock.calls.length;
+  unlock();
+  await Promise.resolve();
+  expect(clip.pause).toHaveBeenCalledTimes(pauses);
+  expect(clip.currentTime).toBe(0.15);
+  sound.dispose();
 });

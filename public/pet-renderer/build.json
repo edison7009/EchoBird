@@ -1,0 +1,20 @@
+{
+  "wasmBindgen": "wasm-bindgen 0.2.127",
+  "sources": {
+    "scripts/build-pet-renderer.mjs": "1ca45a917a10e9ea0af9d8a769753b512ad5621f72fe730601850e8d1f95b3b2",
+    "src-tauri/crates/echo-supply-renderer/Cargo.toml": "10a9514c71dbec6380f323de8131efd3ddd1b65c151f7d469abf255070dadccf",
+    "src-tauri/crates/echo-supply-renderer/src/gl.rs": "de9d45d233c11e954a3a90d0cd37175fe9e16d716a10805d706f12b541bd0e96",
+    "src-tauri/crates/echo-supply-renderer/src/lib.rs": "bef54350410597372075ea09379cb9d9af91cf4e89d984b6c47d0e4e121e5212",
+    "src-tauri/crates/echo-supply-renderer/src/mat.rs": "cc94afd312f48ffe9ff955a6d6a344e483adf01a4b04cf33da0ef4f6cb7ecbae",
+    "src-tauri/crates/echo-supply-renderer/src/pet_mesh.rs": "e21e7079b5b3e862ff14fa3443d11f1c66c7a9219c99e9b1bea3fdaa9838dbc5",
+    "src-tauri/crates/echo-supply-renderer/src/pet_models.rs": "2ee0114ef33329ef4f2f5852250b28917832c2c95270d63b06ed003be8f1f511",
+    "src-tauri/crates/echo-supply-renderer/src/pet_pose.rs": "6607b113cb38ba4c6e635317b2c59d15c87ba03f4e2705e3c514a7570460de50",
+    "src-tauri/crates/echo-supply-renderer/src/pet_scene.rs": "68ac5761db99e3ac5b7c2dce15c82489f6a60fcd46746555a809bebbce725a19",
+    "src-tauri/crates/echo-supply-renderer/src/scene.rs": "3b1d0d247e122b0015b8c8760cffc18ab5024fd4d3de27f862945b87632e7630",
+    "src-tauri/crates/echo-supply-renderer/src/shaders.rs": "9a37a6e6b40009b443782edd40bcca47cd5734734cb028d06ed43f4c57d6f9f1"
+  },
+  "outputs": {
+    "renderer.js": "9f87a8978b51622d831209cb98670996d3eefd9ebae5875a625438fb4e71a12d",
+    "renderer_bg.wasm": "fbaf19e214f99183db392a50523c9340a17f70270944ce76e483b536894ab44b"
+  }
+}

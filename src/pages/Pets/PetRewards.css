@@ -48,231 +48,91 @@
     transform: rotate(14deg);
   }
 }
+
 .pet-reward-dialog {
   position: fixed;
   inset: 0;
-  width: min(340px, calc(100vw - 32px));
-  max-height: calc(100vh - 32px);
+  width: min(1100px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
   margin: auto;
+  padding: 0 0 22px;
+  overflow-x: hidden;
   overflow-y: auto;
-  padding: 24px 36px;
   border: 0;
-  background: transparent;
-  color: rgb(var(--text-primary-rgb));
+  border-radius: 16px;
+  background: #eae7df;
+  color: #222320;
   text-align: center;
 }
 .pet-reward-dialog::backdrop {
   background: transparent;
 }
-.pet-reward-perspective {
-  --reward-color: #84d5b1;
-  width: min(244px, 100%);
-  margin: 12px auto 28px;
-  perspective: 1000px;
+.pet-reward-close {
+  position: absolute;
+  z-index: 5;
+  top: 14px;
+  right: 16px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  color: #52534e;
 }
-.pet-reward-perspective[data-kind='double'] {
-  --reward-color: #eec678;
+.pet-supply-rust {
+  position: relative;
+  width: 100%;
+  height: min(620px, calc(100dvh - 150px));
+  min-height: 300px;
 }
-.pet-reward-perspective[data-kind='haste'] {
-  --reward-color: #8cc6ef;
-}
-.pet-reward-perspective[data-kind='sealed'] {
-  --reward-color: #e3e8f0;
-}
-.pet-reward-perspective[data-kind='sealed'] .holo-card__front {
-  background: linear-gradient(135deg, #424b59, #adb7c5 48%, #586474);
-}
-.pet-reward-perspective[data-kind='sealed'] .pet-reward-face {
-  justify-content: center;
-}
-.pet-reward-perspective[data-kind='sealed'] .pet-reward-face > svg {
-  margin: 0;
-  filter: none;
-}
-.pet-reward-reveal {
+.pet-supply-canvas {
   display: block;
   width: 100%;
-  perspective: 1000px;
-  animation: pet-reward-arrive 0.25s ease-out both;
+  height: 100%;
+  border-radius: 16px 16px 0 0;
+  touch-action: none;
+  user-select: none;
 }
-@keyframes pet-reward-arrive {
-  from {
-    opacity: 0;
-    transform: translateY(8px) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+.pet-supply-load {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 13px;
 }
-.pet-reward-spin {
-  transform-style: preserve-3d;
+.pet-supply-load button {
+  padding: 5px 10px;
+  border: 1px solid #7775;
+  border-radius: 6px;
 }
-.pet-reward-perspective[data-phase='sealed'] .pet-reward-spin {
-  animation: pet-reward-spin 0.18s linear infinite;
-}
-.pet-reward-perspective[data-phase='settling'] .pet-reward-spin {
-  animation: pet-reward-settle 0.02s ease-out both;
-}
-@keyframes pet-reward-spin {
-  from {
-    transform: rotateY(0deg);
-  }
-  to {
-    transform: rotateY(360deg);
-  }
-}
-@keyframes pet-reward-settle {
-  from {
-    transform: var(--pet-card-stop);
-  }
-  to {
-    transform: rotateY(0deg);
-  }
-}
-.pet-reward-holo .pet-reward-back {
+.pet-reward-actions {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 3px solid #e3e8f0;
-  background: linear-gradient(135deg, #424b59, #adb7c5 48%, #586474);
-  color: #e3e8f0;
-  backface-visibility: hidden;
+  min-height: 42px;
 }
-.pet-reward-holo .pet-reward-back > * {
-  width: auto;
-  aspect-ratio: auto;
-  grid-area: auto;
-}
-.pet-reward-holo .pet-reward-back > svg {
-  width: 82px;
-  height: 104px;
-}
-.pet-reward-perspective[data-phase='opening'] {
-  animation: pet-reward-turn 0.1s ease-in-out both;
-}
-@keyframes pet-reward-turn {
-  0%,
-  100% {
-    transform: rotateY(0deg);
-  }
-  46% {
-    transform: rotateY(90deg);
-  }
-  46.2% {
-    transform: rotateY(-90deg);
-  }
-}
-.pet-reward-holo {
-  --card-radius: 9px;
-  --card-edge: var(--reward-color);
-  --card-glow: var(--reward-color);
-  width: 100%;
-}
-.pet-reward-holo .holo-card__front {
-  border: 3px solid var(--reward-color);
-  background:
-    repeating-linear-gradient(0deg, #ffffff04 0 1px, transparent 1px 16px),
-    repeating-linear-gradient(90deg, #ffffff04 0 1px, transparent 1px 16px), #252e30;
-}
-.pet-reward-holo .holo-card__translater {
-  --translate-z: 0px;
-}
-.pet-reward-holo:not(.holo-card--interactive):hover {
-  --card-scale: 1;
-  --translate-y: 0px;
-  --rotate-x: 0deg;
-  --rotate-y: 0deg;
-}
-.pet-reward-holo .pet-reward-face,
-.pet-reward-holo .pet-reward-face * {
-  display: revert;
-  width: auto;
-  grid-area: auto;
-  aspect-ratio: auto;
-  border-radius: 0;
-  overflow: visible;
-}
-.pet-reward-holo .pet-reward-face {
-  display: flex;
-  height: 100%;
-  flex-direction: column;
-  align-items: center;
-  padding: 19px 14px;
-  color: var(--reward-color);
-}
-.pet-reward-face > small {
-  font-size: 9px;
-  letter-spacing: 1.5px;
-  opacity: 0.8;
-}
-.pet-reward-holo .pet-reward-face > svg {
-  width: 82px;
-  height: 104px;
-  margin: 22px 0 12px;
-  filter: drop-shadow(5px 5px 0 #0005);
-}
-.pet-reward-face > h4 {
-  font-size: 21px;
-  font-weight: 600;
-}
-.pet-reward-face > strong {
-  margin-top: 5px;
-  font-size: 35px;
-  font-weight: 600;
-}
-.pet-reward-face > p {
-  margin-top: auto;
+.pet-reward-choice-hint {
+  color: #66665e;
   font-size: 12px;
-  color: #e0e7e4;
 }
 .pet-reward-use {
-  min-width: 88px;
-  min-height: 2.25rem;
-  padding: 0 1.25rem;
+  min-width: 116px;
+  min-height: 38px;
+  padding: 0 24px;
   border: 1px solid rgb(var(--accent-rgb));
   border-radius: 8px;
   background: rgb(var(--accent-rgb));
   color: #fff;
   font-weight: 600;
-  box-shadow: 0 4px 10px rgb(var(--accent-rgb) / 0.3);
-  transition:
-    background-color 0.2s,
-    border-color 0.2s;
+  box-shadow: 0 4px 14px rgb(var(--accent-rgb) / 0.24);
 }
 .pet-reward-use:hover {
-  border-color: rgb(var(--accent-secondary-rgb));
   background: rgb(var(--accent-secondary-rgb));
 }
-.pet-reward-actions {
-  min-height: 2.5rem;
-}
-@media (max-height: 500px) {
-  .pet-reward-perspective {
-    width: 190px;
-    margin-block: 18px;
-  }
-  .pet-reward-holo .pet-reward-face > svg {
-    width: 60px;
-    height: 72px;
-    margin: 12px 0 5px;
-  }
-  .pet-reward-face > strong {
-    font-size: 28px;
-  }
-}
 @media (prefers-reduced-motion: reduce) {
-  .pet-reward-gift-ready,
-  .pet-reward-reveal,
-  .pet-reward-perspective,
-  .pet-reward-spin,
-  .pet-reward-holo * {
-    transition: none !important;
-    animation: none !important;
-  }
-  .pet-reward-holo .holo-card__translater,
-  .pet-reward-holo .holo-card__rotator {
-    transform: none !important;
+  .pet-reward-gift-ready {
+    animation: none;
   }
 }

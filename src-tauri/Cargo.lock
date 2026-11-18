@@ -1909,6 +1909,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "echo-supply-renderer"
+version = "0.1.0"
+dependencies = [
+ "js-sys",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "echobird"
 version = "6.3.7"
 dependencies = [

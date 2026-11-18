@@ -33,7 +33,7 @@ export default defineConfig({
     entries: ['index.html'],
   },
   // The app loads its bundle from disk, not over a network, so the web download
-  // warning does not apply. The main chunk and the 3D pet scene are about 630/500 kB.
+  // warning does not apply.
   build: {
     chunkSizeWarningLimit: 700,
   },

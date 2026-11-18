@@ -8,4 +8,6 @@ export interface PetScene {
   thumbnail(pet: PetModel): string;
   dispose(): void;
 }
+/** Loads the WebAssembly renderer; resolve it before calling createPetScene. */
+export function loadPetScene(load?: () => Promise<unknown>): Promise<void>;
 export function createPetScene(canvas: HTMLCanvasElement): PetScene;

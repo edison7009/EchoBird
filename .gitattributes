@@ -25,6 +25,9 @@
 *.gif   binary
 *.ico   binary
 *.icns  binary
+*.webp  binary
+*.wav   binary
+*.wasm  binary
 *.bmp   binary
 *.svg   binary
 *.ttf   binary

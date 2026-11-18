@@ -105,7 +105,8 @@ export function PetsMain() {
     let idleTimer: ReturnType<typeof setInterval> | undefined;
     usePetsStore.getState().load();
     void import('./petScene.js')
-      .then(({ createPetScene }) => {
+      .then(async ({ createPetScene, loadPetScene }) => {
+        await loadPetScene();
         if (cancelled || !canvas.current) return;
         const renderer = createPetScene(canvas.current);
         scene.current = renderer;

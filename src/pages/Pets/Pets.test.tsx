@@ -22,7 +22,10 @@ const mock = vi.hoisted(() => ({
   thumbnail: vi.fn(() => 'data:image/png;base64,fixture'),
   sound: { prepare: vi.fn(), play: vi.fn(), stop: vi.fn(), dispose: vi.fn() },
 }));
-vi.mock('./petScene.js', () => ({ createPetScene: () => mock }));
+vi.mock('./petScene.js', () => ({
+  createPetScene: () => mock,
+  loadPetScene: () => Promise.resolve(),
+}));
 vi.mock('../../api/routerStatistics', () => ({ getSmartRouterTokenCredits: mock.credits }));
 vi.mock('./petAudio', () => ({ createPetAudio: () => mock.sound }));
 vi.mock('../../hooks/useDocumentVisible', () => ({ useDocumentVisible: () => mock.visible }));

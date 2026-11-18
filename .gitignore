@@ -74,6 +74,7 @@ scripts/*
 !scripts/refresh_free_models.py
 !scripts/vendor-website-assets.py
 !scripts/prepare-website.mjs
+!scripts/build-pet-renderer.mjs
 !scripts/verify-dependency-patches.mjs
 !scripts/sync-catalogs.mjs
 !scripts/release-notes.mjs
@@ -86,6 +87,7 @@ scripts/tests/*
 !scripts/tests/plugin_sdk.test.mjs
 !scripts/tests/usage_island_styles.test.mjs
 !scripts/tests/dependency_patches.test.mjs
+!scripts/tests/pet_renderer.test.mjs
 !scripts/tests/catalogs.test.mjs
 !scripts/tests/release_notes.test.mjs
 

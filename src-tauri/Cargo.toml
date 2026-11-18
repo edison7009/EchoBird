@@ -10,7 +10,7 @@ rust-version = "1.93"
 
 # One lock file and one target directory for the app and the gateway crate it shares with Wings.
 [workspace]
-members = [".", "crates/echo-gateway"]
+members = [".", "crates/echo-gateway", "crates/echo-supply-renderer"]
 
 [lib]
 name = "echobird_lib"
