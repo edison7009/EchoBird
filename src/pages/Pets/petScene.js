@@ -29,14 +29,18 @@ export function loadPetScene(load = loadPetRenderer) {
   return loading;
 }
 
-export function createPetScene(canvas) {
+// `options.reduced` overrides the system's reduced-motion setting (previews, tests).
+export function createPetScene(canvas, options = {}) {
   if (!native) throw new Error('Call loadPetScene() before createPetScene()');
   const scene = new native.PetScene(canvas);
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reduced = options.reduced ?? window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   scene.set_reduced_motion(reduced);
   const root = canvas.ownerDocument?.documentElement;
   const ratio = () => window.devicePixelRatio || 1;
   let current = { id: 1, kind: 'mecha', stage: 2, color: 0 };
+  // Every animation gets a serial number; a frame from an older one (already
+  // queued when it was cancelled) is ignored instead of finishing it.
+  let serial = 0;
   let disposed = false,
     raf = 0,
     progress = 0,
@@ -52,30 +56,35 @@ export function createPetScene(canvas) {
     scene.render(canvas.clientWidth, canvas.clientHeight, ratio());
   }
   function stop() {
+    serial++;
     cancelAnimationFrame(raf);
     raf = 0;
     mode = 'still';
     progress = 0;
   }
-  function animate(nextMode, from, to, duration, done = () => {}, onProgress) {
+  // `impact` is the fraction of the span where the effect lands; `onImpact`
+  // fires once when it is reached (for the sound), never after a cancel.
+  function animate(nextMode, from, to, duration, done = () => {}, onProgress, impact, onImpact) {
     stop();
     mode = nextMode;
     progress = from;
+    const token = serial;
+    const cancelled = () => disposed || token !== serial;
     onProgress?.(0);
-    if (reduced) {
-      progress = to;
-      onProgress?.(1);
-      render();
-      stop();
-      done();
-      render();
-      return;
-    }
+    if (cancelled()) return;
+    let impacted = impact === undefined;
     const start = performance.now();
     const tick = (now) => {
-      if (disposed) return;
+      if (cancelled()) return;
       progress = Math.min(to, from + (now - start) / duration);
-      onProgress?.((progress - from) / (to - from));
+      const share = (progress - from) / (to - from);
+      onProgress?.(share);
+      if (cancelled()) return;
+      if (!impacted && share >= impact) {
+        impacted = true;
+        onImpact?.();
+        if (cancelled()) return;
+      }
       render();
       if (progress < to) raf = requestAnimationFrame(tick);
       else {
@@ -87,6 +96,15 @@ export function createPetScene(canvas) {
     render();
     raf = requestAnimationFrame(tick);
   }
+  // Same-form beats and where their impact lands (see pet_fx.rs).
+  const TIERS = {
+    absorb: { ms: 450 },
+    level: { ms: 700, impact: 0.42 },
+    milestone: { ms: 1300, impact: 0.42 },
+    max: { ms: 2400, impact: 0.62 },
+  };
+  // Reduced motion: no flight, flash or spin, only a short steady glow.
+  const span = (ms) => (reduced ? Math.min(ms, 450) : ms);
   const crackedEggProgress = 0.46;
   const observer = new ResizeObserver(render);
   observer.observe(canvas);
@@ -98,30 +116,38 @@ export function createPetScene(canvas) {
       current = { ...pet };
       render();
     },
-    upgrade(next, done, onProgress) {
+    // `done` still fires exactly once, when everything visible has finished;
+    // `cues.onImpact` is optional and fires at the visual peak.
+    upgrade(next, done, onProgress, cues = {}) {
+      const finish = () => {
+        current = { ...next };
+        done();
+      };
       if (next.stage === current.stage) {
-        animate(
-          'level',
-          0,
-          1,
-          600,
-          () => {
-            current = { ...next };
-            done();
-          },
-          onProgress
-        );
+        const tier =
+          next.level === current.level
+            ? 'absorb'
+            : next.level >= 60
+              ? 'max'
+              : next.level % 10 === 0
+                ? 'milestone'
+                : 'level';
+        const { ms, impact } = TIERS[tier];
+        animate(tier, 0, 1, span(ms), finish, onProgress, impact, cues.onImpact);
         return;
       }
+      // A form change: the transformation, then a short landing on the new
+      // form (rings, confetti) before `done`.
       const stage = current.stage;
       animate(
         stage === 0 ? 'crack' : stage === 1 ? 'hatch' : 'grow',
         stage === 1 ? crackedEggProgress : stage === 3 ? 0.5 : 0,
         stage === 2 ? 0.5 : 1,
-        stage === 0 ? 1400 : 2600,
+        span(stage === 0 ? 1400 : 2600),
         () => {
           current = { ...next };
-          done();
+          if (reduced) return done();
+          animate('land', 0, 1, 450, done, undefined, 0, cues.onImpact);
         },
         onProgress
       );

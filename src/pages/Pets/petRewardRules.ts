@@ -4,8 +4,18 @@ export const REWARD_INTERVAL = 5 * 60_000;
 export const DOUBLE_DURATION = 15 * 60_000;
 export const HASTE_DURATION = REWARD_INTERVAL / 2;
 export const GROWTH_REWARD = GROWTH_TOKEN_UNIT / 2;
-export const REWARD_KINDS = ['growth', 'double', 'haste'] as const;
+export const COMBO_GROWTH_REWARD = GROWTH_REWARD / 2;
+export const COMBO_HASTE_DURATION = HASTE_DURATION / 2;
+export const SUPER_GROWTH_REWARD = GROWTH_REWARD * 2;
+export const REWARD_KINDS = ['growth', 'double', 'haste', 'combo', 'super'] as const;
 export type RewardKind = (typeof REWARD_KINDS)[number];
+const REWARD_AMOUNTS: Record<RewardKind, number> = {
+  growth: GROWTH_REWARD,
+  double: 0,
+  haste: 0,
+  combo: COMBO_GROWTH_REWARD,
+  super: SUPER_GROWTH_REWARD,
+};
 export interface PetReward {
   kind: RewardKind;
   amount: number;
@@ -27,11 +37,11 @@ export function rewardDay(now: number): string {
 }
 
 export function drawReward(doubleUntil: number, now: number): PetReward {
-  const roll = Math.random();
-  const kind = roll < 0.65 ? 'growth' : roll < 0.9 ? 'double' : 'haste';
+  // Five equally likely rewards; choosing a back never redraws this saved result.
+  const kind = REWARD_KINDS[Math.floor(Math.random() * REWARD_KINDS.length)];
   return {
     kind,
-    amount: kind === 'growth' ? GROWTH_REWARD * (doubleUntil > now ? 2 : 1) : 0,
+    amount: REWARD_AMOUNTS[kind] * (doubleUntil > now ? 2 : 1),
     revealed: false,
     opened: false,
     day: rewardDay(now),
@@ -54,9 +64,8 @@ export function readRewards(value: PetRewards | undefined): PetRewards {
         typeof pending.revealed === 'boolean' &&
         (pending.opened === undefined || typeof pending.opened === 'boolean') &&
         (pending.day === undefined || typeof pending.day === 'string') &&
-        (pending.kind === 'growth'
-          ? pending.amount === GROWTH_REWARD || pending.amount === GROWTH_REWARD * 2
-          : pending.amount === 0)))
+        (pending.amount === REWARD_AMOUNTS[pending.kind] ||
+          pending.amount === REWARD_AMOUNTS[pending.kind] * 2)))
     ? { ...value, pending: pending?.revealed ? null : pending }
     : initialRewards();
 }

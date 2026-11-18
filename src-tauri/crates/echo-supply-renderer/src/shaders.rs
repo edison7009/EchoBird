@@ -204,13 +204,22 @@ pub const SHAPE_FS: &str = r#"#version 300 es
 precision highp float;
 in vec2 v_uv;
 uniform vec4 u_color;
-uniform float u_shape;   // 0 soft shadow, 1 four-point sparkle
+uniform float u_shape;   // 0 soft dot, 1 sparkle, 2 soft rectangle, 3 ring, 4 light column
 out vec4 o;
 void main() {
     vec2 p = v_uv * 2.0 - 1.0;
     float a;
     if (u_shape < 0.5) {
         a = exp(-dot(p, p) * 3.2) * smoothstep(1.0, 0.6, length(p));
+    } else if (u_shape > 3.5) {
+        // A column of light: brightest at the base and the middle line.
+        float across = exp(-p.x * p.x * 9.0);
+        float along = smoothstep(-1.0, -0.8, p.y) * (1.0 - smoothstep(-0.2, 1.0, p.y));
+        a = across * along + exp(-p.x * p.x * 60.0) * along * 0.6;
+    } else if (u_shape > 2.5) {
+        // A ring on the floor with a soft inner glow.
+        float r = length(p);
+        a = exp(-pow((r - 0.86) / 0.06, 2.0)) + exp(-pow((r - 0.8) / 0.16, 2.0)) * 0.25;
     } else if (u_shape > 1.5) {
         // A soft rounded rectangle: a card's shadow on what is behind it.
         vec2 q = abs(p) - vec2(0.62, 0.68);
@@ -390,7 +399,7 @@ layout(location = 5) in vec4 i_cell;    // growth: centre, scale
 layout(location = 6) in vec3 i_color;   // growth: colour a, colour b, blend
 uniform mat4 u_vp;
 uniform mat4 u_model;
-uniform vec3 u_palette[30];
+uniform vec3 u_palette[33];
 uniform float u_crack;   // how far the egg's crack colour has spread
 uniform float u_cells;
 out vec3 v_normal;
@@ -434,6 +443,8 @@ uniform vec3 u_fill;
 uniform vec3 u_ambient;
 uniform float u_unlit;
 uniform vec3 u_glow;
+uniform vec4 u_aura;      // level-up glow: colour and strength
+uniform vec3 u_view_dir;
 out vec4 o;
 vec3 encode(vec3 c) {
     c = clamp(c, 0.0, 1.0);
@@ -448,6 +459,9 @@ void main() {
     float key = max(dot(n, u_key_dir), 0.0);
     vec3 direct = key * u_key + max(dot(n, u_fill_dir), 0.0) * u_fill;
     vec3 col = v_color * (u_ambient * v_ao + direct * mix(1.0, v_ao, 0.35));
+    // Level-up glow: the pet lifts a little and its silhouette catches the light.
+    float rim = pow(1.0 - max(dot(n, u_view_dir), 0.0), 2.0);
+    col += u_aura.rgb * u_aura.a * (0.22 + 0.95 * rim);
     // Outer corners catch a little light, fading out where voxels get tiny.
     vec4 d = mix(vec4(9.0), vec4(v_uv.x, 1.0 - v_uv.x, v_uv.y, 1.0 - v_uv.y), v_edges);
     float edge = min(min(d.x, d.y), min(d.z, d.w));

@@ -202,3 +202,27 @@ it.each(['escape', 'background'])('%s closes without consuming the reward', (met
   expect(close).toHaveBeenCalledOnce();
   expect(pets.getState().rewards.pending).toEqual(sealed);
 });
+
+it.each([
+  ['combo', 25_000_000, '−01:15'],
+  ['super', 100_000_000, '+1亿'],
+] as const)('presents the saved %s card and consumes its reward once', (kind, amount, text) => {
+  const pending = { kind, amount, opened: true, revealed: false };
+  pets.setState({ rewards: { ...pets.getState().rewards, pending } });
+  const close = vi.fn();
+  act(() => {
+    view = create(<PetRewardDialog reward={pending} onClose={close} />, {
+      createNodeMock: () => mock,
+    });
+  });
+  expect(scene().kind).toBe(kind);
+  expect(scene().value).toContain(text);
+  const balance = pets.getState().balance;
+  const apply = use()[0].props.onClick;
+  act(() => {
+    apply();
+    apply();
+  });
+  expect(pets.getState().balance).toBe(balance + amount);
+  expect(close).toHaveBeenCalledOnce();
+});

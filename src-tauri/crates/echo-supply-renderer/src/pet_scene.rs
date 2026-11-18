@@ -20,6 +20,12 @@ use crate::pet_pose::{
 };
 use crate::shaders::{PET_FS, PET_VS, QUAD_VS, SHAPE_FS};
 
+/// EchoBird orange and gold for level-up effects (sRGB hex).
+const ORANGE: &str = "#ff8a3d";
+const GOLD: &str = "#ffcf5a";
+/// Where the camera looks from (see pet_pose), for the rim glow.
+const CAMERA_DIR: [f32; 3] = [0.0, 12.0, 80.0];
+
 /// Palette slots after the shared 28 colours: the core's light and shade.
 const CORE_LIGHT: u8 = 28;
 const CORE_SHADE: u8 = 29;
@@ -337,6 +343,7 @@ impl PetScene {
         let vp = f.proj.mul(&f.view);
         self.draw_voxels(&gl, &f, pet, view, &vp)?;
         self.draw_ground(&gl, &f, &vp);
+        self.draw_fx(&gl, &f, &vp);
         self.draw_sparks(&gl, &f, pet, &vp);
         Ok(())
     }
@@ -366,6 +373,19 @@ impl PetScene {
         let mut colors: Vec<f32> = palette(pet.kind, pet.color).concat();
         colors.extend_from_slice(&[1.0, 1.0, 1.0]);
         colors.extend_from_slice(&crate::pet_pose::linear("#d4e3ec").map(|v| v as f32));
+        // Level-up colours: EchoBird orange, gold, and the pet's own tint.
+        for hex in [ORANGE, GOLD, TINTS[pet.color]] {
+            colors.extend_from_slice(&crate::pet_pose::linear(hex).map(|v| v as f32));
+        }
+        let aura = if f.fx.gold {
+            crate::pet_pose::linear(GOLD)
+        } else {
+            let (o, t) = (
+                crate::pet_pose::linear(ORANGE),
+                crate::pet_pose::linear(TINTS[pet.color]),
+            );
+            std::array::from_fn(|i| o[i] * 0.6 + t[i] * 0.4)
+        };
         let [key_dir, key, fill_dir, fill, ambient] = lights(self.daylight && !view.miniature);
         gl.enable(Gl::DEPTH_TEST);
         gl.enable(Gl::CULL_FACE);
@@ -380,6 +400,16 @@ impl PetScene {
         p.f3(gl, "u_ambient", ambient);
         p.f1(gl, "u_unlit", 0.0);
         p.f1(gl, "u_cells", 0.0);
+        p.f4(
+            gl,
+            "u_aura",
+            [aura[0] as f32, aura[1] as f32, aura[2] as f32, f.fx.glow],
+        );
+        let d = (CAMERA_DIR[0] * CAMERA_DIR[0]
+            + CAMERA_DIR[1] * CAMERA_DIR[1]
+            + CAMERA_DIR[2] * CAMERA_DIR[2])
+            .sqrt();
+        p.f3(gl, "u_view_dir", CAMERA_DIR.map(|v| v / d));
         for item in &f.items {
             self.program.mat4(gl, "u_model", &item.model);
             self.program.f1(gl, "u_crack", item.crack);
@@ -417,8 +447,120 @@ impl PetScene {
             );
             self.program.f1(gl, "u_cells", 0.0);
         }
+        if !f.fx.confetti.is_empty() {
+            // Voxel confetti: one instanced cube per bit, in world space.
+            let data: Vec<f32> =
+                f.fx.confetti
+                    .iter()
+                    .flat_map(|b| {
+                        let s = b.slot as f32;
+                        [
+                            b.pos[0] as f32,
+                            b.pos[1] as f32,
+                            b.pos[2] as f32,
+                            b.size as f32,
+                            s,
+                            s,
+                            0.0,
+                        ]
+                    })
+                    .collect();
+            let p = &mut self.program;
+            p.mat4(gl, "u_model", &Mat4::identity());
+            p.f1(gl, "u_crack", 0.0);
+            p.f1(gl, "u_cells", 1.0);
+            p.f4(gl, "u_aura", [1.0, 1.0, 1.0, 0.15]);
+            gl.bind_buffer(Gl::ARRAY_BUFFER, Some(&self.cell_buffer));
+            gl.buffer_data_with_array_buffer_view(
+                Gl::ARRAY_BUFFER,
+                &Float32Array::from(data.as_slice()),
+                Gl::DYNAMIC_DRAW,
+            );
+            gl.bind_vertex_array(Some(&self.cube.vao));
+            gl.draw_elements_instanced_with_i32(
+                Gl::TRIANGLES,
+                self.cube.ranges[0].1 as i32,
+                Gl::UNSIGNED_SHORT,
+                0,
+                data.len() as i32 / CELL_STRIDE,
+            );
+            self.program.f1(gl, "u_cells", 0.0);
+        }
         gl.bind_vertex_array(None);
         Ok(())
+    }
+
+    /// Light column, floor rings and energy motes for a level-up.
+    fn draw_fx(&mut self, gl: &Gl, f: &Frame, vp: &Mat4) {
+        let fx = &f.fx;
+        if fx.beam.is_none() && fx.rings.is_empty() && fx.motes.is_empty() {
+            return;
+        }
+        let srgb = |hex: &str| {
+            let v = u32::from_str_radix(&hex[1..], 16).unwrap_or(0);
+            [
+                ((v >> 16) & 255) as f32 / 255.0,
+                ((v >> 8) & 255) as f32 / 255.0,
+                (v & 255) as f32 / 255.0,
+            ]
+        };
+        let (orange, gold) = (srgb(ORANGE), srgb(GOLD));
+        gl.disable(Gl::CULL_FACE);
+        gl.depth_mask(false);
+        let s = &mut self.shape;
+        s.bind(gl);
+        s.mat4(gl, "u_vp", vp);
+        if let Some(beam) = &fx.beam {
+            // Behind and through the pet: depth-tested so the pet stays in front.
+            let c = if beam.gold { gold } else { orange };
+            let m = Mat4::translate(
+                beam.base[0],
+                beam.base[1] + beam.height / 2.0,
+                beam.base[2] - 3.0,
+            );
+            s.f1(gl, "u_shape", 4.0);
+            s.mat4(gl, "u_model", &m);
+            s.f4(gl, "u_rect", [0.0, 0.0, beam.width, beam.height]);
+            s.f4(gl, "u_color", [c[0], c[1], c[2], 0.55 * beam.alpha]);
+            self.quad.draw(gl, Gl::TRIANGLES);
+        }
+        s.f1(gl, "u_shape", 3.0);
+        for ring in &fx.rings {
+            let c = if ring.gold { gold } else { orange };
+            s.mat4(
+                gl,
+                "u_model",
+                &ring.model.mul(&Mat4::rot_x(-std::f32::consts::FRAC_PI_2)),
+            );
+            s.f4(
+                gl,
+                "u_rect",
+                [0.0, 0.0, ring.radius * 2.0, ring.radius * 2.0],
+            );
+            s.f4(gl, "u_color", [c[0], c[1], c[2], 0.9 * ring.alpha]);
+            self.quad.draw(gl, Gl::TRIANGLES);
+        }
+        // Motes always on top: they are energy flowing into the pet.
+        gl.disable(Gl::DEPTH_TEST);
+        s.f1(gl, "u_shape", 0.0);
+        for mote in &fx.motes {
+            let c = if mote.gold { gold } else { orange };
+            let m = Mat4::translate(
+                mote.pos[0] as f32,
+                mote.pos[1] as f32,
+                mote.pos[2] as f32 + 8.0,
+            );
+            let size = mote.size as f32 * 1.6;
+            s.mat4(gl, "u_model", &m);
+            s.f4(gl, "u_rect", [0.0, 0.0, size, size]);
+            s.f4(gl, "u_color", [c[0], c[1], c[2], mote.alpha as f32]);
+            self.quad.draw(gl, Gl::TRIANGLES);
+            s.f4(gl, "u_rect", [0.0, 0.0, size * 0.4, size * 0.4]);
+            s.f4(gl, "u_color", [1.0, 0.97, 0.9, mote.alpha as f32]);
+            self.quad.draw(gl, Gl::TRIANGLES);
+        }
+        gl.enable(Gl::DEPTH_TEST);
+        gl.depth_mask(true);
     }
 
     /// A soft shadow on the floor, drawn after the pet so its feet cover it.

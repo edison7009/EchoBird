@@ -200,13 +200,17 @@ export function PetsMain() {
     );
     const leveledUp = (from.experience ?? 0) + amount >= petUpgradeCost(from.level);
     const currentRevision = lifecycle.current.revision;
+    const milestone = isPetMilestone(from.level + 1);
+    // The level sound plays at the animation's impact; if the animation had
+    // none (reduced motion), it plays once the level has been settled instead.
+    let cued = false;
     const finish = () => {
       if (
         lifecycle.current.revision === currentRevision &&
         usePetsStore.getState().completeUpgrade(from.id, from.level) &&
         leveledUp
       ) {
-        audio.current?.play(isPetMilestone(from.level + 1));
+        if (!cued) audio.current?.play(milestone);
         if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) setCelebrating(true);
       }
     };
@@ -223,6 +227,13 @@ export function PetsMain() {
       (progress) => {
         if (lifecycle.current.revision === currentRevision)
           setSpending(Math.floor(amount * progress));
+      },
+      {
+        onImpact: () => {
+          if (lifecycle.current.revision !== currentRevision || !leveledUp || cued) return;
+          cued = true;
+          audio.current?.play(milestone);
+        },
       }
     );
   };

@@ -10,6 +10,7 @@ import { useNavigationStore } from './navigationStore';
 import type { RouterTokenCredits } from '../api/routerStatistics';
 import {
   DOUBLE_DURATION,
+  COMBO_HASTE_DURATION,
   HASTE_DURATION,
   REWARD_INTERVAL,
   rewardDay,
@@ -310,7 +311,7 @@ export const usePetsStore = create<PetsState>((set, get) => ({
     const usedToday = (rewards.usedToday ?? 0) + (reward.day === rewards.day ? 1 : 0);
     const wait = Math.min(usedToday + 1, 6) * REWARD_INTERVAL;
     set({
-      balance: balance + (reward.kind === 'growth' ? reward.amount : 0),
+      balance: balance + reward.amount,
       rewards: {
         ...rewards,
         pending: null,
@@ -319,7 +320,14 @@ export const usePetsStore = create<PetsState>((set, get) => ({
           reward.kind === 'double'
             ? Math.max(now, rewards.doubleUntil) + DOUBLE_DURATION
             : rewards.doubleUntil,
-        nextClaimAt: now + wait - (reward.kind === 'haste' ? HASTE_DURATION : 0),
+        nextClaimAt:
+          now +
+          wait -
+          (reward.kind === 'haste'
+            ? HASTE_DURATION
+            : reward.kind === 'combo'
+              ? COMBO_HASTE_DURATION
+              : 0),
       },
     });
     save(get().items, get().selected);

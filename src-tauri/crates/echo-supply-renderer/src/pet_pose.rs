@@ -9,6 +9,7 @@
 use std::f64::consts::PI;
 
 use crate::mat::Mat4;
+use crate::pet_fx::{self, Bit, Mote, Stage, Tier};
 use crate::pet_models::{c, growth_cell, growth_phase, smooth, Definition, Models, KINDS, PALETTE};
 
 /// The egg stays cracked from this point of the hatch until it opens.
@@ -28,6 +29,14 @@ pub enum Mode {
     Crack,
     Hatch,
     Grow,
+    /// Growth absorbed without a level.
+    Absorb,
+    /// Level 40: a milestone with the form unchanged.
+    Milestone,
+    /// Level 60, the last one.
+    Max,
+    /// The landing after a form change has finished.
+    Land,
 }
 
 impl Mode {
@@ -38,6 +47,10 @@ impl Mode {
             "crack" => Mode::Crack,
             "hatch" => Mode::Hatch,
             "grow" => Mode::Grow,
+            "absorb" => Mode::Absorb,
+            "milestone" => Mode::Milestone,
+            "max" => Mode::Max,
+            "land" => Mode::Land,
             _ => Mode::Still,
         }
     }
@@ -110,6 +123,43 @@ pub struct Spark {
     pub spin: f32,
 }
 
+/// A ground ring: where it sits on the floor, how wide, how strong.
+#[derive(Clone, Copy, Debug)]
+pub struct RingDraw {
+    pub model: Mat4,
+    pub radius: f32,
+    pub alpha: f32,
+    pub gold: bool,
+}
+
+/// A column of light rising from the floor through the pet.
+#[derive(Clone, Copy, Debug)]
+pub struct Beam {
+    pub base: [f32; 3],
+    pub width: f32,
+    pub height: f32,
+    pub alpha: f32,
+    pub gold: bool,
+}
+
+/// Level-up effects for one frame, all in world space.
+#[derive(Clone, Debug, Default)]
+pub struct Fx {
+    /// Glow strength on the pet, and whether it is gold (milestones) or
+    /// orange mixed with the pet's own colour.
+    pub glow: f32,
+    pub gold: bool,
+    pub motes: Vec<Mote>,
+    pub rings: Vec<RingDraw>,
+    pub beam: Option<Beam>,
+    pub confetti: Vec<Bit>,
+}
+
+/// Palette slots after the 30 shared ones: EchoBird orange, gold, the tint.
+pub const SLOT_ORANGE: u8 = 30;
+pub const SLOT_GOLD: u8 = 31;
+pub const SLOT_TINT: u8 = 32;
+
 #[derive(Clone, Debug)]
 pub struct Frame {
     pub items: Vec<Item>,
@@ -118,6 +168,7 @@ pub struct Frame {
     pub cells: Option<Cells>,
     pub ground: Option<Ground>,
     pub sparks: Vec<Spark>,
+    pub fx: Fx,
     pub view: Mat4,
     pub proj: Mat4,
 }
@@ -481,11 +532,7 @@ pub fn frame(models: &Models, pet: Pet, view: &View, width: f64, height: f64) ->
             } else {
                 0.0
             };
-            h.wobble_scale = if !mini && mode == Mode::Level {
-                1.0 + 0.045 * (progress * PI).sin()
-            } else {
-                1.0
-            };
+            h.wobble_scale = 1.0;
         }
         if hatching && mode == Mode::Hatch {
             let settle = smooth(0.84, 1.0, t);
@@ -584,12 +631,7 @@ pub fn frame(models: &Models, pet: Pet, view: &View, width: f64, height: f64) ->
         let local = (progress - if step == 0 { 0.06 } else { 0.56 }) / 0.4;
         sparkles = burst([0.0, height * 0.55, 0.0], local, 14, 9.0, 23 + step as u32);
     } else if pet.stage == 0 {
-        let pulse = !mini && mode == Mode::Level;
-        let s = if pulse {
-            1.0 + 0.045 * (progress * PI).sin()
-        } else {
-            1.0
-        };
+        let s = 1.0;
         let rz = if !mini && !view.reduced && mode == Mode::Interact {
             (progress * PI * 6.0).sin() * 0.05 * (progress * PI).sin()
         } else {
@@ -600,9 +642,6 @@ pub fn frame(models: &Models, pet: Pet, view: &View, width: f64, height: f64) ->
             model: object.mul(&Mat4::trs([0.0, -7.0, 0.0], [0.0, 0.0, f(rz)], [f(s); 3])),
             crack: 0.0,
         });
-        if pulse {
-            sparkles = burst([0.0, 0.0, 2.0], progress, 8, 9.0, 31);
-        }
         matrix = object;
         bounds = [[-6.0, -7.0, -6.0], [6.0, 7.0, 6.0]];
         floor = (-7.0, [6.0, 6.0], 0.0);
@@ -621,14 +660,7 @@ pub fn frame(models: &Models, pet: Pet, view: &View, width: f64, height: f64) ->
             jump - def.height / 2.0 - def.min[1],
             -def.center[2],
         ];
-        let mut lift = jump;
-        if !mini && mode == Mode::Level {
-            let pulse = (progress * PI).sin();
-            pose.root_pos[1] += pulse * 0.6;
-            pose.root_scale = [1.0 + 0.04 * pulse; 3];
-            lift += pulse * 0.6;
-            sparkles = burst([0.0, 0.0, 2.0], progress, 10, 10.0, 41);
-        }
+        let lift = jump;
         items.extend(rig_items(index, def, &pose, &object));
         matrix = object;
         bounds = rig_bounds(def);
@@ -665,9 +697,102 @@ pub fn frame(models: &Models, pet: Pet, view: &View, width: f64, height: f64) ->
         }
     }
     half *= if mini { 1.15 } else { 1.12 };
+
+    // Level-up beats for this moment (none for thumbnails or idle).
+    let tier = if mini {
+        None
+    } else {
+        match mode {
+            Mode::Absorb => Some((Tier::Absorb, progress)),
+            Mode::Level => Some((Tier::Level, progress)),
+            Mode::Milestone => Some((Tier::Milestone, progress)),
+            Mode::Max => Some((Tier::Max, progress)),
+            Mode::Land => Some((Tier::Land, progress)),
+            Mode::Crack => Some((Tier::Crack, progress)),
+            Mode::Hatch => Some((
+                Tier::Hatch,
+                (progress - CRACKED_EGG_PROGRESS) / (1.0 - CRACKED_EGG_PROGRESS),
+            )),
+            Mode::Grow => Some((
+                Tier::Grow,
+                if progress <= 0.5 {
+                    progress / 0.5
+                } else {
+                    (progress - 0.5) / 0.5
+                },
+            )),
+            _ => None,
+        }
+    };
+    let beats = tier.map(|(t, at)| (pet_fx::beats(t, at, view.reduced), at));
+    if let Some((b, _)) = &beats {
+        half *= f(1.0 - b.punch);
+    }
     let proj = Mat4::ortho(-half * aspect, half * aspect, -half, half, 0.1, 250.0);
 
-    let (floor_y, footprint, lift) = floor;
+    let (floor_y, footprint, mut lift) = floor;
+    let mut fx = Fx::default();
+    if let Some((b, t)) = beats {
+        // Where the pet stands on screen.
+        let floor_w = f64::from(matrix.point([0.0, f(floor_y), 0.0])[1]);
+        let stage = Stage {
+            centre: [
+                f64::from(lo[0] + hi[0]) / 2.0,
+                f64::from(lo[1] + hi[1]) / 2.0,
+                f64::from(lo[2] + hi[2]) / 2.0,
+            ],
+            floor: floor_w,
+            height: f64::from(hi[1] - lo[1]),
+            width: f64::from(hi[0] - lo[0]),
+        };
+        // Hop, squash about the feet and turn about the centre, after framing
+        // so the camera does not follow the hop.
+        let c = stage.centre;
+        let sq = b.squash.max(0.2);
+        let body = Mat4::translate(0.0, f(b.hop), 0.0)
+            .mul(&translate([c[0], 0.0, c[2]]))
+            .mul(&Mat4::rot_y(f(b.spin)))
+            .mul(&translate([-c[0], 0.0, -c[2]]))
+            .mul(&Mat4::translate(0.0, f(floor_w), 0.0))
+            .mul(&Mat4::scale(f(1.0 / sq.sqrt()), f(sq), f(1.0 / sq.sqrt())))
+            .mul(&Mat4::translate(0.0, f(-floor_w), 0.0));
+        for item in &mut items {
+            item.model = body.mul(&item.model);
+        }
+        if let Some(core) = core.as_mut() {
+            *core = body.mul(core);
+        }
+        if let Some(cells) = cells.as_mut() {
+            cells.group = body.mul(&cells.group);
+        }
+        lift += b.hop;
+        fx.glow = f(b.glow);
+        fx.gold = b.gold;
+        fx.motes = pet_fx::motes(&b, t, &stage);
+        fx.rings = pet_fx::rings(&b, t, &stage)
+            .into_iter()
+            .map(|r| RingDraw {
+                model: Mat4::translate(f(c[0]), f(floor_w) + 0.02, f(c[2])),
+                radius: f(r.radius),
+                alpha: f(r.alpha),
+                gold: r.gold,
+            })
+            .collect();
+        if b.beam > 0.01 {
+            fx.beam = Some(Beam {
+                base: [f(c[0]), f(floor_w), f(c[2]) + 0.5],
+                width: f(stage.width * 0.9),
+                height: f(stage.height * 2.4),
+                alpha: f(b.beam),
+                gold: b.gold,
+            });
+        }
+        fx.confetti = pet_fx::confetti(&b, t, &stage, [SLOT_ORANGE, SLOT_GOLD, SLOT_TINT]);
+        if let Some(i) = b.impact {
+            // A few bright sparks at the moment of impact.
+            sparkles = burst([0.0, 0.0, 2.0], (t - i) / 0.5, 12, 10.0, 41);
+        }
+    }
     let ground = Some(Ground {
         model: matrix.mul(&Mat4::translate(0.0, f(floor_y) - 0.02, 0.0)),
         radius: [
@@ -699,6 +824,7 @@ pub fn frame(models: &Models, pet: Pet, view: &View, width: f64, height: f64) ->
         cells,
         ground,
         sparks,
+        fx,
         view: view_m,
         proj,
     }

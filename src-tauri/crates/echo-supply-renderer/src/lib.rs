@@ -7,6 +7,7 @@
 //! and `gl` hold the WebGL side.
 
 pub mod mat;
+pub mod pet_fx;
 pub mod pet_mesh;
 pub mod pet_models;
 pub mod pet_pose;

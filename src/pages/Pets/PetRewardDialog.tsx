@@ -3,7 +3,12 @@ import { X } from 'lucide-react';
 import { createRewardAudio } from './petAudio';
 import { useI18n } from '../../hooks/useI18n';
 import { usePetsStore } from '../../stores/petsStore';
-import { HASTE_DURATION, rewardCountdown, type PetReward } from './petRewardRules';
+import {
+  COMBO_HASTE_DURATION,
+  HASTE_DURATION,
+  rewardCountdown,
+  type PetReward,
+} from './petRewardRules';
 import { RustSupplyCanvas } from './RustSupplyCanvas';
 
 export default function PetRewardDialog({
@@ -99,11 +104,11 @@ export default function PetRewardDialog({
         selected={selected}
         kind={reward.kind}
         value={
-          reward.kind === 'growth'
-            ? `+${new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits: 2 }).format(reward.amount)}`
-            : reward.kind === 'double'
-              ? '×2'
-              : `−${rewardCountdown(HASTE_DURATION, 0)}`
+          reward.kind === 'double'
+            ? '×2'
+            : reward.kind === 'haste'
+              ? `−${rewardCountdown(HASTE_DURATION, 0)}`
+              : `+${new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits: 2 }).format(reward.amount)}${reward.kind === 'combo' ? ` · −${rewardCountdown(COMBO_HASTE_DURATION, 0)}` : ''}`
         }
         onGesture={prepareSound}
         onOpen={reveal}

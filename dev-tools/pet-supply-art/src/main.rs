@@ -1,9 +1,9 @@
-//! Renders EchoBird's original supply mascots, one layer at a time, so the web
+//! Renders the web demo's original card characters, one layer at a time, so the
 //! renderer can blink and change expressions by swapping layers.
 //!
 //! cargo run -- --char echo --layer body --bg black --out frames/echo-body-black.png
 //!
-//! Characters: echo (pack), sprout (growth), twin (double), zip (haste).
+//! Characters: echo (pack), sprout (growth), twin (double), zip (haste), puff (cloud).
 //! Layers: body, eyes, joy, wince, smile, open.
 //! Each layer is rendered on black and on white; `matte.py` turns the pair
 //! into one image with exact transparency.
@@ -61,7 +61,7 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
-                title: "EchoBird supply art".into(),
+                title: "Playmand card art".into(),
                 resolution: WindowResolution::new(SIZE, SIZE).with_scale_factor_override(1.0),
                 resizable: false,
                 window_level: WindowLevel::AlwaysOnTop,

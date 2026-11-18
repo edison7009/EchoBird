@@ -506,7 +506,7 @@ const en: Translations = {
   'backup.scope':
     'Back up model configurations and general settings. Signed-in accounts are excluded.',
   'backup.passwordHint':
-    'Leave blank for an unencrypted backup. If set, this password is required to restore.',
+    'Back up models and settings, excluding signed-in accounts. Password is optional; if set, it is required to restore.',
   'backup.passwordInvalid': 'Incorrect password or damaged backup file.',
   'backup.invalidConfiguration': 'The local configuration is invalid and could not be backed up.',
   'backup.invalidFile': 'Unrecognized backup file or unsupported version.',
@@ -1001,6 +1001,10 @@ const en: Translations = {
   'pets.reward.choose': 'Choose a card to reveal your supply.',
   'pets.reward.pick': 'Choose supply card {number}',
   'pets.reward.open': 'Reveal card',
+  'pets.reward.combo': 'Combo Card',
+  'pets.reward.comboDetail': 'Growth + haste · 1m 15s',
+  'pets.reward.super': 'Super Growth',
+  'pets.reward.superDetail': 'TokenPet · Super supply',
   'pets.reward.growth': 'Growth card',
   'pets.reward.double': 'Double card',
   'pets.reward.haste': 'Haste card',

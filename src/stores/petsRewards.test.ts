@@ -185,12 +185,12 @@ it('checks the local day again before a claim, even when the prior day was alrea
 });
 
 it('freezes doubled card amounts at draw time and still waits until use before restarting the clock', () => {
-  const random = roll(0.7);
+  const random = roll(0.3);
   pets.getState().load();
   claim();
   applyCard();
   expect(pets.getState().rewards.doubleUntil).toBe(Date.now() + DOUBLE_DURATION);
-  random.mockReturnValue(0.2);
+  random.mockReturnValue(0.1);
   claim();
   expect(pets.getState().rewards.pending?.amount).toBe(GROWTH_REWARD * 2);
   vi.advanceTimersByTime(DOUBLE_DURATION);
@@ -203,7 +203,7 @@ it('freezes doubled card amounts at draw time and still waits until use before r
 });
 
 it('extends double buffs and applies haste once to the next progressive wait', () => {
-  const random = roll(0.7);
+  const random = roll(0.3);
   pets.getState().load();
   claim();
   applyCard();
@@ -211,7 +211,7 @@ it('extends double buffs and applies haste once to the next progressive wait', (
   claim();
   applyCard();
   expect(pets.getState().rewards.doubleUntil).toBe(expiry + DOUBLE_DURATION);
-  random.mockReturnValue(0.95);
+  random.mockReturnValue(0.5);
   claim();
   applyCard();
   const due = Date.now() + 20 * 60_000 - HASTE_DURATION;
@@ -301,4 +301,51 @@ it('migrates an old unused card without discarding it or inheriting its already-
   expect(applyCard()).toBe(true);
   expect(pets.getState().rewards.nextClaimAt).toBe(Date.now() + REWARD_INTERVAL);
   expect(pets.getState().balance).toBe(123 + GROWTH_REWARD);
+});
+
+it('grants combo growth and half haste atomically once, retaining both across reload', () => {
+  roll(0.7);
+  pets.getState().load();
+  claim();
+  const balance = pets.getState().balance;
+  expect(pets.getState().rewards.pending).toMatchObject({
+    kind: 'combo',
+    amount: GROWTH_REWARD / 2,
+    opened: false,
+  });
+  expect(pets.getState().useReward()).toBe(false);
+  expect(applyCard()).toBe(true);
+  const due = Date.now() + 2 * REWARD_INTERVAL - HASTE_DURATION / 2;
+  expect(pets.getState().balance).toBe(balance + GROWTH_REWARD / 2);
+  expect(pets.getState().rewards.nextClaimAt).toBe(due);
+  expect(pets.getState().rewards.doubleUntil).toBe(0);
+  restore();
+  expect(applyCard()).toBe(false);
+  expect(pets.getState().balance).toBe(balance + GROWTH_REWARD / 2);
+  expect(pets.getState().rewards.nextClaimAt).toBe(due);
+});
+it('gives a hundred-million super reward and honors a boost frozen before its expiry', () => {
+  roll(0.9);
+  pets.getState().load();
+  claim();
+  expect(pets.getState().rewards.pending).toMatchObject({
+    kind: 'super',
+    amount: GROWTH_REWARD * 2,
+  });
+  const balance = pets.getState().balance;
+  applyCard();
+  expect(pets.getState().balance).toBe(balance + GROWTH_REWARD * 2);
+  pets.setState({
+    rewards: {
+      ...pets.getState().rewards,
+      doubleUntil: pets.getState().rewards.nextClaimAt + 1000,
+    },
+  });
+  claim();
+  expect(pets.getState().rewards.pending?.amount).toBe(GROWTH_REWARD * 4);
+  vi.advanceTimersByTime(2000);
+  restore();
+  expect(applyCard()).toBe(true);
+  expect(pets.getState().balance).toBe(balance + GROWTH_REWARD * 6);
+  expect(applyCard()).toBe(false);
 });

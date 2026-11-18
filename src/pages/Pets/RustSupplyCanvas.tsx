@@ -21,8 +21,14 @@ const EV_PICKED = 8;
 const EV_REVEAL_MID = 16;
 const EV_REVEAL_DONE = 32;
 
-const KIND_INDEX: Record<RewardKind, number> = { growth: 0, double: 1, haste: 2 };
-const CHARACTERS = ['echo', 'sprout', 'twin', 'zip'] as const;
+const KIND_INDEX: Record<RewardKind, number> = {
+  growth: 0,
+  double: 1,
+  haste: 2,
+  combo: 3,
+  super: 4,
+};
+const CHARACTERS = ['echo', 'sprout', 'twin', 'zip', 'puff'] as const;
 const LAYERS = ['body', 'eyes', 'joy', 'wince', 'smile', 'open'] as const;
 
 interface NativeScene {

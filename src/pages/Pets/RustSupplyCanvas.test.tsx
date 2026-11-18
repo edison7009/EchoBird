@@ -109,7 +109,7 @@ afterEach(() => {
 });
 it('sends no reward text to the native scene until an accepted pick', async () => {
   await render();
-  expect(native.add_art).toHaveBeenCalledTimes(22);
+  expect(native.add_art).toHaveBeenCalledTimes(28);
   expect(native.resize).toHaveBeenCalledWith(900, 600, 2);
   expect(native.reveal).not.toHaveBeenCalled();
   expect(native.show_revealed).not.toHaveBeenCalled();

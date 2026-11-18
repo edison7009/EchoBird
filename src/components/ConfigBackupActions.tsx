@@ -98,7 +98,9 @@ function BackupPasswordDialog() {
           }}
         >
           <div className="space-y-4 px-5 pb-5">
-            <p className="text-xs text-cyber-text-muted">{t('backup.scope')}</p>
+            {backingUp && (
+              <p className="text-xs text-cyber-text-muted">{t('backup.passwordHint')}</p>
+            )}
             <label className="block text-xs text-cyber-text-secondary">
               {t('backup.password')}
               <input
@@ -116,9 +118,6 @@ function BackupPasswordDialog() {
                 className="mt-1 w-full rounded-button border border-cyber-border bg-cyber-input px-2 py-1.5 font-mono text-xs text-cyber-text focus:border-cyber-border focus:outline-none"
               />
             </label>
-            {backingUp && (
-              <p className="text-[12px] text-cyber-text-muted">{t('backup.passwordHint')}</p>
-            )}
             {(invalid || error) && (
               <p role="alert" className="text-[12px] text-red-500">
                 {t(invalid || errorKey(error!, challenge.mode))}

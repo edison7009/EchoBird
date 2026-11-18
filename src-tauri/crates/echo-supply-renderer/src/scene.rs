@@ -49,8 +49,10 @@ const L_WINCE: usize = 3;
 const L_SMILE: usize = 4;
 const L_OPEN: usize = 5;
 const LAYERS: usize = 6;
-/// Characters: 0 echo (pack), 1 sprout (growth), 2 twin (double), 3 zip (haste).
-const CHARS: usize = 4;
+/// Echo (pack/combo), Sprout (growth), Twin (double), Zip (haste), Puff (super).
+const CHARS: usize = 5;
+const DESIGNS: usize = 5;
+const DESIGN_CHAR: [usize; DESIGNS] = [1, 2, 3, 0, 4];
 
 const RIBBON_COLORS: [[f32; 3]; 7] = [
     [1.0, 0.42, 0.62],
@@ -67,8 +69,14 @@ fn letter_spacing(ctx: &CanvasRenderingContext2d, value: &str) {
     let _ = js_sys::Reflect::set(ctx, &"letterSpacing".into(), &value.into());
 }
 
-/// Edge colours for the revealed card's sides: growth, double, haste.
-const EDGE_TONES: [[f32; 3]; 3] = [[0.74, 0.88, 0.58], [0.97, 0.8, 0.47], [0.56, 0.5, 0.9]];
+/// Edge colours for all five revealed card designs.
+const EDGE_TONES: [[f32; 3]; DESIGNS] = [
+    [0.74, 0.88, 0.58],
+    [0.97, 0.8, 0.47],
+    [0.56, 0.5, 0.9],
+    [0.98, 0.72, 0.78],
+    [0.68, 0.79, 0.98],
+];
 
 /// The card's sides as a closed band of triangles around the rounded
 /// rectangle, between the back (z = -T/2) and the front (z = +T/2).
@@ -549,7 +557,7 @@ impl SupplyScene {
         if self.picked.is_none() || self.reveal_at.is_some() {
             return Ok(());
         }
-        self.reveal_kind = (kind as usize).min(2);
+        self.reveal_kind = (kind as usize).min(DESIGNS - 1);
         self.redraw_front(&name, &value, &detail, &badge)?;
         self.reveal_at = Some(self.time);
         Ok(())
@@ -566,7 +574,7 @@ impl SupplyScene {
     ) -> Result<(), JsValue> {
         self.force_cards();
         self.picked = Some(2);
-        self.reveal_kind = (kind as usize).min(2);
+        self.reveal_kind = (kind as usize).min(DESIGNS - 1);
         self.redraw_front(&name, &value, &detail, &badge)?;
         self.reveal_at = Some(self.time - 10.0);
         self.mid_sent = true;
@@ -992,7 +1000,12 @@ impl SupplyScene {
         ctx.fill_text(&self.copy[2], w * 0.075, h * 0.098)?;
         letter_spacing(&ctx, "0px");
         ctx.set_fill_style_str("#ffffff");
+        // The wordmark fills the width beside the mark, shrinking for long names.
+        let logo_room = if self.logo.is_some() { 132.0 } else { 0.0 };
         ctx.set_font(&format!("800 118px {FONT}"));
+        let natural = ctx.measure_text(&self.copy[0])?.width();
+        let brand_px = (118.0 * (w * 0.86 - logo_room) / natural.max(1.0)).min(118.0);
+        ctx.set_font(&format!("800 {brand_px:.0}px {FONT}"));
         let mut brand_x = w * 0.07;
         if let Some(logo) = &self.logo {
             // The bird mark, about the height of the wordmark.
@@ -1011,7 +1024,8 @@ impl SupplyScene {
         ctx.set_font(&format!("700 30px {FONT}"));
         letter_spacing(&ctx, "5px");
         ctx.set_text_align("right");
-        ctx.fill_text(&self.copy[1], w * 0.93, h * 0.215)?;
+        // The kind of pack sits on its own line under the wordmark.
+        ctx.fill_text(&self.copy[1], w * 0.93, h * 0.305)?;
         letter_spacing(&ctx, "0px");
         ctx.set_font(&format!("600 40px {FONT}"));
         ctx.set_fill_style_str("rgba(255,255,255,0.9)");
@@ -1088,6 +1102,7 @@ impl SupplyScene {
         detail: &str,
         badge: &str,
     ) -> Result<(), JsValue> {
+        let design = self.reveal_kind;
         let (w, h) = (600u32, 840u32);
         let canvas = offscreen_canvas(w, h)?;
         let ctx: CanvasRenderingContext2d = canvas
@@ -1096,7 +1111,7 @@ impl SupplyScene {
             .dyn_into()?;
         let (w, h) = (w as f64, h as f64);
         // (body top, body bottom, window top, window bottom, ink, soft ink)
-        let palette: [(&str, &str, &str, &str, &str, &str); 3] = [
+        let palette: [(&str, &str, &str, &str, &str, &str); DESIGNS] = [
             (
                 "#eefbd6",
                 "#c9ec9b",
@@ -1121,8 +1136,24 @@ impl SupplyScene {
                 "#ffffff",
                 "rgba(255,255,255,0.7)",
             ),
+            (
+                "#ffe3e8",
+                "#ffb4c6",
+                "#ff6f9a",
+                "#ffb067",
+                "#4a1024",
+                "rgba(74,16,36,0.6)",
+            ),
+            (
+                "#e6f2ff",
+                "#b8d3ff",
+                "#4f86ff",
+                "#a07cff",
+                "#10265a",
+                "rgba(16,38,90,0.6)",
+            ),
         ];
-        let (b0, b1, w0, w1, ink, soft) = palette[self.reveal_kind];
+        let (b0, b1, w0, w1, ink, soft) = palette[design];
         let body = ctx.create_linear_gradient(0.0, 0.0, w, h);
         body.add_color_stop(0.0, b0)?;
         body.add_color_stop(1.0, b1)?;
@@ -1140,7 +1171,7 @@ impl SupplyScene {
         ctx.set_fill_style_canvas_gradient(&win);
         ctx.fill_rect(wx, wy, ww, wh);
         let (cx, cy) = (wx + ww / 2.0, wy + wh / 2.0);
-        match self.reveal_kind {
+        match design {
             0 => {
                 // Growth: a fine grid, like graph paper for a growing chart.
                 ctx.set_stroke_style_str("rgba(255,255,255,0.10)");
@@ -1170,6 +1201,38 @@ impl SupplyScene {
                     ctx.line_to(cx + a1.cos() * 900.0, cy + a1.sin() * 900.0);
                     ctx.close_path();
                     ctx.fill();
+                }
+            }
+            3 => {
+                // Rose: soft rings spreading from the centre.
+                ctx.set_line_width(14.0);
+                for k in 1..18 {
+                    ctx.set_stroke_style_str(if k % 2 == 0 {
+                        "rgba(255,255,255,0.16)"
+                    } else {
+                        "rgba(255,255,255,0.06)"
+                    });
+                    ctx.begin_path();
+                    let _ = ctx.arc(cx, cy, k as f64 * 22.0, 0.0, std::f64::consts::TAU);
+                    ctx.stroke();
+                }
+            }
+            4 => {
+                // Sky: rising bubbles of different sizes.
+                let mut rng = Rng::new(29);
+                for _ in 0..34 {
+                    let r = rng.range(4.0, 22.0) as f64;
+                    let (x, y) = (
+                        wx + rng.next_f32() as f64 * ww,
+                        wy + rng.next_f32() as f64 * wh,
+                    );
+                    ctx.set_stroke_style_str("rgba(255,255,255,0.35)");
+                    ctx.set_fill_style_str("rgba(255,255,255,0.08)");
+                    ctx.set_line_width(2.0);
+                    ctx.begin_path();
+                    let _ = ctx.arc(x, y, r, 0.0, std::f64::consts::TAU);
+                    ctx.fill();
+                    ctx.stroke();
                 }
             }
             _ => {
@@ -1223,7 +1286,13 @@ impl SupplyScene {
         ctx.set_text_baseline("alphabetic");
         ctx.set_text_align("left");
         ctx.set_fill_style_str(ink);
+        ctx.set_font(&format!("800 18px {FONT}"));
+        let reserved_badge = ctx.measure_text(badge)?.width() + 54.0;
         ctx.set_font(&format!("800 58px {FONT}"));
+        let title_width = ctx.measure_text(name)?.width();
+        let title_size =
+            (58.0 * ((w - 96.0 - reserved_badge) / title_width.max(1.0)).min(1.0)).max(14.0);
+        ctx.set_font(&format!("800 {title_size:.1}px {FONT}"));
         ctx.fill_text(name, 48.0, h * 0.68)?;
         ctx.set_font(&format!("800 18px {FONT}"));
         letter_spacing(&ctx, "3px");
@@ -1248,9 +1317,14 @@ impl SupplyScene {
         ctx.set_text_align("left");
         ctx.set_fill_style_str(ink);
         ctx.set_font(&format!("800 66px {FONT}"));
+        let value_size = 66.0 * ((w - 96.0) / ctx.measure_text(value)?.width().max(1.0)).min(1.0);
+        ctx.set_font(&format!("800 {value_size:.1}px {FONT}"));
         ctx.fill_text(value, 48.0, h * 0.85)?;
         ctx.set_fill_style_str(soft);
         ctx.set_font(&format!("600 26px {FONT}"));
+        let detail_size =
+            26.0 * ((w - 100.0) / ctx.measure_text(detail)?.width().max(1.0)).min(1.0);
+        ctx.set_font(&format!("600 {detail_size:.1}px {FONT}"));
         ctx.fill_text(detail, 50.0, h * 0.915)?;
 
         if let Some(old) = self.card_front.take() {
@@ -1621,7 +1695,7 @@ impl SupplyScene {
             } else {
                 0.0
             };
-            let tone = EDGE_TONES[self.reveal_kind.min(2)];
+            let tone = EDGE_TONES[self.reveal_kind.min(DESIGNS - 1)];
             let edge: [f32; 3] = std::array::from_fn(|k| 0.11 + (tone[k] - 0.11) * front);
             let r = &mut self.rim_prog;
             r.bind(gl);
@@ -1637,7 +1711,7 @@ impl SupplyScene {
             self.rim_mesh.draw(gl, Gl::TRIANGLES);
             // The character floats above the front, on its own layer.
             if Some(pose.index) == self.picked && has_front && pose.yaw.cos() > 0.0 {
-                let character = 1 + self.reveal_kind;
+                let character = DESIGN_CHAR[self.reveal_kind];
                 let par = [-self.card_ry.x * 0.05, self.card_rx.x * 0.05];
                 let local = model.mul(&Mat4::translate(par[0], par[1], 0.09));
                 let done = self

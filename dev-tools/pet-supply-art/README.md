@@ -4,7 +4,7 @@ This standalone Bevy generator reproduces the original layered character art.
 It has its own pinned Rust toolchain and workspace; it is not an EchoBird runtime
 or build dependency. The desktop app ships the small WebP outputs only.
 
-From this directory, render each character (`echo`, `sprout`, `twin`, `zip`),
+From this directory, render each character (`echo`, `sprout`, `twin`, `zip`, `puff`),
 each layer (`body`, `eyes`, `joy`, `wince`, `smile`, `open`) on both backgrounds:
 
 ```sh
@@ -21,3 +21,5 @@ python3 matte.py frames layers
 
 Review the output before replacing `public/pet-supply-art/`. No reference-site
 artwork is distributed. Keep build caches and intermediate PNGs outside Git.
+
+`./render_all.sh` renders all character/background pairs and extracts layers into `layers/`.
