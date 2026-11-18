@@ -237,6 +237,11 @@ impl AnthropicSseAdapter {
             ));
         }
 
+        let finish_reason = self.finish_reason.as_deref().unwrap_or_default();
+        if matches!(finish_reason, "length" | "content_filter") {
+            self.tool_calls.clear();
+        }
+
         for tool_call in self.tool_calls.values() {
             let index = self.next_block_index;
             self.next_block_index += 1;
@@ -294,15 +299,10 @@ impl AnthropicSseAdapter {
             ));
         }
 
-        let stop_reason = if !self.tool_calls.is_empty() {
-            "tool_use"
-        } else {
-            match self.finish_reason.as_deref() {
-                Some("length") => "max_tokens",
-                Some("tool_calls") => "tool_use",
-                _ => "end_turn",
-            }
-        };
+        let stop_reason = echo_gateway::convert::anthropic_stop_reason(
+            finish_reason,
+            !self.tool_calls.is_empty(),
+        );
         events.push(anthropic_sse_event(
             "message_delta",
             json!({

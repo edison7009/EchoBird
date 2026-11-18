@@ -1091,7 +1091,23 @@ async fn send_candidate(
     final_candidate: bool,
 ) -> Result<Response, String> {
     let protocol = if protocol == RouteProtocol::Messages && !uses_native_messages(candidate) {
-        body = crate::services::local_llm::proxy::anthropic_to_openai(&body);
+        let endpoint = url::Url::parse(&candidate.base_url).ok();
+        let host = endpoint.as_ref().and_then(url::Url::host_str);
+        body = if candidate.account_source.is_none()
+            && matches!(host, Some("api.deepseek.com" | "api.xiaomimimo.com"))
+        {
+            let mut converted = echo_gateway::convert::anthropic_to_reasoning_chat(&body);
+            if host == Some("api.deepseek.com") && converted["thinking"]["type"] != "disabled" {
+                if let Some(effort @ ("low" | "medium" | "high" | "max" | "xhigh")) =
+                    body["output_config"]["effort"].as_str()
+                {
+                    converted["reasoning_effort"] = json!(effort);
+                }
+            }
+            converted
+        } else {
+            echo_gateway::convert::anthropic_to_openai(&body)
+        };
         RouteProtocol::Chat
     } else {
         protocol

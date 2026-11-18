@@ -1309,12 +1309,100 @@ async fn anthropic_request_falls_back_and_preserves_tool_use() {
 }
 
 #[tokio::test]
+async fn anthropic_bridge_replays_reasoning_and_tool_results_on_vendor_chat() {
+    let upstream = Router::new().route(
+        "/v1/chat/completions",
+        post(|Json(request): Json<Value>| async move {
+            assert_eq!(request["thinking"]["type"], "enabled");
+            assert_eq!(request["reasoning_effort"], "high");
+            if request["messages"].as_array().unwrap().len() == 1 {
+                assert_eq!(request["messages"][0]["content"], "Read both files.");
+                return Json(json!({
+                    "choices":[{"finish_reason":"tool_calls","message":{
+                        "reasoning_content":"Read the first file.",
+                        "tool_calls":[{"id":"call_read","function":{"name":"read","arguments":"{}"}}]
+                    }}]
+                }));
+            }
+            assert_eq!(request["messages"][1]["reasoning_content"], "Read the first file.");
+            assert_eq!(request["messages"][1]["tool_calls"][0]["id"], "call_read");
+            assert_eq!(request["messages"][2]["tool_call_id"], "call_read");
+            assert_eq!(request["messages"][2]["content"], "first file contents");
+            assert_eq!(request["messages"][3]["content"], "What was in the first file?");
+            Json(json!({
+                "choices":[{"finish_reason":"stop","message":{"content":"first file contents"}}]
+            }))
+        }),
+    );
+    let addr = spawn_mock(upstream).await;
+    let mut model = candidate(addr, "deepseek-chat");
+    model.base_url = format!("http://api.deepseek.com:{}/v1", addr.port());
+    let mut state = AppState::for_tests().unwrap();
+    state.http_client = reqwest::Client::builder()
+        .no_proxy()
+        .resolve("api.deepseek.com", addr)
+        .build()
+        .unwrap();
+    let mut request = json!({
+        "max_tokens":1024,"thinking":{"type":"adaptive"},"output_config":{"effort":"high"},
+        "messages":[{"role":"user","content":"Read both files."}],
+        "tools":[{"name":"read","input_schema":{"type":"object"}}]
+    });
+    let response = route_messages_with_candidates(
+        &state,
+        &inbound_headers(),
+        request.clone(),
+        vec![model.clone()],
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let first: Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(first["content"][0]["type"], "thinking");
+    assert_eq!(first["content"][1]["id"], "call_read");
+    request["messages"].as_array_mut().unwrap().extend([
+        json!({"role":"assistant","content":first["content"]}),
+        json!({"role":"user","content":[
+            {"type":"tool_result","tool_use_id":"call_read","content":"first file contents"},
+            {"type":"text","text":"What was in the first file?"}
+        ]}),
+    ]);
+    let response =
+        route_messages_with_candidates(&state, &inbound_headers(), request, vec![model]).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let second: Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(second["content"][0]["text"], "first file contents");
+}
+
+#[test]
+fn anthropic_stream_does_not_publish_truncated_or_filtered_tool_arguments() {
+    for (finish, expected) in [("length", "max_tokens"), ("content_filter", "refusal")] {
+        let mut adapter = AnthropicSseAdapter::new();
+        let frame = json!({"choices":[{"finish_reason":finish,"delta":{"tool_calls":[
+            {"index":0,"id":"call_incomplete","function":{"name":"read","arguments":"{"}}
+        ]}}]});
+        assert!(adapter
+            .process_frame("", &frame.to_string())
+            .unwrap()
+            .is_empty());
+        let bytes = adapter.process_frame("", "[DONE]").unwrap().concat();
+        let output = String::from_utf8(bytes).unwrap();
+        assert!(output.contains(&format!("\"stop_reason\":\"{expected}\"")));
+        assert!(!output.contains("call_incomplete"));
+    }
+}
+
+#[tokio::test]
 async fn anthropic_stream_converts_text_and_tool_events() {
     let upstream = Router::new().route(
             "/v1/chat/completions",
             post(|| async {
                 let chunks = stream::iter([
                     Ok::<Bytes, Infallible>(Bytes::from_static(
+                        b"data: {\"choices\":[{\"delta\":{\"reasoning_content\":\"Need the file.\"}}]}\n\n",
+                    )),
+                    Ok(Bytes::from_static(
                         b"data: {\"choices\":[{\"delta\":{\"content\":\"hello\"},\"finish_reason\":null}]}\n\n",
                     )),
                     Ok(Bytes::from_static(
@@ -1356,6 +1444,8 @@ async fn anthropic_stream_converts_text_and_tool_events() {
     let body = response.into_body().collect().await.unwrap().to_bytes();
     let body = String::from_utf8(body.to_vec()).unwrap();
     assert!(body.contains("event: message_start"));
+    assert!(body.contains("\"thinking\":\"Need the file.\""));
+    assert!(!body.contains("signature_delta"));
     assert!(body.contains("\"type\":\"text_delta\""));
     assert!(body.contains("\"text\":\"hello\""));
     assert!(body.contains("\"type\":\"tool_use\""));

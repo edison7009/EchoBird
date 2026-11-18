@@ -126,6 +126,40 @@ fn anthropic_tool_result_content(
 }
 
 pub fn anthropic_to_openai(body: &serde_json::Value) -> serde_json::Value {
+    anthropic_to_chat(body, false)
+}
+
+/// DeepSeek and MiMo Chat require prior reasoning to continue thinking with tools.
+pub fn anthropic_to_reasoning_chat(body: &serde_json::Value) -> serde_json::Value {
+    let mut request = anthropic_to_chat(body, true);
+    let has_tools = request.get("tools").is_some();
+    let forced_tool = request["tool_choice"] == "required" || request["tool_choice"].is_object();
+    let messages = request["messages"]
+        .as_array_mut()
+        .expect("converted messages");
+    // Tool history can come from a different upstream or an interrupted turn.
+    // Preserve that history and use non-thinking mode if reasoning is unavailable.
+    let missing_reasoning = has_tools
+        && messages.iter().any(|message| {
+            message["role"] == "assistant" && message.get("reasoning_content").is_none()
+        });
+    if body["thinking"]["type"] == "disabled" || forced_tool || missing_reasoning {
+        for message in messages {
+            if let Some(fields) = message.as_object_mut() {
+                fields.remove("reasoning_content");
+            }
+        }
+        request["thinking"] = serde_json::json!({"type": "disabled"});
+    } else if matches!(
+        body["thinking"]["type"].as_str(),
+        Some("enabled" | "adaptive")
+    ) {
+        request["thinking"] = serde_json::json!({"type": "enabled"});
+    }
+    request
+}
+
+fn anthropic_to_chat(body: &serde_json::Value, replay_reasoning: bool) -> serde_json::Value {
     let mut messages = Vec::new();
 
     // System message
@@ -180,6 +214,19 @@ pub fn anthropic_to_openai(body: &serde_json::Value) -> serde_json::Value {
                         .filter(|b| b.get("type").and_then(|t| t.as_str()) == Some("tool_result"))
                         .collect();
 
+                    let reasoning = if replay_reasoning && role == "assistant" {
+                        blocks
+                            .iter()
+                            .filter(|block| {
+                                block["type"] == "thinking"
+                                    && block["signature"].as_str().is_none_or(str::is_empty)
+                            })
+                            .filter_map(|block| block["thinking"].as_str())
+                            .collect::<String>()
+                    } else {
+                        String::new()
+                    };
+
                     if !tool_use_blocks.is_empty() {
                         let tool_calls: Vec<serde_json::Value> = tool_use_blocks.iter().map(|tu| {
                             let id = tu.get("id").and_then(|v| v.as_str()).unwrap_or("call_0");
@@ -198,8 +245,11 @@ pub fn anthropic_to_openai(body: &serde_json::Value) -> serde_json::Value {
                             "role": "assistant",
                             "tool_calls": tool_calls
                         });
-                        if !text_content.is_empty() {
+                        if replay_reasoning || !text_content.is_empty() {
                             assistant_msg["content"] = serde_json::json!(text_content);
+                        }
+                        if !reasoning.trim().is_empty() {
+                            assistant_msg["reasoning_content"] = serde_json::json!(reasoning);
                         }
                         messages.push(assistant_msg);
                     } else if !tool_result_blocks.is_empty() {
@@ -250,13 +300,20 @@ pub fn anthropic_to_openai(body: &serde_json::Value) -> serde_json::Value {
                             .filter_map(anthropic_user_content_part)
                             .collect();
                         // Strict Chat upstreams refuse an interrupted turn's empty reply.
-                        if role == "assistant" && content.iter().all(|part| part["text"] == "") {
+                        if role == "assistant"
+                            && reasoning.trim().is_empty()
+                            && content.iter().all(|part| part["text"] == "")
+                        {
                             continue;
                         }
-                        messages.push(serde_json::json!({
+                        let mut message = serde_json::json!({
                             "role": role,
                             "content": openai_user_content(content)
-                        }));
+                        });
+                        if !reasoning.trim().is_empty() {
+                            message["reasoning_content"] = serde_json::json!(reasoning);
+                        }
+                        messages.push(message);
                     }
                 }
                 _ if role == "assistant" => {}
@@ -344,6 +401,13 @@ pub fn openai_to_anthropic(data: &serde_json::Value) -> serde_json::Value {
 
     let mut content_blocks: Vec<serde_json::Value> = Vec::new();
 
+    if let Some(thinking) = message
+        .and_then(|message| message["reasoning_content"].as_str())
+        .filter(|thinking| !thinking.trim().is_empty())
+    {
+        content_blocks.push(serde_json::json!({"type": "thinking", "thinking": thinking}));
+    }
+
     if let Some(text) = message.and_then(|m| {
         m.get("content")
             .and_then(|c| c.as_str())
@@ -356,6 +420,7 @@ pub fn openai_to_anthropic(data: &serde_json::Value) -> serde_json::Value {
     }
 
     if let Some(tool_calls) = message
+        .filter(|_| !matches!(finish_reason, "length" | "content_filter"))
         .and_then(|m| m.get("tool_calls"))
         .and_then(|t| t.as_array())
     {
@@ -383,12 +448,12 @@ pub fn openai_to_anthropic(data: &serde_json::Value) -> serde_json::Value {
         content_blocks.push(serde_json::json!({"type": "text", "text": ""}));
     }
 
-    let stop_reason = match finish_reason {
-        "tool_calls" => "tool_use",
-        "stop" | "end_turn" => "end_turn",
-        "length" => "max_tokens",
-        other => other,
-    };
+    let stop_reason = anthropic_stop_reason(
+        finish_reason,
+        content_blocks
+            .iter()
+            .any(|block| block["type"] == "tool_use"),
+    );
 
     serde_json::json!({
         "id": format!("msg_{}", chrono::Utc::now().timestamp_millis()),
@@ -405,9 +470,83 @@ pub fn openai_to_anthropic(data: &serde_json::Value) -> serde_json::Value {
     })
 }
 
+pub fn anthropic_stop_reason(finish_reason: &str, has_tool_calls: bool) -> &'static str {
+    match finish_reason {
+        "length" => "max_tokens",
+        "content_filter" => "refusal",
+        _ if has_tool_calls => "tool_use",
+        _ => "end_turn",
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn converts_reasoning_chat_tool_round_trip_without_fabricating_thinking() {
+        let first = openai_to_anthropic(&serde_json::json!({
+            "choices":[{
+                "message":{"reasoning_content":"Check the first result.", "content":null,
+                    "tool_calls":[{"id":"call_first","function":{"name":"read","arguments":"{}"}}]},
+                "finish_reason":"tool_calls"
+            }]
+        }));
+        let mut follow_up = serde_json::json!({
+            "thinking":{"type":"adaptive"},
+            "messages":[
+                {"role":"user","content":"Check the file."},
+                {"role":"assistant","content":first["content"]},
+                {"role":"user","content":[
+                    {"type":"tool_result","tool_use_id":"call_first","content":"first result"},
+                    {"type":"text","text":"Compare it to the second."}
+                ]}
+            ],
+            "tools":[{"name":"read","input_schema":{"type":"object"}}]
+        });
+        let converted = anthropic_to_reasoning_chat(&follow_up);
+        assert_eq!(converted["thinking"]["type"], "enabled");
+        assert_eq!(
+            converted["messages"][1]["reasoning_content"],
+            "Check the first result."
+        );
+        assert_eq!(converted["messages"][1]["content"], "");
+        assert_eq!(
+            converted["messages"][1]["tool_calls"][0]["id"],
+            "call_first"
+        );
+        assert_eq!(converted["messages"][2]["tool_call_id"], "call_first");
+        assert_eq!(
+            converted["messages"][3]["content"],
+            "Compare it to the second."
+        );
+
+        let generic = anthropic_to_openai(&follow_up);
+        assert!(generic.get("thinking").is_none());
+        assert!(generic["messages"][1].get("reasoning_content").is_none());
+        assert_eq!(generic["messages"][2]["content"], "first result");
+
+        follow_up["messages"][1]["content"][0]["signature"] = serde_json::json!("native-signature");
+        let converted = anthropic_to_reasoning_chat(&follow_up);
+        assert_eq!(converted["thinking"]["type"], "disabled");
+        assert!(converted["messages"][1].get("reasoning_content").is_none());
+        assert_eq!(converted["messages"][2]["tool_call_id"], "call_first");
+    }
+
+    #[test]
+    fn interrupted_chat_responses_do_not_publish_partial_tool_calls() {
+        for (finish, stop) in [("length", "max_tokens"), ("content_filter", "refusal")] {
+            let converted = openai_to_anthropic(&serde_json::json!({
+                "choices":[{"finish_reason":finish,"message":{"content":"partial",
+                    "tool_calls":[{"id":"incomplete","function":{"name":"write","arguments":"{"}}]}}]
+            }));
+            assert_eq!(converted["stop_reason"], stop);
+            assert_eq!(
+                converted["content"],
+                serde_json::json!([{"type":"text","text":"partial"}])
+            );
+        }
+    }
 
     #[test]
     fn an_interrupted_empty_reply_is_not_sent_to_chat() {
