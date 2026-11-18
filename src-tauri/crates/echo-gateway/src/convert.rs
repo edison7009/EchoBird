@@ -144,11 +144,15 @@ pub fn anthropic_to_reasoning_chat(body: &serde_json::Value) -> serde_json::Valu
             message["role"] == "assistant" && message.get("reasoning_content").is_none()
         });
     if body["thinking"]["type"] == "disabled" || forced_tool || missing_reasoning {
-        for message in messages {
-            if let Some(fields) = message.as_object_mut() {
-                fields.remove("reasoning_content");
-            }
-        }
+        messages.retain_mut(|message| {
+            let Some(fields) = message.as_object_mut() else {
+                return true;
+            };
+            fields.remove("reasoning_content");
+            !fields.get("role").is_some_and(|role| role == "assistant")
+                || fields.contains_key("tool_calls")
+                || fields.get("content").and_then(serde_json::Value::as_str) != Some("")
+        });
         request["thinking"] = serde_json::json!({"type": "disabled"});
     } else if matches!(
         body["thinking"]["type"].as_str(),
@@ -214,18 +218,24 @@ fn anthropic_to_chat(body: &serde_json::Value, replay_reasoning: bool) -> serde_
                         .filter(|b| b.get("type").and_then(|t| t.as_str()) == Some("tool_result"))
                         .collect();
 
-                    let reasoning = if replay_reasoning && role == "assistant" {
-                        blocks
-                            .iter()
-                            .filter(|block| {
-                                block["type"] == "thinking"
-                                    && block["signature"].as_str().is_none_or(str::is_empty)
-                            })
-                            .filter_map(|block| block["thinking"].as_str())
-                            .collect::<String>()
-                    } else {
-                        String::new()
-                    };
+                    let has_sealed_thinking = replay_reasoning
+                        && blocks.iter().any(|block| {
+                            block["type"] == "redacted_thinking"
+                                || block["type"] == "thinking"
+                                    && block["signature"]
+                                        .as_str()
+                                        .is_some_and(|signature| !signature.is_empty())
+                        });
+                    let reasoning =
+                        if replay_reasoning && role == "assistant" && !has_sealed_thinking {
+                            blocks
+                                .iter()
+                                .filter(|block| block["type"] == "thinking")
+                                .filter_map(|block| block["thinking"].as_str())
+                                .collect::<String>()
+                        } else {
+                            String::new()
+                        };
 
                     if !tool_use_blocks.is_empty() {
                         let tool_calls: Vec<serde_json::Value> = tool_use_blocks.iter().map(|tu| {
@@ -529,6 +539,22 @@ mod tests {
         follow_up["messages"][1]["content"][0]["signature"] = serde_json::json!("native-signature");
         let converted = anthropic_to_reasoning_chat(&follow_up);
         assert_eq!(converted["thinking"]["type"], "disabled");
+        assert!(converted["messages"][1].get("reasoning_content").is_none());
+        assert_eq!(converted["messages"][2]["tool_call_id"], "call_first");
+
+        follow_up["messages"].as_array_mut().unwrap().insert(
+            1,
+            serde_json::json!({"role":"assistant","content":[
+                {"type":"thinking","thinking":"Interrupted"}
+            ]}),
+        );
+        follow_up["messages"][2]["content"]
+            .as_array_mut()
+            .unwrap()
+            .push(serde_json::json!({"type":"thinking","thinking":"Partial replay"}));
+        let converted = anthropic_to_reasoning_chat(&follow_up);
+        assert_eq!(converted["thinking"]["type"], "disabled");
+        assert_eq!(converted["messages"].as_array().unwrap().len(), 4);
         assert!(converted["messages"][1].get("reasoning_content").is_none());
         assert_eq!(converted["messages"][2]["tool_call_id"], "call_first");
     }
