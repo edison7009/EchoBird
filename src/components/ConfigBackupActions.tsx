@@ -1,14 +1,16 @@
+import { X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useI18n } from '../hooks/useI18n';
-import { useConfigBackupStore } from '../stores/configBackupStore';
+import { useConfigBackupStore, type BackupMode } from '../stores/configBackupStore';
 import { useAutoImportStore } from '../stores/autoImportStore';
 import type { TKey } from '../i18n';
 
-function errorKey(error: string): TKey {
+function errorKey(error: string, mode: BackupMode | null): TKey {
   if (error.includes('passwordLength')) return 'backup.passwordLength';
   if (error.includes('password')) return 'backup.passwordInvalid';
-  if (/format|version|size/.test(error)) return 'backup.invalidFile';
+  if (/format|version|size/.test(error))
+    return mode === 'backup' ? 'backup.invalidConfiguration' : 'backup.invalidFile';
   if (error.includes('changed')) return 'backup.changed';
   if (error.includes('credentials')) return 'backup.credentials';
   if (error.includes('busy')) return 'backup.busy';
@@ -42,7 +44,7 @@ function BackupPasswordDialog() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="backup-password-title"
-        className="relative w-[400px] max-w-[90vw] rounded-xl border border-cyber-border bg-cyber-bg p-5 shadow-2xl"
+        className="relative w-[450px] max-w-[90vw] overflow-hidden rounded-xl border border-cyber-border/30 bg-cyber-surface shadow-2xl"
         onKeyDown={(event) => {
           if (event.key === 'Escape') {
             event.stopPropagation();
@@ -65,11 +67,26 @@ function BackupPasswordDialog() {
           }
         }}
       >
-        <h2 id="backup-password-title" className="text-[16px] font-semibold text-cyber-text">
-          {t(backingUp ? 'backup.setPassword' : 'backup.enterPassword')}
-        </h2>
+        <div className="h-px w-full bg-cyber-border" />
+        <div className="flex items-center justify-between px-6 pb-4 pt-5">
+          <div className="flex items-center gap-2">
+            <span aria-hidden="true" className="font-mono text-sm text-cyber-text opacity-60">
+              &gt;_
+            </span>
+            <h2 id="backup-password-title" className="text-base font-bold text-cyber-text">
+              {t(backingUp ? 'backup.setPassword' : 'backup.enterPassword')}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={cancel}
+            aria-label={t('btn.close')}
+            className="text-cyber-text-secondary close-button transition-colors"
+          >
+            <X size={18} />
+          </button>
+        </div>
         <form
-          className="mt-4 space-y-3"
           onSubmit={(event) => {
             event.preventDefault();
             if (!password || (backingUp && Array.from(password).length < 8)) {
@@ -87,54 +104,64 @@ function BackupPasswordDialog() {
             void run(secret);
           }}
         >
-          <label className="block text-[13px] text-cyber-text-secondary">
-            {t('backup.password')}
-            <input
-              ref={input}
-              type="password"
-              value={password}
-              maxLength={256}
-              autoComplete={backingUp ? 'new-password' : 'off'}
-              onChange={(event) => {
-                setPassword(event.target.value);
-                setInvalid(null);
-              }}
-              className="mt-1 w-full rounded-md border border-cyber-border bg-cyber-input px-3 py-2 text-[14px] text-cyber-text"
-            />
-          </label>
-          {backingUp && (
-            <label className="block text-[13px] text-cyber-text-secondary">
-              {t('backup.confirmPassword')}
+          <div className="space-y-4 px-5 pb-5">
+            <p className="text-xs text-cyber-text-muted">{t('backup.scope')}</p>
+            <label className="block text-xs text-cyber-text-secondary">
+              {t('backup.password')}
               <input
-                type="password"
-                value={confirmation}
+                ref={input}
+                type="text"
+                value={password}
                 maxLength={256}
-                autoComplete="new-password"
+                autoComplete="off"
+                spellCheck={false}
+                autoCapitalize="off"
                 onChange={(event) => {
-                  setConfirmation(event.target.value);
+                  setPassword(event.target.value);
                   setInvalid(null);
                 }}
-                className="mt-1 w-full rounded-md border border-cyber-border bg-cyber-input px-3 py-2 text-[14px] text-cyber-text"
+                className="mt-1 w-full rounded-button border border-cyber-border bg-cyber-input px-2 py-1.5 font-mono text-xs text-cyber-text focus:border-cyber-border focus:outline-none"
               />
             </label>
-          )}
-          {backingUp && (
-            <p className="text-[12px] text-cyber-text-muted">{t('backup.passwordHint')}</p>
-          )}
-          {(invalid || error) && (
-            <p role="alert" className="text-[12px] text-red-500">
-              {t(invalid || errorKey(error!))}
-            </p>
-          )}
-          <div className="flex justify-end gap-5 pt-2 text-[13px]">
+            {backingUp && (
+              <label className="block text-xs text-cyber-text-secondary">
+                {t('backup.confirmPassword')}
+                <input
+                  type="text"
+                  value={confirmation}
+                  maxLength={256}
+                  autoComplete="off"
+                  spellCheck={false}
+                  autoCapitalize="off"
+                  onChange={(event) => {
+                    setConfirmation(event.target.value);
+                    setInvalid(null);
+                  }}
+                  className="mt-1 w-full rounded-button border border-cyber-border bg-cyber-input px-2 py-1.5 font-mono text-xs text-cyber-text focus:border-cyber-border focus:outline-none"
+                />
+              </label>
+            )}
+            {backingUp && (
+              <p className="text-[12px] text-cyber-text-muted">{t('backup.passwordHint')}</p>
+            )}
+            {(invalid || error) && (
+              <p role="alert" className="text-[12px] text-red-500">
+                {t(invalid || errorKey(error!, challenge.mode))}
+              </p>
+            )}
+          </div>
+          <div className="flex border-t border-cyber-border">
             <button
               type="button"
               onClick={cancel}
-              className="text-cyber-text-secondary hover:text-cyber-text"
+              className="flex-1 border-r border-cyber-border px-4 py-3 text-[14px] font-semibold text-cyber-text-secondary transition-all hover:bg-cyber-elevated hover:text-cyber-text"
             >
               {t('btn.cancel')}
             </button>
-            <button type="submit" className="text-cyber-accent hover:text-cyber-accent-secondary">
+            <button
+              type="submit"
+              className="flex-1 px-4 py-3 text-[14px] font-semibold text-cyber-text transition-all hover:bg-cyber-text/10"
+            >
               {t(backingUp ? 'backup.action' : 'backup.restore')}
             </button>
           </div>
@@ -195,7 +222,7 @@ export function ConfigBackupStatus() {
       )}
       {phase === 'idle' && error && (
         <span role="alert" className="text-red-500">
-          {t(errorKey(error))}
+          {t(errorKey(error, mode))}
         </span>
       )}
     </>

@@ -522,11 +522,13 @@ const ja: Partial<Translations> = {
   'backup.enterPassword': 'バックアップ用パスワードを入力',
   'backup.password': 'バックアップ用パスワード',
   'backup.confirmPassword': 'パスワードを確認',
+  'backup.scope': 'モデル設定と一般設定をバックアップします。ログイン済みアカウントは含みません。',
   'backup.passwordHint':
     '8 文字以上で設定してください。復元時に必要なため、忘れずに保管してください。',
   'backup.passwordLength': '8 文字以上で入力してください。',
   'backup.passwordMismatch': 'パスワードが一致しません。',
   'backup.passwordInvalid': 'パスワードが正しくないか、ファイルが破損しています。',
+  'backup.invalidConfiguration': 'ローカル設定の形式に問題があるため、バックアップできません。',
   'backup.invalidFile': '未対応のバックアップ形式またはバージョンです。',
   'backup.credentials': '本機の認証情報を復号できません。バックアップは保存されていません。',
   'backup.changed': '処理中に設定が変更されました。再試行してください。',

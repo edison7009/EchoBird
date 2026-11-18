@@ -490,11 +490,14 @@ const en: Translations = {
   'backup.enterPassword': 'Enter backup password',
   'backup.password': 'Backup password',
   'backup.confirmPassword': 'Confirm password',
+  'backup.scope':
+    'Back up model configurations and general settings. Signed-in accounts are excluded.',
   'backup.passwordHint':
     'Use at least 8 characters. Keep this password; it is required to restore.',
   'backup.passwordLength': 'Use at least 8 characters.',
   'backup.passwordMismatch': 'The passwords do not match.',
   'backup.passwordInvalid': 'Incorrect password or damaged backup file.',
+  'backup.invalidConfiguration': 'The local configuration is invalid and could not be backed up.',
   'backup.invalidFile': 'Unrecognized backup file or unsupported version.',
   'backup.credentials': 'Local credentials could not be decrypted. No backup was saved.',
   'backup.changed': 'Configuration changed during this operation. Try again.',

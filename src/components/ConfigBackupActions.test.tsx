@@ -139,3 +139,53 @@ it('ignores a late picker result after leaving settings and blocks operations du
   await useConfigBackupStore.getState().choose('restore', 'title');
   expect(mocks.open).toHaveBeenCalledTimes(1);
 });
+
+it.each(['backup', 'restore'] as const)(
+  'uses the shared dialog layout and visible password inputs for %s',
+  async (mode) => {
+    mocks.open.mockResolvedValue(mode === 'backup' ? '/fixture-backups' : '/fixture.ebbackup');
+    await mount();
+    await act(async () =>
+      action(mode === 'backup' ? 'backup.action' : 'backup.restore').props.onClick()
+    );
+    const inputs = view.root.findAllByType('input');
+    expect(inputs).toHaveLength(mode === 'backup' ? 2 : 1);
+    expect(
+      inputs.every((node) => node.props.type === 'text' && node.props.autoComplete === 'off')
+    ).toBe(true);
+    const dialog = view.root.findByProps({ role: 'dialog' });
+    expect(dialog.props.className).toContain('bg-cyber-surface');
+    const footerButtons = view.root.findByType('form').findAllByType('button');
+    expect(footerButtons).toHaveLength(2);
+    expect(footerButtons.every((button) => button.props.className.includes('flex-1'))).toBe(true);
+    expect(footerButtons[0].parent!.props.className).toContain('border-t');
+    expect(JSON.stringify(view.toJSON())).not.toContain('lucide-eye');
+    const close = view.root
+      .findAllByType('button')
+      .find((button) => button.props['aria-label'] === 'btn.close')!;
+    expect(close).toBeDefined();
+    await act(async () => close.props.onClick());
+    expect(useConfigBackupStore.getState().phase).toBe('idle');
+    expect(useConfigBackupStore.getState().challenge).toBeNull();
+    expect(mocks.invoke).not.toHaveBeenCalled();
+  }
+);
+
+it.each([
+  ['backup', 'backup.invalidConfiguration'],
+  ['restore', 'backup.invalidFile'],
+] as const)(
+  'distinguishes %s configuration errors from a malformed restore file',
+  async (mode, message) => {
+    mocks.open.mockResolvedValue(mode === 'backup' ? '/fixture-backups' : '/fixture.ebbackup');
+    mocks.invoke.mockRejectedValueOnce('backupError.format');
+    await mount();
+    await act(async () =>
+      action(mode === 'backup' ? 'backup.action' : 'backup.restore').props.onClick()
+    );
+    await act(async () => useConfigBackupStore.getState().run('fixture-password'));
+    expect(view.root.findByProps({ role: 'alert' }).children).toEqual([message]);
+    expect(useConfigBackupStore.getState().phase).toBe('password');
+    expect(useConfigBackupStore.getState().challenge?.mode).toBe(mode);
+  }
+);

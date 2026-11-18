@@ -167,19 +167,6 @@ fn encryption_key(create: bool) -> Result<[u8; 32], String> {
     derive_encryption_key(&file_key, &get_machine_fingerprint(), &username)
 }
 
-/// A non-secret origin marker for snapshots still tied to an OS vault.
-pub(crate) fn backup_device_id() -> String {
-    use sha2::Digest;
-    let username = std::env::var("USERNAME")
-        .or_else(|_| std::env::var("USER"))
-        .unwrap_or_default();
-    hex::encode(sha2::Sha256::digest(format!(
-        "{}|{}",
-        get_machine_fingerprint(),
-        username
-    )))
-}
-
 pub fn encrypt(plain: &str) -> Result<String, String> {
     if plain.is_empty() || plain == "local" || plain.starts_with(ENCRYPTED_PREFIX) {
         return Ok(plain.into());

@@ -95,13 +95,17 @@ fn preference_valid(key: &str, value: &str) -> bool {
         _ => false,
     }
 }
-fn validate(backup: &Backup) -> Result<(), String> {
+fn validate_header(backup: &Backup) -> Result<(), String> {
     if backup.version != 1 {
         return Err("backupError.version".into());
     }
     if backup.records.len() > 10_000 || backup.origin.len() > 128 {
         return Err("backupError.size".into());
     }
+    Ok(())
+}
+fn validate(backup: &Backup) -> Result<(), String> {
+    validate_header(backup)?;
     if backup
         .ui_preferences
         .iter()
@@ -200,9 +204,16 @@ fn collect(
         });
     }
     if let Some(value) = records::json_at(&root.join("config/models.json"))? {
-        let models: Vec<crate::models::model::ModelConfig> =
-            serde_json::from_value(value).map_err(|_| "backupError.format")?;
-        for model in models {
+        let models: Vec<Value> = serde_json::from_value(value).map_err(|_| "backupError.format")?;
+        for value in models {
+            if value
+                .get("accountSource")
+                .is_some_and(|source| !source.is_null())
+            {
+                continue;
+            }
+            let model: crate::models::model::ModelConfig =
+                serde_json::from_value(value).map_err(|_| "backupError.format")?;
             entries.push(Record {
                 kind: "model".into(),
                 id: model.internal_id.clone(),
@@ -218,24 +229,6 @@ fn collect(
             data: json!({"ids":value}),
             device_bound: false,
         });
-    }
-    let mut total_bytes = 0usize;
-    for store in STORES {
-        for (id, data) in records::rows(root, store)? {
-            total_bytes += serde_json::to_vec(&data)
-                .map_err(|_| "backupError.format")?
-                .len();
-            if total_bytes as u64 > format::LIMIT / 2 {
-                return Err("backupError.size".into());
-            }
-            let device_bound = records::device_bound(store.provider, &data);
-            entries.push(Record {
-                kind: format!("account:{}", store.provider),
-                id,
-                data,
-                device_bound,
-            });
-        }
     }
     let registry = records::json_at(&root.join("config/smart-routers.json"))?;
     let ids = match registry {
@@ -272,6 +265,7 @@ fn collect(
         ui_preferences,
     };
     let mut backup = backup;
+    restrict_to_api_models(&mut backup);
     for entry in &mut backup.records {
         records::map_secrets(&mut entry.data, true, decrypt, 0)?;
     }
@@ -293,7 +287,7 @@ pub fn backup(
     }
     let backup = collect(
         &crate::utils::platform::echobird_dir(),
-        super::secret_store::backup_device_id(),
+        "portable-api-models".into(),
         ui_preferences,
         &crypt_export,
     )?;
@@ -370,25 +364,99 @@ fn add_bytes(
     }
     Ok(())
 }
-fn same_realm(a: &Value, b: &Value) -> bool {
-    let a = a.get("account").or_else(|| a.get("summary")).unwrap_or(a);
-    let b = b.get("account").or_else(|| b.get("summary")).unwrap_or(b);
-    ["edition", "region", "provider"]
+// Older v1 backups can contain OS-bound login records. Ignore them before
+// unsealing credentials, and keep routes/order limited to portable API models.
+fn restrict_to_api_models(backup: &mut Backup) -> usize {
+    let mut skipped = 0;
+    backup.records.retain(|record| {
+        let excluded = record.kind.starts_with("account:")
+            || record.kind == "model"
+                && record
+                    .data
+                    .get("accountSource")
+                    .is_some_and(|source| !source.is_null());
+        if excluded {
+            skipped += 1;
+        }
+        !excluded
+    });
+    let model_ids: BTreeSet<_> = backup
+        .records
         .iter()
-        .all(|key| a.get(key).zip(b.get(key)).is_none_or(|(a, b)| a == b))
+        .filter(|record| record.kind == "model")
+        .map(|record| record.id.clone())
+        .collect();
+    backup.records.retain_mut(|record| {
+        if record.kind != "router" {
+            return true;
+        }
+        if let Some(ids) = record.data["candidateIds"].as_array_mut() {
+            // Leave malformed structures for validate() to reject.
+            if ids.iter().all(Value::is_string) {
+                let had_candidates = !ids.is_empty();
+                ids.retain(|id| id.as_str().is_some_and(|id| model_ids.contains(id)));
+                if had_candidates && ids.is_empty() {
+                    skipped += 1;
+                    return false;
+                }
+            }
+        }
+        if let Some(ids) = record.data["disabledCandidateIds"].as_array_mut() {
+            ids.retain(|id| id.as_str().is_some_and(|id| model_ids.contains(id)));
+        }
+        true
+    });
+    let visible_ids: BTreeSet<_> = backup
+        .records
+        .iter()
+        .filter(|record| matches!(record.kind.as_str(), "model" | "router"))
+        .map(|record| record.id.clone())
+        .collect();
+    for record in backup
+        .records
+        .iter_mut()
+        .filter(|record| record.kind == "modelOrder")
+    {
+        if let Some(ids) = record.data["ids"].as_array_mut() {
+            if ids.iter().all(Value::is_string) {
+                ids.retain(|id| id.as_str().is_some_and(|id| visible_ids.contains(id)));
+            }
+        }
+    }
+    skipped
+}
+fn same_api_model(
+    saved: &Value,
+    incoming: &Value,
+    decrypt: &impl Fn(&str) -> Result<String, String>,
+) -> bool {
+    if !saved["accountSource"].is_null() || !incoming["accountSource"].is_null() {
+        return false;
+    }
+    let text =
+        |value: &Value, field: &str| value[field].as_str().unwrap_or_default().trim().to_owned();
+    for field in ["baseUrl", "anthropicUrl"] {
+        if text(saved, field).trim_end_matches('/') != text(incoming, field).trim_end_matches('/') {
+            return false;
+        }
+    }
+    if text(saved, "modelId") != text(incoming, "modelId")
+        || saved["scope"].as_str().unwrap_or("modelCenter")
+            != incoming["scope"].as_str().unwrap_or("modelCenter")
+    {
+        return false;
+    }
+    decrypt(saved["apiKey"].as_str().unwrap_or_default())
+        .is_ok_and(|key| key.trim() == text(incoming, "apiKey"))
 }
 fn prepare(
     root: &Path,
     mut backup: Backup,
-    origin: &str,
     encrypt: &impl Fn(&str) -> Result<String, String>,
     decrypt: &impl Fn(&str) -> Result<String, String>,
 ) -> Result<(Vec<Planned>, Outcome), String> {
-    let sealed_records: BTreeMap<_, _> = backup
-        .records
-        .iter()
-        .map(|r| ((r.kind.clone(), r.id.clone()), r.data.clone()))
-        .collect();
+    validate_header(&backup)?;
+    let skipped = restrict_to_api_models(&mut backup);
     // Secrets are unwrapped in memory before schema validation, never into a temporary file.
     for record in &mut backup.records {
         records::map_secrets(&mut record.data, false, &|s| Ok(s.to_owned()), 0)?;
@@ -396,75 +464,10 @@ fn prepare(
     validate(&backup)?;
     let mut outcome = Outcome {
         ui_preferences: backup.ui_preferences,
+        skipped,
         ..Default::default()
     };
     let mut plan = vec![];
-    let mut account_map = BTreeMap::new();
-    for store in STORES {
-        let mut rows = records::rows(root, store)?;
-        let mut inserted = BTreeMap::new();
-        for record in backup
-            .records
-            .iter()
-            .filter(|r| r.kind == format!("account:{}", store.provider))
-        {
-            let (_, email) = records::identity(&record.id, &record.data);
-            let duplicate = rows.iter().find(|(id, row)| {
-                *id == &record.id
-                    || same_realm(row, &record.data)
-                        && super::auto_import::native::same_account(
-                            &record.id,
-                            email,
-                            id,
-                            records::identity(id, row).1,
-                        )
-            });
-            let effective = record.data["summary"]["edition"]
-                .as_str()
-                .unwrap_or(store.provider);
-            if let Some((id, _)) = duplicate {
-                account_map.insert((effective.to_owned(), record.id.clone()), id.clone());
-                outcome.duplicates += 1;
-                continue;
-            }
-            if (record.device_bound
-                || records::device_bound(
-                    store.provider,
-                    sealed_records
-                        .get(&(record.kind.clone(), record.id.clone()))
-                        .ok_or("backupError.format")?,
-                ))
-                && backup.origin != origin
-            {
-                outcome.skipped += 1;
-                outcome.device_bound += 1;
-                continue;
-            }
-            let mut row = sealed_records
-                .get(&(record.kind.clone(), record.id.clone()))
-                .ok_or("backupError.format")?
-                .clone();
-            records::map_secrets(&mut row, false, encrypt, 0)?;
-            records::clear_activation(&mut row);
-            account_map.insert((effective.to_owned(), record.id.clone()), record.id.clone());
-            inserted.insert(record.id.clone(), row.clone());
-            rows.insert(record.id.clone(), row);
-            outcome.records += 1;
-        }
-        if !inserted.is_empty() {
-            let selected = if matches!(
-                store.layout,
-                records::Layout::Directory | records::Layout::YamlDirectory
-            ) {
-                &inserted
-            } else {
-                &rows
-            };
-            for (path, bytes) in records::store_files(root, store, selected)? {
-                add_bytes(root, path, bytes, &mut plan)?;
-            }
-        }
-    }
     let models_path = root.join("config/models.json");
     let mut models: Vec<Value> = records::json_at(&models_path)?
         .map(serde_json::from_value)
@@ -475,29 +478,10 @@ fn prepare(
     let mut model_changed = false;
     for record in backup.records.iter().filter(|r| r.kind == "model") {
         let mut model = record.data.clone();
-        if let Some(source) = model.get_mut("accountSource").filter(|v| v.is_object()) {
-            let provider = source["provider"]
-                .as_str()
-                .unwrap_or_default()
-                .to_ascii_lowercase();
-            let id = source["accountId"].as_str().unwrap_or_default().to_owned();
-            if let Some(mapped) = account_map.get(&(provider, id)) {
-                source["accountId"] = json!(mapped);
-            } else {
-                outcome.skipped += 1;
-                continue;
-            }
-        }
         let key = model["apiKey"].as_str().unwrap_or_default();
-        let existing = models.iter().find(|m| {
-            m["internalId"] == record.id
-                || !key.is_empty()
-                    && m["apiKey"]
-                        .as_str()
-                        .and_then(|s| decrypt(s).ok())
-                        .as_deref()
-                        == Some(key)
-        });
+        let existing = models
+            .iter()
+            .find(|saved| same_api_model(saved, &model, decrypt));
         if let Some(existing) = existing {
             model_map.insert(
                 record.id.clone(),
@@ -512,7 +496,18 @@ fn prepare(
         if !key.is_empty() {
             model["apiKey"] = json!(encrypt(key)?);
         }
-        model_map.insert(record.id.clone(), record.id.clone());
+        let id = if models.iter().any(|saved| saved["internalId"] == record.id) {
+            loop {
+                let candidate = format!("m-{}", uuid::Uuid::new_v4().simple());
+                if !models.iter().any(|saved| saved["internalId"] == candidate) {
+                    break candidate;
+                }
+            }
+        } else {
+            record.id.clone()
+        };
+        model["internalId"] = json!(id);
+        model_map.insert(record.id.clone(), id);
         models.push(model);
         model_changed = true;
         outcome.records += 1;
@@ -556,11 +551,13 @@ fn prepare(
         config["enabled"] = json!(false);
         for field in ["candidateIds", "disabledCandidateIds"] {
             if let Some(list) = config[field].as_array_mut() {
-                for value in list {
+                for value in list.iter_mut() {
                     if let Some(mapped) = value.as_str().and_then(|s| model_map.get(s)) {
                         *value = json!(mapped);
                     }
                 }
+                let mut seen = BTreeSet::new();
+                list.retain(|value| value.as_str().is_some_and(|id| seen.insert(id.to_owned())));
             }
         }
         if let Some(key) = config["apiKey"].as_str().filter(|s| !s.is_empty()) {
@@ -594,13 +591,7 @@ pub fn restore(file: &Path, password: &str) -> Result<Outcome, String> {
     let data = format::decode(&bytes, password)?;
     let backup: Backup = serde_json::from_slice(&data).map_err(|_| "backupError.format")?;
     let root = crate::utils::platform::echobird_dir();
-    let (plan, outcome) = prepare(
-        &root,
-        backup,
-        &super::secret_store::backup_device_id(),
-        &crypt_restore,
-        &crypt_export,
-    )?;
+    let (plan, outcome) = prepare(&root, backup, &crypt_restore, &crypt_export)?;
     publish(&plan)?;
     Ok(outcome)
 }
