@@ -10,10 +10,16 @@ const options = Array.from({ length: 9 }, (_, index) => ({
   id: String(index),
   label: `Language ${index}`,
 }));
-const open = (dropUp = true) => {
+const open = (dropUp = true, opaqueMenu = false) => {
   act(() => {
     renderer = create(
-      <MiniSelect value="0" options={options} onChange={onChange} dropUp={dropUp} />,
+      <MiniSelect
+        value="0"
+        options={options}
+        onChange={onChange}
+        dropUp={dropUp}
+        opaqueMenu={opaqueMenu}
+      />,
       {
         createNodeMock: () => ({
           getBoundingClientRect: () => ({ top: anchorTop }),
@@ -82,10 +88,12 @@ it('updates available height on resize and page scroll, then cleans up after sel
   expect(window.removeEventListener).toHaveBeenCalledWith('scroll', scroll, true);
 });
 
-it('preserves the existing downward menu by default', () => {
-  open(false);
-  expect(menu().props.className).toContain('top-full');
-  expect(menu().props.className).toContain('bg-cyber-surface/90');
+it.each([false, true])('uses the correct downward menu background with opaqueMenu=%s', (opaque) => {
+  open(false, opaque);
+  const classes = menu().props.className.split(' ');
+  expect(classes).toContain('top-full');
+  expect(classes).toContain(opaque ? 'bg-cyber-surface' : 'bg-cyber-surface/90');
+  expect(classes).not.toContain(opaque ? 'bg-cyber-surface/90' : 'bg-cyber-surface');
   expect(menu().props.style).toBeUndefined();
   expect(window.addEventListener).not.toHaveBeenCalled();
 });

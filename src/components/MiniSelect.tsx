@@ -8,6 +8,7 @@ interface MiniSelectProps {
   className?: string;
   disabled?: boolean;
   dropUp?: boolean;
+  opaqueMenu?: boolean;
   accent?: 'green' | 'blue';
 }
 
@@ -19,6 +20,7 @@ export const MiniSelect: React.FC<MiniSelectProps> = ({
   className = '',
   disabled = false,
   dropUp = false,
+  opaqueMenu = false,
   accent = 'green',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -95,7 +97,7 @@ export const MiniSelect: React.FC<MiniSelectProps> = ({
       {isOpen && (
         <div
           style={dropUp ? { maxHeight: menuMaxHeight, overscrollBehavior: 'contain' } : undefined}
-          className={`absolute ${dropUp ? 'bottom-full mb-px bg-cyber-surface' : 'top-full mt-px bg-cyber-surface/90'} left-0 right-0 border ${accentDropdownBorder} max-h-80 overflow-y-auto z-50 rounded-button shadow-lg`}
+          className={`absolute ${dropUp ? 'bottom-full mb-px' : 'top-full mt-px'} ${dropUp || opaqueMenu ? 'bg-cyber-surface' : 'bg-cyber-surface/90'} left-0 right-0 border ${accentDropdownBorder} max-h-80 overflow-y-auto z-50 rounded-button shadow-lg`}
         >
           {options.map((option) => (
             <div

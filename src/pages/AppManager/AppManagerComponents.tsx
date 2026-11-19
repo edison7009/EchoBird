@@ -590,6 +590,7 @@ export const AppManagerMain: React.FC = () => {
           />
           <MiniSelect
             value={applicationSort}
+            opaqueMenu
             onChange={(value) => saveApplicationSort(value as ApplicationSort)}
             options={[
               { id: 'default', label: t('aiDesktop.sortDefault') },
