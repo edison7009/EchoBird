@@ -220,8 +220,19 @@ export const ModelCard = React.memo(
 
     return (
       <div
-        className={`h-40 p-4 border border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70 relative overflow-hidden rounded-card cursor-default transition-colors flex flex-col`}
+        className={`h-40 p-4 border border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70 relative isolate overflow-hidden rounded-card cursor-default transition-colors flex flex-col`}
       >
+        {iconPath && viewMode === 'config' && (
+          <img
+            src={iconPath}
+            alt=""
+            draggable={false}
+            className="pointer-events-none absolute -bottom-7 -right-5 -z-10 size-[8.5rem] select-none object-contain opacity-20"
+            onError={(event) => {
+              event.currentTarget.style.display = 'none';
+            }}
+          />
+        )}
         <div className="-mx-2 -mt-2 mb-3 flex items-center gap-2">
           <div className="flex-1 flex items-center gap-2 min-w-0">
             {dragHandle}
@@ -446,18 +457,6 @@ export const ModelCard = React.memo(
               </span>
             </div>
           </div>
-        )}
-
-        {/* Model icon bottom-right - only show in config mode */}
-        {iconPath && viewMode === 'config' && (
-          <img
-            src={iconPath}
-            alt={name}
-            className="absolute bottom-3 right-3 w-8 h-8"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-            }}
-          />
         )}
       </div>
     );

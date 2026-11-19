@@ -554,35 +554,45 @@ describe('account launch options', () => {
     ['an installed CLI', { category: 'CLI Code', installed: true }, true],
     ['an uninstalled CLI', { category: 'CLI Code', installed: false }, false],
     ['a desktop app', { category: 'Desktop', installed: true }, false],
-  ])('shows launch settings beside the launch button for %s only', async (_, data, shown) => {
-    const { AppManagerBottom } = await import('./AppManagerComponents');
-    const context = {
-      selectedTool: 'fixture',
-      selectedToolData: { ...tool, id: 'fixture', ...data },
-      toolModelConfig: {},
-      viewMode: 'desktop',
-      launchAfterApply: true,
-      agreedConfigPolicy: false,
-      handleLaunch: vi.fn(),
-    } as unknown as AppManagerContextType;
-    let renderer: ReactTestRenderer | undefined;
-    try {
-      act(() => {
-        renderer = create(
-          <AppManagerContext.Provider value={context}>
-            <AppManagerBottom />
-          </AppManagerContext.Provider>
-        );
-      });
-      const gears = renderer!.root
-        .findAllByType('button')
-        .filter((button) => button.props['aria-label'] === 'cliLaunch.title');
-      expect(gears).toHaveLength(shown ? 1 : 0);
-      expect(context.handleLaunch).not.toHaveBeenCalled();
-    } finally {
-      act(() => renderer?.unmount());
+  ])(
+    'shows launch settings at the right end of the primary action for %s only',
+    async (_, data, shown) => {
+      const { AppManagerBottom } = await import('./AppManagerComponents');
+      const context = {
+        selectedTool: 'fixture',
+        selectedToolData: { ...tool, id: 'fixture', ...data },
+        toolModelConfig: {},
+        viewMode: 'desktop',
+        launchAfterApply: true,
+        agreedConfigPolicy: false,
+        handleLaunch: vi.fn(),
+      } as unknown as AppManagerContextType;
+      let renderer: ReactTestRenderer | undefined;
+      try {
+        act(() => {
+          renderer = create(
+            <AppManagerContext.Provider value={context}>
+              <AppManagerBottom />
+            </AppManagerContext.Provider>
+          );
+        });
+        const gears = renderer!.root
+          .findAllByType('button')
+          .filter((button) => button.props['aria-label'] === 'cliLaunch.title');
+        expect(gears).toHaveLength(shown ? 1 : 0);
+        if (shown) {
+          const launch = renderer!.root
+            .findAllByType('button')
+            .find((button) => button.props.children === 'btn.launchApp')!;
+          expect(gears[0].parent?.parent).toBe(launch.parent?.parent);
+          expect(launch.parent?.parent?.children).toEqual([launch.parent, gears[0].parent]);
+        }
+        expect(context.handleLaunch).not.toHaveBeenCalled();
+      } finally {
+        act(() => renderer?.unmount());
+      }
     }
-  });
+  );
 
   it.each(accountTools)(
     '%s keeps the launch option available for the selected account',

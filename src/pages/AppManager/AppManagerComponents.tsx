@@ -1574,6 +1574,7 @@ export const AppManagerBottom: React.FC = () => {
     launchAfterApply ||
     (!hasAccountSelected &&
       (noModelConfig || ['qoder', 'qodercn', 'claudescience'].includes(selectedTool ?? '')));
+  const primaryMuted = !selectedToolData || (!isUninstalled && !willApply && !willLaunch);
   const buttonDisabled =
     !selectedToolData ||
     isLaunching ||
@@ -1622,24 +1623,19 @@ export const AppManagerBottom: React.FC = () => {
             reminder; Claude proxy clients get the keep-running reminder. */}
         <PageAwareHint />
         <div className="flex shrink-0 self-end items-center gap-8">
-          {showCliSettings && (
-            <button
-              type="button"
-              aria-label={t('cliLaunch.title')}
-              disabled={isLaunching}
-              onClick={() => setCliSettingsOpen(true)}
-              className="-mr-5 flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-lg text-cyber-text-secondary transition-colors enabled:hover:text-cyber-text"
-            >
-              <Settings size={28} aria-hidden="true" />
-            </button>
-          )}
-          {/* Launch button */}
-          <div className="relative w-64 h-14 flex-shrink-0">
+          <div
+            className={`relative w-64 h-14 flex-shrink-0 ${
+              showCliSettings
+                ? `flex rounded-lg ${primaryMuted ? '' : 'shadow-lg shadow-cyber-accent/30'}`
+                : ''
+            }`}
+          >
             {!isCatalogOnly && (
               <DesktopPrimaryButton
                 onClick={handlePrimaryClick}
                 disabled={buttonDisabled || acquiring}
-                muted={!selectedToolData || (!isUninstalled && !willApply && !willLaunch)}
+                muted={primaryMuted}
+                segment={showCliSettings ? 'main' : undefined}
               >
                 {isInstallAction
                   ? bundled
@@ -1648,6 +1644,25 @@ export const AppManagerBottom: React.FC = () => {
                   : willLaunch
                     ? t('btn.launchApp')
                     : t('btn.modifyOnly')}
+              </DesktopPrimaryButton>
+            )}
+            {showCliSettings && (
+              <DesktopPrimaryButton
+                aria-label={t('cliLaunch.title')}
+                disabled={isLaunching}
+                muted={primaryMuted}
+                onClick={() => setCliSettingsOpen(true)}
+                segment="end"
+              >
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-y-0 left-0 border-l border-current opacity-30"
+                />
+                <Settings
+                  size={20}
+                  aria-hidden="true"
+                  className={isLaunching ? 'opacity-40' : undefined}
+                />
               </DesktopPrimaryButton>
             )}
           </div>
