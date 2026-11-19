@@ -952,6 +952,11 @@ html.is-macos .app-titlebar {
   zoom: calc(1 / var(--ui-scale, 1));
 }
 
+/* Clear the old hover background immediately when moving between Windows title bar buttons. */
+html.is-windows .app-titlebar-actions > button {
+  transition-property: color;
+}
+
 /* Desktop chrome should not create a page-wide text selection on drag. */
 body {
   -webkit-user-select: none;

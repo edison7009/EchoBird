@@ -175,7 +175,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({ onFeedbackClick, onChangelog
         </div>
         {/* Window controls */}
         <div
-          className="flex items-center h-full"
+          className="app-titlebar-actions flex items-center h-full"
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
           <button
