@@ -18,12 +18,17 @@ runtime. Prettier governs the frontend JSON/TS; rustfmt governs `src-tauri/`.
 Keep internal development reports, research notes, and integration playbooks
 in the ignored `internal-docs/` directory. `docs/` is the public website.
 
-## Concurrent tasks and worktrees
+## Main branch workflow
 
-- Use a separate worktree for each independent task. Resume an existing task in
-  its current worktree and record the branch and pre-existing changes before editing.
-- Record file ownership when agents collaborate on the same task. Coordinate any
-  shared-file edits before applying them.
+- Work directly on the checkout of `main` by default. Use one development
+  workflow per project. Create a development branch, separate worktree, or
+  parallel chat only when the user explicitly requests it.
+- Before editing, check the current branch and existing changes. Preserve any
+  work already in progress. If access or existing changes block work on
+  `main`, report the specific blocker.
+- Commit authorized changes directly to `main`. When pushing or releasing,
+  confirm the intended commits are on `origin/main`. Integrate any intended
+  changes still on other branches or worktrees before delivery.
 - Stage explicit task-owned paths and inspect the staged diff before committing.
   Each commit must contain the changes for its stated task.
 
