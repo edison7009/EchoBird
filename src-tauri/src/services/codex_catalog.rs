@@ -52,6 +52,8 @@ pub const MIMO_TEMPLATE: &str = include_str!("../../assets/codex-catalogs/mimo.j
 // model's vision, reasoning, or Responses Lite capabilities by name alone.
 const MINIMAX_MODELS: &str = include_str!("../../assets/codex-catalogs/minimax-models.json");
 const MIMO_MODELS: &str = include_str!("../../assets/codex-catalogs/mimo-models.json");
+const MIMO_LEGACY_MODELS: &str =
+    include_str!("../../assets/codex-catalogs/mimo-legacy-models.json");
 const GLM_CN_MODELS: &str = include_str!("../../assets/codex-catalogs/glm-cn-models.json");
 const GLM_GLOBAL_MODELS: &str = include_str!("../../assets/codex-catalogs/glm-global-models.json");
 const QWEN_PLAN_MODELS: &str = include_str!("../../assets/codex-catalogs/qwen-plan-models.json");
@@ -97,7 +99,8 @@ pub fn template_for_url(base_url: &str) -> Option<&'static str> {
 /// Resolve documented capabilities by both native provider and exact model.
 /// A reseller's GLM/DeepSeek model must retain the reseller's catalog values.
 pub fn template_for_model(base_url: &str, model_id: &str) -> Option<Value> {
-    let published = if url_matches_domain(base_url, "xiaomimimo.com") {
+    let is_mimo = url_matches_domain(base_url, "xiaomimimo.com");
+    let published = if is_mimo {
         Some(MIMO_MODELS)
     } else if url_matches_domain(base_url, "minimax.cn")
         || url_matches_domain(base_url, "minimaxi.com")
@@ -125,17 +128,29 @@ pub fn template_for_model(base_url: &str, model_id: &str) -> Option<Value> {
     } else {
         None
     };
-    if let Some(catalog) = published.and_then(|s| serde_json::from_str::<Value>(s).ok()) {
+    for source in published
+        .into_iter()
+        .chain(is_mimo.then_some(MIMO_LEGACY_MODELS))
+    {
+        let Ok(catalog) = serde_json::from_str::<Value>(source) else {
+            continue;
+        };
         if let Some(entry) = catalog["models"].as_array().and_then(|models| {
             models
                 .iter()
                 .find(|entry| entry["slug"].as_str() == Some(model_id))
         }) {
             let mut entry = entry.clone();
-            if url_matches_domain(base_url, "xiaomimimo.com") {
-                // Preserve MiMo's existing no-search guard, including when
-                // the user explicitly enables web search in EchoBird.
+            if is_mimo {
+                // Preserve the existing no-search guard for all MiMo models.
                 entry["supports_search_tool"] = json!(false);
+            }
+            if model_id == "qwen4-max"
+                && (url_matches_domain(base_url, "token-plan.maas.qianwenaiapi.com")
+                    || url_matches_domain(base_url, "token-plan.cn-beijing.maas.aliyuncs.com"))
+            {
+                // Qianwen publishes a larger window than Alibaba Cloud for this model.
+                entry["context_window"] = json!(1_000_000);
             }
             return Some(entry);
         }
@@ -379,6 +394,7 @@ mod tests {
         for source in [
             MINIMAX_MODELS,
             MIMO_MODELS,
+            MIMO_LEGACY_MODELS,
             GLM_CN_MODELS,
             GLM_GLOBAL_MODELS,
             QWEN_PLAN_MODELS,
@@ -527,7 +543,8 @@ mod tests {
     fn qwen_hosted_models_keep_qwen_context_and_capabilities() {
         let base_url = "https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1";
         for (model, context, vision) in [
-            ("deepseek-v4-pro", 163_840, false),
+            ("deepseek-v4-pro", 1_000_000, false),
+            ("deepseek-v4-pro-0813", 1_000_000, false),
             ("deepseek-v4.1-flash", 1_000_000, true),
             ("glm-5.3", 1_000_000, false),
         ] {

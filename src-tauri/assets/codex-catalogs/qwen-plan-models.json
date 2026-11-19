@@ -42,6 +42,80 @@
       }
     },
     {
+      "slug": "qwen4-max-preview",
+      "display_name": "qwen4-max-preview",
+      "description": "DashScope model: qwen4-max-preview",
+      "default_reasoning_level": "xhigh",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Fast responses with lighter reasoning"
+        },
+        {
+          "effort": "medium",
+          "description": "Balances speed and reasoning depth"
+        },
+        {
+          "effort": "xhigh",
+          "description": "Extra high reasoning depth for complex problems"
+        }
+      ],
+      "context_window": 1000000,
+      "effective_context_window_percent": 95,
+      "supports_parallel_tool_calls": false,
+      "supports_image_detail_original": true,
+      "input_modalities": ["text", "image"],
+      "shell_type": "default",
+      "visibility": "list",
+      "supported_in_api": true,
+      "priority": 2,
+      "base_instructions": "",
+      "support_verbosity": false,
+      "supports_reasoning_summaries": false,
+      "experimental_supported_tools": [],
+      "truncation_policy": {
+        "mode": "bytes",
+        "limit": 10000
+      }
+    },
+    {
+      "slug": "qwen4-max",
+      "display_name": "qwen4-max",
+      "description": "DashScope model: qwen4-max",
+      "default_reasoning_level": "high",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Fast responses with lighter reasoning"
+        },
+        {
+          "effort": "high",
+          "description": "Balances speed and reasoning depth"
+        },
+        {
+          "effort": "xhigh",
+          "description": "Extra high reasoning depth for complex problems"
+        }
+      ],
+      "context_window": 983616,
+      "effective_context_window_percent": 95,
+      "supports_parallel_tool_calls": false,
+      "supports_image_detail_original": true,
+      "input_modalities": ["text", "image"],
+      "shell_type": "default",
+      "visibility": "list",
+      "supported_in_api": true,
+      "priority": 2,
+      "base_instructions": "",
+      "support_verbosity": false,
+      "supports_reasoning_summaries": false,
+      "experimental_supported_tools": [],
+      "truncation_policy": {
+        "mode": "bytes",
+        "limit": 10000
+      }
+    },
+    {
       "slug": "qwen3.8-max",
       "display_name": "qwen3.8-max",
       "description": "DashScope model: qwen3.8-max",
@@ -68,7 +142,7 @@
       "shell_type": "default",
       "visibility": "list",
       "supported_in_api": true,
-      "priority": 1,
+      "priority": 3,
       "base_instructions": "",
       "support_verbosity": false,
       "supports_reasoning_summaries": false,
@@ -105,7 +179,7 @@
       "shell_type": "default",
       "visibility": "list",
       "supported_in_api": true,
-      "priority": 2,
+      "priority": 4,
       "base_instructions": "",
       "support_verbosity": false,
       "supports_reasoning_summaries": false,
@@ -146,7 +220,7 @@
       "shell_type": "default",
       "visibility": "list",
       "supported_in_api": true,
-      "priority": 3,
+      "priority": 5,
       "base_instructions": "",
       "support_verbosity": false,
       "supports_reasoning_summaries": false,
@@ -187,7 +261,7 @@
       "shell_type": "default",
       "visibility": "list",
       "supported_in_api": true,
-      "priority": 4,
+      "priority": 6,
       "base_instructions": "",
       "support_verbosity": false,
       "supports_reasoning_summaries": false,
@@ -228,7 +302,7 @@
       "shell_type": "default",
       "visibility": "list",
       "supported_in_api": true,
-      "priority": 5,
+      "priority": 7,
       "base_instructions": "",
       "support_verbosity": false,
       "supports_reasoning_summaries": false,
@@ -269,7 +343,7 @@
       "shell_type": "default",
       "visibility": "list",
       "supported_in_api": true,
-      "priority": 6,
+      "priority": 8,
       "base_instructions": "",
       "support_verbosity": false,
       "supports_reasoning_summaries": false,
@@ -310,7 +384,7 @@
       "shell_type": "default",
       "visibility": "list",
       "supported_in_api": true,
-      "priority": 7,
+      "priority": 9,
       "base_instructions": "",
       "support_verbosity": false,
       "supports_reasoning_summaries": false,
@@ -351,7 +425,7 @@
       "shell_type": "default",
       "visibility": "list",
       "supported_in_api": true,
-      "priority": 8,
+      "priority": 10,
       "base_instructions": "",
       "support_verbosity": false,
       "supports_reasoning_summaries": false,
@@ -392,7 +466,7 @@
       "shell_type": "default",
       "visibility": "list",
       "supported_in_api": true,
-      "priority": 8,
+      "priority": 11,
       "base_instructions": "",
       "support_verbosity": false,
       "supports_reasoning_summaries": false,
@@ -425,7 +499,7 @@
           "description": "Extra high reasoning depth for complex problems"
         }
       ],
-      "context_window": 163840,
+      "context_window": 1000000,
       "effective_context_window_percent": 95,
       "supports_parallel_tool_calls": false,
       "supports_image_detail_original": false,
@@ -433,7 +507,7 @@
       "shell_type": "default",
       "visibility": "list",
       "supported_in_api": true,
-      "priority": 9,
+      "priority": 12,
       "base_instructions": "",
       "support_verbosity": false,
       "supports_reasoning_summaries": false,
@@ -466,7 +540,7 @@
           "description": "Extra high reasoning depth for complex problems"
         }
       ],
-      "context_window": 163840,
+      "context_window": 1000000,
       "effective_context_window_percent": 95,
       "supports_parallel_tool_calls": false,
       "supports_image_detail_original": false,
@@ -474,7 +548,7 @@
       "shell_type": "default",
       "visibility": "list",
       "supported_in_api": true,
-      "priority": 10,
+      "priority": 13,
       "base_instructions": "",
       "support_verbosity": false,
       "supports_reasoning_summaries": false,
@@ -515,7 +589,7 @@
       "shell_type": "default",
       "visibility": "list",
       "supported_in_api": true,
-      "priority": 11,
+      "priority": 14,
       "base_instructions": "",
       "support_verbosity": false,
       "supports_reasoning_summaries": false,
@@ -556,7 +630,253 @@
       "shell_type": "default",
       "visibility": "list",
       "supported_in_api": true,
-      "priority": 12,
+      "priority": 15,
+      "base_instructions": "",
+      "support_verbosity": false,
+      "supports_reasoning_summaries": false,
+      "experimental_supported_tools": [],
+      "truncation_policy": {
+        "mode": "bytes",
+        "limit": 10000
+      }
+    },
+    {
+      "slug": "kimi-k2.7-code",
+      "display_name": "kimi-k2.7-code",
+      "description": "DashScope model: kimi-k2.7-code",
+      "default_reasoning_level": "medium",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Fast responses with lighter reasoning"
+        },
+        {
+          "effort": "medium",
+          "description": "Balances speed and reasoning depth"
+        },
+        {
+          "effort": "high",
+          "description": "Greater reasoning depth for complex problems"
+        },
+        {
+          "effort": "xhigh",
+          "description": "Extra high reasoning depth for complex problems"
+        }
+      ],
+      "context_window": 262144,
+      "effective_context_window_percent": 95,
+      "supports_parallel_tool_calls": false,
+      "supports_image_detail_original": true,
+      "input_modalities": ["text", "image"],
+      "shell_type": "default",
+      "visibility": "list",
+      "supported_in_api": true,
+      "priority": 16,
+      "base_instructions": "",
+      "support_verbosity": false,
+      "supports_reasoning_summaries": false,
+      "experimental_supported_tools": [],
+      "truncation_policy": {
+        "mode": "bytes",
+        "limit": 10000
+      }
+    },
+    {
+      "slug": "kimi-k2.6",
+      "display_name": "kimi-k2.6",
+      "description": "DashScope model: kimi-k2.6",
+      "default_reasoning_level": "medium",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Fast responses with lighter reasoning"
+        },
+        {
+          "effort": "medium",
+          "description": "Balances speed and reasoning depth"
+        },
+        {
+          "effort": "high",
+          "description": "Greater reasoning depth for complex problems"
+        },
+        {
+          "effort": "xhigh",
+          "description": "Extra high reasoning depth for complex problems"
+        }
+      ],
+      "context_window": 262144,
+      "effective_context_window_percent": 95,
+      "supports_parallel_tool_calls": false,
+      "supports_image_detail_original": true,
+      "input_modalities": ["text", "image"],
+      "shell_type": "default",
+      "visibility": "list",
+      "supported_in_api": true,
+      "priority": 17,
+      "base_instructions": "",
+      "support_verbosity": false,
+      "supports_reasoning_summaries": false,
+      "experimental_supported_tools": [],
+      "truncation_policy": {
+        "mode": "bytes",
+        "limit": 10000
+      }
+    },
+    {
+      "slug": "kimi-k2.5",
+      "display_name": "kimi-k2.5",
+      "description": "DashScope model: kimi-k2.5",
+      "default_reasoning_level": "medium",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Fast responses with lighter reasoning"
+        },
+        {
+          "effort": "medium",
+          "description": "Balances speed and reasoning depth"
+        },
+        {
+          "effort": "high",
+          "description": "Greater reasoning depth for complex problems"
+        },
+        {
+          "effort": "xhigh",
+          "description": "Extra high reasoning depth for complex problems"
+        }
+      ],
+      "context_window": 262144,
+      "effective_context_window_percent": 95,
+      "supports_parallel_tool_calls": false,
+      "supports_image_detail_original": true,
+      "input_modalities": ["text", "image"],
+      "shell_type": "default",
+      "visibility": "list",
+      "supported_in_api": true,
+      "priority": 18,
+      "base_instructions": "",
+      "support_verbosity": false,
+      "supports_reasoning_summaries": false,
+      "experimental_supported_tools": [],
+      "truncation_policy": {
+        "mode": "bytes",
+        "limit": 10000
+      }
+    },
+    {
+      "slug": "glm-5.1",
+      "display_name": "glm-5.1",
+      "description": "DashScope model: glm-5.1",
+      "default_reasoning_level": "medium",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Fast responses with lighter reasoning"
+        },
+        {
+          "effort": "medium",
+          "description": "Balances speed and reasoning depth"
+        },
+        {
+          "effort": "high",
+          "description": "Greater reasoning depth for complex problems"
+        },
+        {
+          "effort": "xhigh",
+          "description": "Extra high reasoning depth for complex problems"
+        }
+      ],
+      "context_window": 202752,
+      "effective_context_window_percent": 95,
+      "supports_parallel_tool_calls": false,
+      "supports_image_detail_original": false,
+      "input_modalities": ["text"],
+      "shell_type": "default",
+      "visibility": "list",
+      "supported_in_api": true,
+      "priority": 19,
+      "base_instructions": "",
+      "support_verbosity": false,
+      "supports_reasoning_summaries": false,
+      "experimental_supported_tools": [],
+      "truncation_policy": {
+        "mode": "bytes",
+        "limit": 10000
+      }
+    },
+    {
+      "slug": "glm-5",
+      "display_name": "glm-5",
+      "description": "DashScope model: glm-5",
+      "default_reasoning_level": "medium",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Fast responses with lighter reasoning"
+        },
+        {
+          "effort": "medium",
+          "description": "Balances speed and reasoning depth"
+        },
+        {
+          "effort": "high",
+          "description": "Greater reasoning depth for complex problems"
+        },
+        {
+          "effort": "xhigh",
+          "description": "Extra high reasoning depth for complex problems"
+        }
+      ],
+      "context_window": 202752,
+      "effective_context_window_percent": 95,
+      "supports_parallel_tool_calls": false,
+      "supports_image_detail_original": false,
+      "input_modalities": ["text"],
+      "shell_type": "default",
+      "visibility": "list",
+      "supported_in_api": true,
+      "priority": 20,
+      "base_instructions": "",
+      "support_verbosity": false,
+      "supports_reasoning_summaries": false,
+      "experimental_supported_tools": [],
+      "truncation_policy": {
+        "mode": "bytes",
+        "limit": 10000
+      }
+    },
+    {
+      "slug": "MiniMax-M2.5",
+      "display_name": "MiniMax-M2.5",
+      "description": "DashScope model: MiniMax-M2.5",
+      "default_reasoning_level": "medium",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Fast responses with lighter reasoning"
+        },
+        {
+          "effort": "medium",
+          "description": "Balances speed and reasoning depth"
+        },
+        {
+          "effort": "high",
+          "description": "Greater reasoning depth for complex problems"
+        },
+        {
+          "effort": "xhigh",
+          "description": "Extra high reasoning depth for complex problems"
+        }
+      ],
+      "context_window": 204800,
+      "effective_context_window_percent": 95,
+      "supports_parallel_tool_calls": false,
+      "supports_image_detail_original": false,
+      "input_modalities": ["text"],
+      "shell_type": "default",
+      "visibility": "list",
+      "supported_in_api": true,
+      "priority": 21,
       "base_instructions": "",
       "support_verbosity": false,
       "supports_reasoning_summaries": false,
@@ -639,252 +959,6 @@
       "visibility": "list",
       "supported_in_api": true,
       "priority": 14,
-      "base_instructions": "",
-      "support_verbosity": false,
-      "supports_reasoning_summaries": false,
-      "experimental_supported_tools": [],
-      "truncation_policy": {
-        "mode": "bytes",
-        "limit": 10000
-      }
-    },
-    {
-      "slug": "kimi-k2.7-code",
-      "display_name": "kimi-k2.7-code",
-      "description": "DashScope model: kimi-k2.7-code",
-      "default_reasoning_level": "medium",
-      "supported_reasoning_levels": [
-        {
-          "effort": "low",
-          "description": "Fast responses with lighter reasoning"
-        },
-        {
-          "effort": "medium",
-          "description": "Balances speed and reasoning depth"
-        },
-        {
-          "effort": "high",
-          "description": "Greater reasoning depth for complex problems"
-        },
-        {
-          "effort": "xhigh",
-          "description": "Extra high reasoning depth for complex problems"
-        }
-      ],
-      "context_window": 262144,
-      "effective_context_window_percent": 95,
-      "supports_parallel_tool_calls": false,
-      "supports_image_detail_original": true,
-      "input_modalities": ["text", "image"],
-      "shell_type": "default",
-      "visibility": "list",
-      "supported_in_api": true,
-      "priority": 15,
-      "base_instructions": "",
-      "support_verbosity": false,
-      "supports_reasoning_summaries": false,
-      "experimental_supported_tools": [],
-      "truncation_policy": {
-        "mode": "bytes",
-        "limit": 10000
-      }
-    },
-    {
-      "slug": "kimi-k2.6",
-      "display_name": "kimi-k2.6",
-      "description": "DashScope model: kimi-k2.6",
-      "default_reasoning_level": "medium",
-      "supported_reasoning_levels": [
-        {
-          "effort": "low",
-          "description": "Fast responses with lighter reasoning"
-        },
-        {
-          "effort": "medium",
-          "description": "Balances speed and reasoning depth"
-        },
-        {
-          "effort": "high",
-          "description": "Greater reasoning depth for complex problems"
-        },
-        {
-          "effort": "xhigh",
-          "description": "Extra high reasoning depth for complex problems"
-        }
-      ],
-      "context_window": 262144,
-      "effective_context_window_percent": 95,
-      "supports_parallel_tool_calls": false,
-      "supports_image_detail_original": true,
-      "input_modalities": ["text", "image"],
-      "shell_type": "default",
-      "visibility": "list",
-      "supported_in_api": true,
-      "priority": 16,
-      "base_instructions": "",
-      "support_verbosity": false,
-      "supports_reasoning_summaries": false,
-      "experimental_supported_tools": [],
-      "truncation_policy": {
-        "mode": "bytes",
-        "limit": 10000
-      }
-    },
-    {
-      "slug": "kimi-k2.5",
-      "display_name": "kimi-k2.5",
-      "description": "DashScope model: kimi-k2.5",
-      "default_reasoning_level": "medium",
-      "supported_reasoning_levels": [
-        {
-          "effort": "low",
-          "description": "Fast responses with lighter reasoning"
-        },
-        {
-          "effort": "medium",
-          "description": "Balances speed and reasoning depth"
-        },
-        {
-          "effort": "high",
-          "description": "Greater reasoning depth for complex problems"
-        },
-        {
-          "effort": "xhigh",
-          "description": "Extra high reasoning depth for complex problems"
-        }
-      ],
-      "context_window": 262144,
-      "effective_context_window_percent": 95,
-      "supports_parallel_tool_calls": false,
-      "supports_image_detail_original": true,
-      "input_modalities": ["text", "image"],
-      "shell_type": "default",
-      "visibility": "list",
-      "supported_in_api": true,
-      "priority": 17,
-      "base_instructions": "",
-      "support_verbosity": false,
-      "supports_reasoning_summaries": false,
-      "experimental_supported_tools": [],
-      "truncation_policy": {
-        "mode": "bytes",
-        "limit": 10000
-      }
-    },
-    {
-      "slug": "glm-5.1",
-      "display_name": "glm-5.1",
-      "description": "DashScope model: glm-5.1",
-      "default_reasoning_level": "medium",
-      "supported_reasoning_levels": [
-        {
-          "effort": "low",
-          "description": "Fast responses with lighter reasoning"
-        },
-        {
-          "effort": "medium",
-          "description": "Balances speed and reasoning depth"
-        },
-        {
-          "effort": "high",
-          "description": "Greater reasoning depth for complex problems"
-        },
-        {
-          "effort": "xhigh",
-          "description": "Extra high reasoning depth for complex problems"
-        }
-      ],
-      "context_window": 202752,
-      "effective_context_window_percent": 95,
-      "supports_parallel_tool_calls": false,
-      "supports_image_detail_original": false,
-      "input_modalities": ["text"],
-      "shell_type": "default",
-      "visibility": "list",
-      "supported_in_api": true,
-      "priority": 18,
-      "base_instructions": "",
-      "support_verbosity": false,
-      "supports_reasoning_summaries": false,
-      "experimental_supported_tools": [],
-      "truncation_policy": {
-        "mode": "bytes",
-        "limit": 10000
-      }
-    },
-    {
-      "slug": "glm-5",
-      "display_name": "glm-5",
-      "description": "DashScope model: glm-5",
-      "default_reasoning_level": "medium",
-      "supported_reasoning_levels": [
-        {
-          "effort": "low",
-          "description": "Fast responses with lighter reasoning"
-        },
-        {
-          "effort": "medium",
-          "description": "Balances speed and reasoning depth"
-        },
-        {
-          "effort": "high",
-          "description": "Greater reasoning depth for complex problems"
-        },
-        {
-          "effort": "xhigh",
-          "description": "Extra high reasoning depth for complex problems"
-        }
-      ],
-      "context_window": 202752,
-      "effective_context_window_percent": 95,
-      "supports_parallel_tool_calls": false,
-      "supports_image_detail_original": false,
-      "input_modalities": ["text"],
-      "shell_type": "default",
-      "visibility": "list",
-      "supported_in_api": true,
-      "priority": 19,
-      "base_instructions": "",
-      "support_verbosity": false,
-      "supports_reasoning_summaries": false,
-      "experimental_supported_tools": [],
-      "truncation_policy": {
-        "mode": "bytes",
-        "limit": 10000
-      }
-    },
-    {
-      "slug": "MiniMax-M2.5",
-      "display_name": "MiniMax-M2.5",
-      "description": "DashScope model: MiniMax-M2.5",
-      "default_reasoning_level": "medium",
-      "supported_reasoning_levels": [
-        {
-          "effort": "low",
-          "description": "Fast responses with lighter reasoning"
-        },
-        {
-          "effort": "medium",
-          "description": "Balances speed and reasoning depth"
-        },
-        {
-          "effort": "high",
-          "description": "Greater reasoning depth for complex problems"
-        },
-        {
-          "effort": "xhigh",
-          "description": "Extra high reasoning depth for complex problems"
-        }
-      ],
-      "context_window": 204800,
-      "effective_context_window_percent": 95,
-      "supports_parallel_tool_calls": false,
-      "supports_image_detail_original": false,
-      "input_modalities": ["text"],
-      "shell_type": "default",
-      "visibility": "list",
-      "supported_in_api": true,
-      "priority": 20,
       "base_instructions": "",
       "support_verbosity": false,
       "supports_reasoning_summaries": false,

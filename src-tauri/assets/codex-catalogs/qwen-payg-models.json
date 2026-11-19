@@ -101,7 +101,7 @@
           "description": "Extra high reasoning depth for complex problems"
         }
       ],
-      "context_window": 163840,
+      "context_window": 1000000,
       "effective_context_window_percent": 95,
       "supports_parallel_tool_calls": false,
       "supports_image_detail_original": false,

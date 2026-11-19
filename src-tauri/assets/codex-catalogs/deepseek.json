@@ -4,9 +4,7 @@
   "default_verbosity": "low",
   "apply_patch_tool_type": "freeform",
   "web_search_tool_type": "text",
-  "input_modalities": [
-    "text"
-  ],
+  "input_modalities": ["text"],
   "supports_image_detail_original": false,
   "truncation_policy": {
     "mode": "tokens",
@@ -40,7 +38,7 @@
   ],
   "shell_type": "shell_command",
   "visibility": "list",
-  "minimal_client_version": "0.144.0",
+  "minimal_client_version": "0.164.0",
   "supported_in_api": true,
   "availability_nux": null,
   "upgrade": null,

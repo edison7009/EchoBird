@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-20",
+  "checkedAt": "2026-11-18",
   "hashFormat": "SHA-256 of the upstream catalog JSON serialized as UTF-8 with sorted keys, compact separators, ensure_ascii=false; ignores HTML and JSON formatting changes.",
   "sources": [
     {
@@ -11,7 +11,7 @@
       "snapshots": [
         {
           "kind": "inline catalog",
-          "sha256": "738ac1b92a557273ab0c128b286967e54cd993c9e901f93869f7e73581d591fa",
+          "sha256": "b97bf97e8226dee76bcfc9dcc503e11ef96cd2ca56371acd30f1f54c2f0396bb",
           "modelIds": ["deepseek-flash", "deepseek-v4-pro"]
         }
       ],
@@ -49,22 +49,16 @@
       "downloadUrls": [
         "https://example-files.cnbj1.mi-fds.com/example-files/configs/model-catalogs.json"
       ],
-      "localFiles": ["mimo-models.json", "mimo.json"],
+      "localFiles": ["mimo-models.json", "mimo-legacy-models.json", "mimo.json"],
       "snapshots": [
         {
           "kind": "downloaded catalog",
-          "sha256": "03d63dc479bb4f5d15cfed28033a6d415163830e822208b268b55c9b0c5fca8b",
-          "modelIds": [
-            "mimo-v2.6-pro",
-            "mimo-v2.6-flash",
-            "mimo-v2.6-pro-ultraspeed",
-            "mimo-v2.5-pro",
-            "mimo-v2.5"
-          ]
+          "sha256": "00f7fb2434b5ee4721804098abcb27382151b1ce4ebaa29131e20585b5bc5fcb",
+          "modelIds": ["mimo-v2.6-pro", "mimo-v2.6-flash", "mimo-v2.6-pro-ultraspeed"]
         }
       ],
       "notes": [
-        "The published model catalog exactly matches mimo-models.json. EchoBird additionally disables built-in search, as required by the integration guide. The generic fallback is not the published per-model catalog."
+        "The published catalog matches mimo-models.json. Previously documented v2.5 rows stay available for existing configurations in mimo-legacy-models.json. EchoBird disables built-in search as required by the guide. The generic fallback is not the published per-model catalog."
       ]
     },
     {
@@ -104,10 +98,12 @@
       "localFiles": ["qwen-plan-models.json"],
       "snapshots": [
         {
-          "kind": "personal plan",
-          "sha256": "6151f5fd573dc558622575d8b0ae336d180f2b81c89f6a42fb991b7e9a6acfe5",
+          "kind": "Qianwen personal plan",
+          "sha256": "9e6a10ce8a508cadfa8349367f21d67c549750344103816ffca10bf7699fdf3d",
           "modelIds": [
             "auto",
+            "qwen4-max",
+            "qwen4-max-preview",
             "qwen3.8-max",
             "qwen3.8-flash",
             "qwen3.7-max",
@@ -123,10 +119,61 @@
           ]
         },
         {
-          "kind": "team plan",
-          "sha256": "b4e4ba339380bdb41b706059e404a351c9f60f3f1a8d4d2a8a955dc1025defb6",
+          "kind": "Qianwen team plan",
+          "sha256": "85e9f735813cb1020736d6c96e29712f587970b9307fb52213f17810d3334325",
           "modelIds": [
             "auto",
+            "qwen4-max",
+            "qwen4-max-preview",
+            "qwen3.8-max",
+            "qwen3.8-flash",
+            "qwen3.7-max",
+            "qwen3.7-plus",
+            "qwen3.6-flash",
+            "glm-5.3",
+            "glm-5.2",
+            "deepseek-v4.1-flash",
+            "deepseek-v4.1-flash-1017",
+            "deepseek-v4-pro",
+            "deepseek-v4-pro-0813",
+            "deepseek-v4-flash-0731",
+            "qwen3.6-plus",
+            "kimi-k2.7-code",
+            "kimi-k2.6",
+            "kimi-k2.5",
+            "glm-5.1",
+            "glm-5",
+            "MiniMax-M2.5"
+          ]
+        },
+        {
+          "kind": "Alibaba Cloud personal plan",
+          "sha256": "ff2b78fa930124fe720fedbd768ce0b529371999abd4a262334b5dbc66af4b91",
+          "modelIds": [
+            "auto",
+            "qwen4-max-preview",
+            "qwen4-max",
+            "qwen3.8-max",
+            "qwen3.8-flash",
+            "qwen3.7-max",
+            "qwen3.7-plus",
+            "qwen3.6-flash",
+            "glm-5.3",
+            "glm-5.2",
+            "deepseek-v4.1-flash",
+            "deepseek-v4.1-flash-1017",
+            "deepseek-v4-pro",
+            "deepseek-v4-pro-0813",
+            "deepseek-v4-flash-0731"
+          ]
+        },
+        {
+          "kind": "Alibaba Cloud team plan",
+          "sha256": "445ef68d9c26f93de9d6eee4feabb8caf273ba74b55a57595a505b64810a4ba8",
+          "modelIds": [
+            "auto",
+            "qwen4-max-preview",
+            "qwen4-max",
             "qwen3.8-max",
             "qwen3.8-flash",
             "qwen3.7-max",
@@ -150,7 +197,7 @@
         }
       ],
       "notes": [
-        "CN and international catalogs are identical for each corresponding plan. The existing shared catalog retains the union for compatibility; personal/team API key permissions still determine availability. Added deepseek-v4.1-flash-1017; retained older deepseek-v4-flash and deepseek-v3.2 entries absent from current examples pending an explicit retirement notice."
+        "The shared catalog uses the Alibaba Cloud team rows and retains deepseek-v4-flash and deepseek-v3.2 for existing configurations. Qwen4 Max uses the Qianwen context on Qianwen and the existing Beijing Token Plan endpoint. Personal/team API key permissions still determine model availability."
       ]
     },
     {
@@ -163,7 +210,7 @@
       "snapshots": [
         {
           "kind": "pay-as-you-go",
-          "sha256": "06fc8c8bffcb7b51fd16cf538a4706c1684f8973a7d145ccce79f9343b4e79de",
+          "sha256": "0d4f516fd7901d8be58ce9f4e93dcbd17d741cf56a3a77492a87581e929a74fb",
           "modelIds": ["qwen3.8-max", "qwen3.7-max", "deepseek-v4-pro", "glm-5.2"]
         }
       ],
