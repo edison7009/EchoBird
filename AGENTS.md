@@ -193,6 +193,19 @@ clippy/test, not optional.
   a blocking dialog. Explicit login, refresh, apply, and delete failures remain
   visible. Include these expectations in navigation regression tests.
 
+## Release scope and worktrees
+
+- Before tagging a release, reconcile the requested release scope with the
+  active task and linked chats or worktrees. List each intended fix with its
+  source branch and commit, including completed fixes still on local branches.
+- Integrate the intended fixes onto current `origin/main` before tagging.
+  For each fix, record its commit on main, including the resulting commit if
+  cherry-picked or rebased. Surface any intended fix that cannot be included
+  before publishing.
+- Check that every recorded commit is an ancestor of the exact release tag
+  with `git merge-base --is-ancestor <commit> <tag>`. Confirm the packaging
+  run builds that tag's commit and include the verified scope in the handoff.
+
 ## Commit policy
 
 Commit only when asked. Push only when asked. Keep history linear (rebase onto
