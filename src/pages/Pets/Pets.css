@@ -145,24 +145,6 @@
   line-height: 24px;
   color: rgb(var(--accent-rgb));
 }
-.pets-credit {
-  flex-shrink: 0;
-  margin: 0;
-  padding: 0 12px;
-  text-align: center;
-  font-size: 14px;
-  line-height: 20px;
-  color: rgb(var(--text-secondary-rgb));
-}
-.pets-credit a {
-  color: inherit;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-.pets-credit a:hover,
-.pets-credit a:focus-visible {
-  color: rgb(var(--text-primary-rgb));
-}
 .pets-list {
   display: flex;
   flex-direction: column;

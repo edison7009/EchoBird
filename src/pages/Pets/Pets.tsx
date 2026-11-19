@@ -4,7 +4,6 @@ import { useI18n } from '../../hooks/useI18n';
 import { useDocumentVisible } from '../../hooks/useDocumentVisible';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { PageActionButton } from '../../components/PageActionButton';
-import { openExternal } from '../../api/tauri';
 import { getSmartRouterTokenCredits } from '../../api/routerStatistics';
 import { petThumbnailKey, usePetsStore } from '../../stores/petsStore';
 import { PET_STAGES, PET_TINTS, petModel, petStage, type PreviewPet } from './petConstants';
@@ -328,26 +327,6 @@ export function PetsMain() {
         <p className="pets-help">{t('pets.balanceHelp')}</p>
       </div>
     </section>
-  );
-}
-
-export function PetsCredit() {
-  const { t } = useI18n();
-  const [creditBefore, creditAfter] = t('pets.playmandCredit').split('{playmand}');
-  return (
-    <p className="pets-credit">
-      {creditBefore}
-      <a
-        href="https://playmand.com/"
-        onClick={(event) => {
-          event.preventDefault();
-          void openExternal(event.currentTarget.href);
-        }}
-      >
-        Playmand
-      </a>
-      {creditAfter}
-    </p>
   );
 }
 

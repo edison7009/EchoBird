@@ -927,7 +927,6 @@ export type TKey =
   | 'pets.acquire'
   | 'pets.acquireCost'
   | 'pets.balanceHelp'
-  | 'pets.playmandCredit'
   | 'pets.color.blue'
   | 'pets.color.mint'
   | 'pets.color.orange'

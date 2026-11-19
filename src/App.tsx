@@ -35,9 +35,6 @@ const PetsMain = lazy(() =>
 const PetsPanel = lazy(() =>
   import('./pages/Pets/Pets').then((module) => ({ default: module.PetsPanel }))
 );
-const PetsCredit = lazy(() =>
-  import('./pages/Pets/Pets').then((module) => ({ default: module.PetsCredit }))
-);
 import {
   RouterStatisticsProvider,
   RouterStatisticsPanel,
@@ -568,11 +565,6 @@ function AppContent() {
                                       </OnFirstVisit>
                                     </div>
                                   </section>
-                                  {feature('pets') && (
-                                    <OnFirstVisit active>
-                                      <PetsCredit />
-                                    </OnFirstVisit>
-                                  )}
                                 </main>
 
                                 <aside className="flex flex-col">

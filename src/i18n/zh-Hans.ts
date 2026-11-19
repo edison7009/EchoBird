@@ -946,8 +946,6 @@ const zhHans: Partial<Translations> = {
   'pets.reward.doubleDetail': '成长卡收益 · 15 分钟',
   'pets.reward.hasteDetail': '下次补给提前',
   'pets.reward.boost': '成长卡收益 ×2',
-  'pets.playmandCredit':
-    '宠物及抽卡，由 {playmand} 实现（让 AI 熟练地用 Rust 做游戏、物理、网页特效和视频）',
   'pets.balanceHelp': '智能接入消耗 Token，自动获得 TokenPet',
   'pets.eggName': '彩色蛋',
   'pets.stage.egg': '完整蛋',

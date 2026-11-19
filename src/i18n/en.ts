@@ -1013,8 +1013,6 @@ const en: Translations = {
   'pets.reward.doubleDetail': 'Growth card rewards · 15 min',
   'pets.reward.hasteDetail': 'Earlier next supply',
   'pets.reward.boost': 'Growth card rewards ×2',
-  'pets.playmandCredit':
-    'Pets and card draws by {playmand} (helps AI use Rust for games, physics, web effects, and video)',
   'pets.balanceHelp': 'Use Tokens through Smart Access to earn TokenPet automatically',
   'pets.eggName': 'Colored egg',
   'pets.stage.egg': 'Egg',

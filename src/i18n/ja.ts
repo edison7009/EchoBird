@@ -990,8 +990,6 @@ const ja: Partial<Translations> = {
   'pets.reward.doubleDetail': '成長カード報酬 · 15分間',
   'pets.reward.hasteDetail': '次の補給を短縮',
   'pets.reward.boost': '成長カード報酬 ×2',
-  'pets.playmandCredit':
-    'ペットとカード抽選は {playmand} で実装（AI が Rust でゲーム、物理演算、Web エフェクト、動画を作るためのツール）',
   'pets.balanceHelp': 'スマートアクセスで Token を使用すると、TokenPet を自動獲得できます',
   'pets.eggName': 'カラーエッグ',
   'pets.stage.egg': 'タマゴ',
