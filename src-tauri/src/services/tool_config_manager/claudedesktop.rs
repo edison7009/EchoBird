@@ -54,6 +54,29 @@ fn backup_library(paths: &ClaudeDesktopLayout) -> PathBuf {
         .with_file_name("configLibrary.echobird-local-backup")
 }
 
+fn clear_empty_backup_conflict(live: &Path, backup: &Path, conflict: &str) -> Result<(), String> {
+    if !live.exists() {
+        return Ok(());
+    }
+
+    match fs::symlink_metadata(backup) {
+        Ok(metadata) if metadata.is_dir() => {
+            #[cfg(windows)]
+            {
+                use std::os::windows::fs::MetadataExt;
+                use windows::Win32::Storage::FileSystem::FILE_ATTRIBUTE_REPARSE_POINT;
+                if metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT.0 != 0 {
+                    return Err(conflict.into());
+                }
+            }
+            // A non-recursive removal only succeeds for an empty directory.
+            fs::remove_dir(backup).map_err(|_| conflict.into())
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        _ => Err(conflict.into()),
+    }
+}
+
 pub(crate) fn local_mode_enabled() -> bool {
     read_json_file(&echobird_dir().join("claudedesktop.json"))
         .is_some_and(|value| value["mode"] == "firstParty")
@@ -121,9 +144,11 @@ fn apply_at(info: &ModelInfo, paths: &ClaudeDesktopLayout, relay: &Path) -> Resu
     let mut official = native_account_files::object(&paths.cfg_official)?;
     let mut threep = native_account_files::object(&paths.cfg_threep)?;
     let backup = backup_library(paths);
-    if backup.exists() && paths.lib_dir.exists() {
-        return Err("Claude Desktop has an unrecovered profile backup.".into());
-    }
+    clear_empty_backup_conflict(
+        &paths.lib_dir,
+        &backup,
+        "Claude Desktop has an unrecovered profile backup.",
+    )?;
     official["deploymentMode"] = json!("1p");
     threep["deploymentMode"] = json!("1p");
     let config = json!({"mode":"firstParty", "baseUrl":base.trim_end_matches('/'),
@@ -161,9 +186,11 @@ fn restore_at(paths: &ClaudeDesktopLayout, relay: &Path) -> Result<(), String> {
     let mut official = native_account_files::object(&paths.cfg_official)?;
     let mut threep = native_account_files::object(&paths.cfg_threep)?;
     let backup = backup_library(paths);
-    if backup.exists() && paths.lib_dir.exists() {
-        return Err("Claude Desktop profiles changed while local mode was active.".into());
-    }
+    clear_empty_backup_conflict(
+        &paths.lib_dir,
+        &backup,
+        "Claude Desktop profiles changed while local mode was active.",
+    )?;
     official["deploymentMode"] = json!("1p");
     threep["deploymentMode"] = json!("1p");
     let mut transaction = Transaction::guarded();
@@ -219,6 +246,7 @@ pub(super) fn read_claudedesktop() -> Option<ModelInfo> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::services::smart_router::catalog::with_test_models;
     use crate::services::tool_config_manager::switching::{test_info, TestDir};
 
     #[tokio::test]
@@ -288,6 +316,100 @@ mod tests {
             b"original-profile"
         );
         assert!(!relay.exists());
+    }
+
+    #[test]
+    fn switches_with_an_empty_conflicting_backup_and_preserves_live_profiles() {
+        let root = TestDir::new();
+        let paths = claudedesktop_paths_at(root.path());
+        let relay = root.path().join("state/relay.json");
+        let backup = backup_library(&paths);
+        fs::create_dir_all(&paths.lib_dir).unwrap();
+        fs::write(paths.lib_dir.join("other.json"), b"live-profile").unwrap();
+        fs::create_dir(&backup).unwrap();
+
+        with_test_models(|| apply_at(&test_info(), &paths, &relay)).unwrap();
+
+        assert!(!paths.lib_dir.exists());
+        assert_eq!(
+            fs::read(backup.join("other.json")).unwrap(),
+            b"live-profile"
+        );
+        assert!(relay.is_file());
+
+        restore_at(&paths, &relay).unwrap();
+        assert_eq!(
+            fs::read(paths.lib_dir.join("other.json")).unwrap(),
+            b"live-profile"
+        );
+        assert!(!backup.exists());
+    }
+
+    #[test]
+    fn restores_official_with_an_empty_conflicting_backup() {
+        let root = TestDir::new();
+        let paths = claudedesktop_paths_at(root.path());
+        let relay = root.path().join("relay.json");
+        let backup = backup_library(&paths);
+        fs::create_dir_all(&paths.lib_dir).unwrap();
+        fs::write(paths.lib_dir.join("other.json"), b"live-profile").unwrap();
+        fs::create_dir(&backup).unwrap();
+        fs::write(&relay, br#"{"mode":"firstParty"}"#).unwrap();
+
+        restore_at(&paths, &relay).unwrap();
+
+        assert!(!relay.exists());
+        assert!(!backup.exists());
+        assert_eq!(
+            fs::read(paths.lib_dir.join("other.json")).unwrap(),
+            b"live-profile"
+        );
+    }
+
+    #[test]
+    fn preserves_both_libraries_when_a_conflicting_backup_contains_files() {
+        let root = TestDir::new();
+        let paths = claudedesktop_paths_at(root.path());
+        let relay = root.path().join("relay.json");
+        let backup = backup_library(&paths);
+        fs::create_dir_all(&paths.lib_dir).unwrap();
+        fs::write(paths.lib_dir.join("other.json"), b"live-profile").unwrap();
+        fs::create_dir(&backup).unwrap();
+        fs::write(backup.join(".hidden"), b"backup-profile").unwrap();
+
+        assert_eq!(
+            with_test_models(|| apply_at(&test_info(), &paths, &relay)).unwrap_err(),
+            "Claude Desktop has an unrecovered profile backup."
+        );
+        assert_eq!(
+            restore_at(&paths, &relay).unwrap_err(),
+            "Claude Desktop profiles changed while local mode was active."
+        );
+        assert_eq!(
+            fs::read(paths.lib_dir.join("other.json")).unwrap(),
+            b"live-profile"
+        );
+        assert_eq!(fs::read(backup.join(".hidden")).unwrap(), b"backup-profile");
+        assert!(!relay.exists());
+        assert!(!paths.cfg_official.exists());
+        assert!(!paths.cfg_threep.exists());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn preserves_a_conflicting_backup_link_to_an_empty_directory() {
+        let root = TestDir::new();
+        let paths = claudedesktop_paths_at(root.path());
+        let backup = backup_library(&paths);
+        let target = root.path().join("empty");
+        fs::create_dir_all(&paths.lib_dir).unwrap();
+        fs::create_dir(&target).unwrap();
+        std::os::unix::fs::symlink(&target, &backup).unwrap();
+
+        assert!(clear_empty_backup_conflict(&paths.lib_dir, &backup, "conflict").is_err());
+
+        assert_eq!(fs::read_link(backup).unwrap(), target);
+        assert!(target.is_dir());
     }
 
     #[test]
