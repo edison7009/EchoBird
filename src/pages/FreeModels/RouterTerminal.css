@@ -1,4 +1,8 @@
 .router-terminal {
+  /* The CRT glass shared by the screen and its chosen tab. */
+  --crt-edge: #04140b;
+  --crt-rim: rgb(129 213 166 / 0.22);
+  --crt-scanlines: repeating-linear-gradient(180deg, rgb(0 0 0 / 0.22) 0 1px, transparent 1px 3px);
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -7,6 +11,8 @@
 }
 
 .router-terminal-toolbar {
+  /* The screen's top rim, drawn here so the chosen tab can cover it. */
+  box-shadow: inset 0 -1px 0 var(--crt-rim);
   display: flex;
   align-items: stretch;
   justify-content: space-between;
@@ -51,13 +57,30 @@
 }
 
 .router-terminal .router-terminal-groups > .view-mode-tab[aria-pressed='true'] {
-  /* Part of the screen in every theme: its glass colour, a lit phosphor
-     label and a thin green rim along the top. */
+  /* A tab of the screen itself, in every theme: the glass's edge colour, its
+     rim on three sides, its scanlines, and a lit phosphor label behind a
+     prompt. It covers the rim line the toolbar draws along the screen's top. */
+  position: relative;
   color: #a6f2c4;
-  background: #051a10;
-  box-shadow: inset 0 1px 0 rgb(129 213 166 / 0.45);
-  text-shadow: 0 0 6px rgb(129 213 166 / 0.55);
+  background: var(--crt-edge);
+  box-shadow:
+    inset 1px 0 0 var(--crt-rim),
+    inset -1px 0 0 var(--crt-rim),
+    inset 0 1px 0 var(--crt-rim);
+  text-shadow: 0 0 6px rgb(129 213 166 / 0.6);
   animation: none;
+}
+.router-terminal .router-terminal-groups > .view-mode-tab[aria-pressed='true']::before {
+  content: '>';
+  color: rgb(129 213 166 / 0.7);
+}
+.router-terminal .router-terminal-groups > .view-mode-tab[aria-pressed='true']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: var(--crt-scanlines);
 }
 
 .router-terminal-protection {
@@ -88,11 +111,17 @@
   flex: 1;
   min-height: 0;
   padding: 24px;
-  /* A green phosphor screen: brightest in the middle, dark at the edges. */
-  background: radial-gradient(120% 90% at 50% 45%, #062014, #020805 75%);
+  /* A green phosphor screen: brightest in the middle, settling to the edge
+     colour its tab shares; the shade gathers at the sides and the foot, so
+     the top edge meets the tab without a seam. */
+  background: radial-gradient(120% 90% at 50% 45%, #082a19, var(--crt-edge) 72%);
   box-shadow:
-    inset 0 0 70px rgb(0 0 0 / 0.55),
-    inset 0 0 0 1px rgb(129 213 166 / 0.08);
+    inset 0 -50px 60px -30px rgb(0 0 0 / 0.55),
+    inset 50px 0 60px -40px rgb(0 0 0 / 0.35),
+    inset -50px 0 60px -40px rgb(0 0 0 / 0.35),
+    inset 1px 0 0 var(--crt-rim),
+    inset -1px 0 0 var(--crt-rim),
+    inset 0 -1px 0 var(--crt-rim);
   border-radius: 0 0 6px 6px;
 }
 /* Fine scanlines over the whole screen, text included. */
@@ -102,7 +131,7 @@
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: repeating-linear-gradient(180deg, rgb(0 0 0 / 0.22) 0 1px, transparent 1px 3px);
+  background: var(--crt-scanlines);
 }
 
 .router-terminal-screen > canvas {
