@@ -10,6 +10,7 @@ let view: ReactTestRenderer;
 let resize: () => void;
 let disconnect: ReturnType<typeof vi.fn>;
 let lineTop: number;
+let lineRight: number;
 let doc: EventTarget & { visibilityState: string };
 
 beforeEach(() => {
@@ -32,6 +33,7 @@ beforeEach(() => {
   vi.stubGlobal('localStorage', { getItem: vi.fn(), setItem: vi.fn() });
   useEasterEggStore.setState({ enabled: true });
   lineTop = 400;
+  lineRight = 248;
 });
 
 afterEach(() => {
@@ -46,7 +48,9 @@ function mount() {
     current: { getBoundingClientRect: () => ({ left: 16, top: 40 }) } as HTMLElement,
   };
   const perchRef = {
-    current: { getBoundingClientRect: () => ({ right: 248, top: lineTop }) } as HTMLDivElement,
+    current: {
+      getBoundingClientRect: () => ({ right: lineRight, top: lineTop }),
+    } as HTMLDivElement,
   };
   act(() => {
     view = create(<BirdEasterEgg sidebarRef={sidebarRef} perchRef={perchRef} />, {
@@ -450,6 +454,24 @@ describe('BirdEasterEgg', () => {
     expect(phase()).toBe('idle');
     advance(30 * 60000 - 1);
     expect(phase()).toBe('idle');
+  });
+
+  it('keeps the perched bird clear of the navigation icons in a narrow sidebar', () => {
+    lineRight = 76;
+    mount();
+    launch();
+    [220, 280, 900].forEach(advance);
+    const x = () => view.root.findByProps({ className: 'bird-easter-egg-x' }).props.style.transform;
+    expect(x()).toBe('translateX(74px)');
+    advance(2400);
+    expect(x()).toBe('translateX(74px)');
+    advance(220);
+    expect(phase()).toBe('standing');
+    expect(x()).toBe('translateX(74px)');
+
+    lineRight = 248;
+    act(() => resize());
+    expect(x()).toBe('translateX(210.6px)');
   });
 
   it('keeps the feet on the separator after resizing and leaves only the perched bird interactive', () => {

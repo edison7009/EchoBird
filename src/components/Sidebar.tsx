@@ -87,7 +87,7 @@ function SidebarToggle({
           aria-checked={checked}
           aria-busy={pending}
           disabled={disabled || pending}
-          className={`mx-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors ${disabled ? 'disabled:opacity-40' : ''} ${checked ? 'bg-cyber-accent/15 text-cyber-accent' : 'text-cyber-text-secondary hover:bg-cyber-elevated/50 hover:text-cyber-text'}`}
+          className={`ml-1 mr-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors ${disabled ? 'disabled:opacity-40' : ''} ${checked ? 'bg-cyber-accent/15 text-cyber-accent' : 'text-cyber-text-secondary hover:bg-cyber-elevated/50 hover:text-cyber-text'}`}
           onClick={() => {
             if (!disabled && !pending) return onChange(!checked);
           }}
@@ -169,10 +169,12 @@ export const Sidebar = ({
       type="button"
       aria-label={t('settings.title')}
       onClick={onSettingsClick}
-      className={`flex h-10 items-center rounded-lg font-medium text-cyber-text-secondary transition-colors hover:bg-cyber-elevated/50 hover:text-cyber-text ${collapsed ? 'mx-auto w-10 justify-center' : 'min-w-0 flex-1 gap-3 px-2'}`}
+      className={`ml-1 flex h-10 items-center overflow-hidden rounded-lg px-2 font-medium text-cyber-text-secondary transition-colors hover:bg-cyber-elevated/50 hover:text-cyber-text [&>svg]:shrink-0 ${collapsed ? 'mr-auto w-10 shrink-0' : 'min-w-0 flex-1 gap-3'}`}
     >
       <Settings size={20} strokeWidth={1.75} />
-      <span className={collapsed ? 'sr-only' : undefined}>{t('settings.title')}</span>
+      <span className={collapsed ? 'sr-only' : 'min-w-0 overflow-hidden whitespace-nowrap'}>
+        {t('settings.title')}
+      </span>
     </button>
   );
   return (
@@ -180,11 +182,9 @@ export const Sidebar = ({
       id="app-sidebar"
       ref={sidebarRef}
       data-collapsed={collapsed}
-      className={`relative flex shrink-0 flex-col pb-1 transition-[width,padding,margin] duration-200 ease-out motion-reduce:transition-none ${collapsed ? 'w-16 -ml-4 px-2' : 'w-48 -ml-2 px-2'}`}
+      className={`relative -ml-4 flex shrink-0 flex-col px-2 pb-1 transition-[width] duration-200 ease-out motion-reduce:transition-none ${collapsed ? 'w-16' : 'w-[12.5rem]'}`}
     >
-      <div
-        className={`mb-7 flex-shrink-0 flex items-center ${collapsed ? 'relative justify-center' : 'gap-2 overflow-hidden'}`}
-      >
+      <div className="mb-7 flex shrink-0 items-center gap-2 overflow-hidden whitespace-nowrap pl-2.5">
         <BirdEasterEgg sidebarRef={sidebarRef} perchRef={perchRef} />
         {!collapsed && (
           <span className="brand-mark flex-shrink-0 text-cyber-text">{t('app.name')}</span>

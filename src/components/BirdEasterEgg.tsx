@@ -79,15 +79,18 @@ export function BirdEasterEgg({ sidebarRef, perchRef }: BirdEasterEggProps) {
       const bounds = sidebar.getBoundingClientRect();
       const home = logo.getBoundingClientRect();
       const line = perch.getBoundingClientRect();
+      const homeX = home.left + home.width / 2 - bounds.left;
       setAnchors({
         container: sidebar,
         home: {
-          x: home.left + home.width / 2 - bounds.left,
+          x: homeX,
           y: home.top + home.height / 2 - bounds.top,
         },
         // The approved standing canvas places the feet at (374, 533) / 640.
         perch: {
-          x: line.right - bounds.left - 16 - (54 / 640) * 64,
+          // In the collapsed sidebar the logo and navigation icons share a centerline.
+          // Keep the bird to the right so transparent frames never expose an icon through it.
+          x: Math.max(line.right - bounds.left - 16 - (54 / 640) * 64, homeX + 36),
           y: line.top - bounds.top - (213 / 640) * 64,
         },
       });

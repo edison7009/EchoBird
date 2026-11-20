@@ -215,7 +215,7 @@ describe('Sidebar', () => {
     act(() => items.find((item) => item.props['aria-label'] === 'voice.input')!.props.onClick());
     expect(baseProps.onPageChange).toHaveBeenCalledExactlyOnceWith('voice');
     act(() => useSidebarStore.getState().setCollapsed(false));
-    expect(rail.props.className).toContain('w-48');
+    expect(rail.props.className).toContain('w-[12.5rem]');
     const expandedItems = renderer.root
       .findAllByType('button')
       .filter((button) => button.props['aria-label'] && button.props.role !== 'switch');

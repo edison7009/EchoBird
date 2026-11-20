@@ -36,7 +36,7 @@ export const NavItem = React.memo(
         type="button"
         aria-label={label}
         aria-current={active ? 'page' : undefined}
-        className={`relative flex items-center ${collapsed ? 'mx-auto h-10 w-10 shrink-0 justify-center' : 'w-full gap-3'} p-2 cursor-default text-left transition-colors rounded-lg font-medium ${
+        className={`relative ml-1 flex h-10 items-center overflow-hidden px-2 [&>svg]:shrink-0 ${collapsed ? 'mr-auto w-10 shrink-0' : 'w-[calc(100%-0.25rem)] gap-3'} cursor-default text-left transition-colors rounded-lg font-medium ${
           active
             ? colorClasses
             : 'hover:bg-cyber-elevated/50 text-cyber-text-secondary hover:text-cyber-text'
@@ -44,7 +44,9 @@ export const NavItem = React.memo(
         onClick={onClick}
       >
         {icon}
-        <span className={collapsed ? 'sr-only' : undefined}>{label}</span>
+        <span className={collapsed ? 'sr-only' : 'min-w-0 overflow-hidden whitespace-nowrap'}>
+          {label}
+        </span>
         {trailing && (
           <span
             className={
