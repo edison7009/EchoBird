@@ -12,10 +12,13 @@ vi.mock('../../api/tauri', () => ({
   listSmartRouters: vi.fn(),
   getSmartRouterCandidates: vi.fn(),
   getCachedFreeModelDirectory: vi.fn(),
+  addModel: vi.fn(),
+  deleteModel: vi.fn(),
   saveSmartRouter: vi.fn(),
   deleteSmartRouter: vi.fn(),
   setSmartRouterCandidateEnabled: vi.fn(),
   setSmartRouterCandidates: vi.fn(),
+  replaceSmartRouterCandidate: vi.fn(),
   removeSmartRouterCandidate: vi.fn(),
   updateModel: vi.fn(),
 }));
@@ -147,7 +150,7 @@ it('keeps a completed deletion successful when the fallback read fails without s
   expect(api.saveSmartRouter).not.toHaveBeenCalled();
 });
 
-it.each(['toggle', 'add', 'model', 'remove', 'reorder'] as const)(
+it.each(['toggle', 'add', 'copy', 'model', 'replace', 'remove', 'reorder'] as const)(
   'does not apply a queued %s from an old panel after a successful page-entry fallback',
   async (action) => {
     await open();
@@ -162,13 +165,18 @@ it.each(['toggle', 'add', 'model', 'remove', 'reorder'] as const)(
       operation =
         action === 'toggle'
           ? context.setCandidateEnabled(candidate.internalId, false)
-          : action === 'add'
-            ? context.addSelectedModel({ ...candidate, modelId: 'upstream' })
+          : action === 'add' || action === 'copy'
+            ? context.addSelectedModel(candidate, { copy: action === 'copy' })
             : action === 'model'
               ? context.changeSelectedModel(candidate.internalId, 'other')
-              : action === 'remove'
-                ? context.removeSelectedModel(candidate.internalId)
-                : context.reorderSelectedModel(candidate.internalId, 'other-model');
+              : action === 'replace'
+                ? context.replaceSelectedModel(candidate.internalId, {
+                    ...candidate,
+                    internalId: 'replacement',
+                  })
+                : action === 'remove'
+                  ? context.removeSelectedModel(candidate.internalId)
+                  : context.reorderSelectedModel(candidate.internalId, 'other-model');
       void operation.catch(() => undefined);
     });
     await act(async () => {
@@ -178,12 +186,95 @@ it.each(['toggle', 'add', 'model', 'remove', 'reorder'] as const)(
     expect(context.activeRouterId).toBe(secondId);
     expect(api.setSmartRouterCandidateEnabled).not.toHaveBeenCalled();
     expect(api.setSmartRouterCandidates).not.toHaveBeenCalled();
+    expect(api.replaceSmartRouterCandidate).not.toHaveBeenCalled();
+    expect(api.addModel).not.toHaveBeenCalled();
     expect(api.removeSmartRouterCandidate).not.toHaveBeenCalled();
     expect(api.updateModel).not.toHaveBeenCalled();
     expect(api.saveSmartRouter).not.toHaveBeenCalled();
     expect(api.deleteSmartRouter).not.toHaveBeenCalled();
   }
 );
+
+it('attaches a copied model to the original group before a queued group switch', async () => {
+  await open();
+  const copy: typeof candidate & { scope: 'smartRouter' } = {
+    ...candidate,
+    internalId: 'copied-model',
+    scope: 'smartRouter',
+  };
+  let finishCopy!: (model: typeof copy) => void;
+  vi.mocked(api.addModel).mockImplementationOnce(
+    () => new Promise((resolve) => (finishCopy = resolve))
+  );
+  vi.mocked(api.setSmartRouterCandidates).mockImplementationOnce(async (candidateIds) => ({
+    ...groups[0],
+    candidateIds,
+  }));
+  let addition!: Promise<void>;
+  await act(async () => {
+    addition = context.addSelectedModel(candidate, { copy: true });
+  });
+  expect(api.addModel).toHaveBeenCalledExactlyOnceWith({
+    name: candidate.name,
+    baseUrl: candidate.baseUrl,
+    apiKey: candidate.apiKey,
+    modelId: candidate.modelId,
+    scope: 'smartRouter',
+  });
+  let switchGroup!: Promise<void>;
+  await act(async () => {
+    switchGroup = context.selectRouter(secondId);
+  });
+  expect(context.activeRouterId).toBe('smart-router');
+  expect(api.getSmartRouterCandidates).not.toHaveBeenCalledWith(secondId);
+  await act(async () => {
+    finishCopy(copy);
+    await Promise.all([addition, switchGroup]);
+  });
+  expect(api.setSmartRouterCandidates).toHaveBeenCalledExactlyOnceWith([
+    candidate.internalId,
+    copy.internalId,
+  ]);
+  expect(api.deleteModel).not.toHaveBeenCalled();
+  expect(context.activeRouterId).toBe(secondId);
+  expect([...context.selectedIds]).toEqual([candidate.internalId]);
+});
+
+it('deletes a new copy when attaching it fails and leaves the original group intact', async () => {
+  await open();
+  const copy = { ...candidate, internalId: 'copied-model', scope: 'smartRouter' as const };
+  const rejected = new Error('Fixture candidate write failed');
+  vi.mocked(api.addModel).mockResolvedValueOnce(copy);
+  vi.mocked(api.setSmartRouterCandidates).mockRejectedValueOnce(rejected);
+  vi.mocked(api.deleteModel).mockResolvedValueOnce(true);
+  await act(async () => {
+    await expect(context.addSelectedModel(candidate, { copy: true })).rejects.toBe(rejected);
+  });
+  expect(api.deleteModel).toHaveBeenCalledExactlyOnceWith(copy.internalId);
+  expect([...context.selectedIds]).toEqual([candidate.internalId]);
+});
+
+it('replaces a paused row via the same-group command and reflects the returned pause', async () => {
+  const replacement = { ...candidate, internalId: 'replacement', modelId: 'next-model' };
+  groups[1].disabledCandidateIds = [candidate.internalId];
+  await open();
+  await act(async () => context.selectRouter(secondId));
+  expect([...context.pausedIds]).toEqual([candidate.internalId]);
+  vi.mocked(api.replaceSmartRouterCandidate).mockResolvedValueOnce({
+    ...groups[1],
+    candidateIds: [replacement.internalId],
+    disabledCandidateIds: [replacement.internalId],
+  });
+  await act(async () => context.replaceSelectedModel(candidate.internalId, replacement));
+  expect(api.replaceSmartRouterCandidate).toHaveBeenCalledExactlyOnceWith(
+    candidate.internalId,
+    replacement.internalId,
+    secondId
+  );
+  expect(api.setSmartRouterCandidates).not.toHaveBeenCalled();
+  expect([...context.pausedIds]).toEqual([replacement.internalId]);
+  expect(context.customModels.map((model) => model.id)).toEqual([replacement.internalId]);
+});
 
 it.each(['save', 'delete'] as const)(
   'still reports a failed %s write without treating it as committed',

@@ -88,6 +88,20 @@ export async function getSmartRouterCandidates(routerId?: string): Promise<Model
   return invoke('get_smart_router_candidates', routerId ? { routerId } : undefined);
 }
 
+export async function replaceSmartRouterCandidate(
+  internalId: string,
+  replacementId: string,
+  routerId?: string
+): Promise<SmartRouterConfig> {
+  const result = await invoke<SmartRouterConfig>('replace_smart_router_candidate', {
+    internalId,
+    replacementId,
+    routerId,
+  });
+  window.dispatchEvent(new Event('models-changed'));
+  return result;
+}
+
 export async function removeSmartRouterCandidate(
   internalId: string,
   routerId?: string

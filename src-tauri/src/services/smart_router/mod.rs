@@ -124,6 +124,41 @@ impl StoredConfig {
         }
         Ok(())
     }
+
+    fn replace_candidate(
+        &mut self,
+        internal_id: &str,
+        replacement_id: &str,
+        user_models: &[ModelConfig],
+    ) -> Result<(), String> {
+        let index = self
+            .candidate_ids
+            .iter()
+            .position(|id| id == internal_id)
+            .ok_or_else(|| format!("Smart Router candidate not found: {internal_id}"))?;
+        if self.candidate_ids.iter().any(|id| id == replacement_id) {
+            return Err(format!(
+                "Smart Router candidate already added: {replacement_id}"
+            ));
+        }
+        if !user_models
+            .iter()
+            .any(|model| model.internal_id == replacement_id && model_is_routable(model))
+        {
+            return Err(format!(
+                "Smart Router cannot add an unavailable model: {replacement_id}"
+            ));
+        }
+        self.candidate_ids[index] = replacement_id.to_string();
+        self.disabled_candidate_ids
+            .retain(|id| id != replacement_id);
+        for id in &mut self.disabled_candidate_ids {
+            if id == internal_id {
+                *id = replacement_id.to_string();
+            }
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -324,6 +359,18 @@ pub fn set_candidate_enabled(internal_id: &str, enabled: bool) -> Result<PublicC
     let mut config = load_config_unlocked()?;
     config.set_candidate_enabled(internal_id, enabled)?;
     save_config_unlocked(&config)?;
+    Ok(public_config(config))
+}
+
+pub fn replace_candidate(internal_id: &str, replacement_id: &str) -> Result<PublicConfig, String> {
+    let user_models = model_manager::get_user_models();
+    let _guard = config_lock()
+        .lock()
+        .map_err(|_| "smart router config lock poisoned".to_string())?;
+    let mut config = load_config_unlocked()?;
+    config.replace_candidate(internal_id, replacement_id, &user_models)?;
+    save_config_unlocked(&config)?;
+    server::retain_candidate_memory(&config.candidate_ids);
     Ok(public_config(config))
 }
 
@@ -660,6 +707,43 @@ mod tests {
         assert_eq!(restored.api_key, "fixture-key");
         assert!(restored.set_candidate_enabled("missing", false).is_err());
         assert!(restored.disabled_candidate_ids.is_empty());
+    }
+
+    #[test]
+    fn replacing_a_candidate_preserves_its_slot_and_pause_in_saved_config() {
+        let path = tempfile::tempdir().unwrap();
+        let file = path.path().join("router.json");
+        let mut config: StoredConfig = serde_json::from_value(serde_json::json!({
+            "candidateIds": ["first", "old", "last"],
+            "disabledCandidateIds": ["old", "last"]
+        }))
+        .unwrap();
+        let replacement: ModelConfig = serde_json::from_value(serde_json::json!({
+            "internalId": "next",
+            "name": "Fixture",
+            "modelId": "next-model",
+            "baseUrl": "https://fixture.example/v1",
+            "apiKey": "fixture"
+        }))
+        .unwrap();
+        let models = [replacement];
+        assert!(config
+            .replace_candidate("missing", "next", &models)
+            .is_err());
+        assert!(config.replace_candidate("old", "last", &models).is_err());
+        assert!(config.replace_candidate("old", "unknown", &models).is_err());
+        assert_eq!(config.candidate_ids, ["first", "old", "last"]);
+        assert_eq!(config.disabled_candidate_ids, ["old", "last"]);
+
+        config.replace_candidate("old", "next", &models).unwrap();
+        save_config_at(&file, &config).unwrap();
+        let mut saved: StoredConfig = serde_json::from_slice(&fs::read(&file).unwrap()).unwrap();
+        assert_eq!(saved.candidate_ids, ["first", "next", "last"]);
+        assert_eq!(saved.disabled_candidate_ids, ["next", "last"]);
+        assert_eq!(saved.active_candidate_ids(), ["first"]);
+
+        saved.set_candidate_enabled("next", true).unwrap();
+        assert_eq!(saved.active_candidate_ids(), ["first", "next"]);
     }
 
     #[test]

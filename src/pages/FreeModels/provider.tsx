@@ -54,7 +54,7 @@ interface FreeModelsContextValue {
   setCandidateEnabled: (id: string, enabled: boolean) => Promise<void>;
   setRouterEnabled: (enabled: boolean) => Promise<void>;
   refresh: () => Promise<void>;
-  addSelectedModel: (model: RouteModelInput) => Promise<void>;
+  addSelectedModel: (model: RouteModelInput, options?: { copy: boolean }) => Promise<void>;
   /** Puts another saved model (same key, other model ID) in a route slot, in its place. */
   replaceSelectedModel: (id: string, model: RouteModelInput) => Promise<void>;
   updateSelectedModel: (model: RouteModelInput) => void;
@@ -479,10 +479,9 @@ export function FreeModelsProvider({ children }: { children: ReactNode }) {
   }, [showToast, t]);
 
   const addSelectedModel = useCallback(
-    async (model: RouteModelInput) => {
+    async (model: RouteModelInput, options?: { copy: boolean }) => {
       if (groupTransition.current) throw new Error('Smart router selection is changing');
       const routerId = activeRouterRef.current;
-      const id = model.internalId;
       const addition = routerMutationRef.current
         .catch(() => undefined)
         .then(async () => {
@@ -491,10 +490,34 @@ export function FreeModelsProvider({ children }: { children: ReactNode }) {
           if (!routerLoadedRef.current) await loadRouter();
           if (activeRouterRef.current !== routerId)
             throw new Error('Smart router selection changed');
+          // Creating and attaching the copy share the same queue as group changes.
+          const copy = options?.copy
+            ? await api.addModel({
+                name: model.name,
+                baseUrl: model.baseUrl,
+                anthropicUrl: model.anthropicUrl || undefined,
+                apiKey: model.apiKey ?? '',
+                accountSource: model.accountSource,
+                modelId: model.modelId,
+                scope: 'smartRouter',
+              })
+            : undefined;
+          const selected = copy ?? model;
+          const id = selected.internalId;
           const candidateIds = [...new Set([...selectedIdsRef.current, id])];
-          const router = await api.setSmartRouterCandidates(candidateIds, ...routerArgs());
-          if (!router.candidateIds.includes(id)) {
-            throw new Error(`Smart Router rejected candidate: ${id}`);
+          let router: api.SmartRouterConfig;
+          try {
+            router = await api.setSmartRouterCandidates(candidateIds, ...routerArgs());
+            if (!router.candidateIds.includes(id)) {
+              throw new Error(`Smart Router rejected candidate: ${id}`);
+            }
+          } catch (error) {
+            if (copy) {
+              await api.deleteModel(id).catch((rollbackError) => {
+                console.error('Rollback smart router model failed:', rollbackError);
+              });
+            }
+            throw error;
           }
 
           const nextIds = new Set(router.candidateIds);
@@ -505,14 +528,14 @@ export function FreeModelsProvider({ children }: { children: ReactNode }) {
             ...current.filter((entry) => entry.id !== id),
             {
               id,
-              internalId: model.internalId,
-              provider: model.name,
-              modelId: model.modelId,
-              baseUrl: model.baseUrl,
-              anthropicUrl: model.anthropicUrl,
-              apiKey: model.apiKey,
-              accountSource: model.accountSource,
-              scope: model.scope,
+              internalId: id,
+              provider: selected.name,
+              modelId: selected.modelId ?? model.modelId,
+              baseUrl: selected.baseUrl,
+              anthropicUrl: selected.anthropicUrl,
+              apiKey: selected.apiKey,
+              accountSource: selected.accountSource,
+              scope: selected.scope,
             },
           ]);
           setRouterBaseUrl(router.baseUrl.replace(/^https?:\/\//, ''));
@@ -526,23 +549,18 @@ export function FreeModelsProvider({ children }: { children: ReactNode }) {
   const replaceSelectedModel = useCallback(
     async (id: string, model: RouteModelInput) => {
       if (groupTransition.current) throw new Error('Smart router selection is changing');
+      if (savingModelIdsRef.current.has(id)) return;
       const routerId = activeRouterRef.current;
       const next = model.internalId;
+      savingModelIdsRef.current.add(id);
+      setSavingModelIds(new Set(savingModelIdsRef.current));
       const replacement = routerMutationRef.current
         .catch(() => undefined)
         .then(async () => {
           if (!routerLoadedRef.current) await loadRouter();
           if (activeRouterRef.current !== routerId)
             throw new Error('Smart router selection changed');
-          const current = [...selectedIdsRef.current];
-          if (!current.includes(id)) throw new Error(`Smart router model not found: ${id}`);
-          if (current.includes(next)) throw new Error(`Smart router model already added: ${next}`);
-          // Same position in the route; the saved models themselves are not changed.
-          const candidateIds = current.map((entry) => (entry === id ? next : entry));
-          const router = await api.setSmartRouterCandidates(candidateIds, ...routerArgs());
-          if (!router.candidateIds.includes(next)) {
-            throw new Error(`Smart Router rejected candidate: ${next}`);
-          }
+          const router = await api.replaceSmartRouterCandidate(id, next, ...routerArgs());
           const nextIds = new Set(router.candidateIds);
           selectedIdsRef.current = nextIds;
           setSelectedIds(nextIds);
@@ -567,7 +585,12 @@ export function FreeModelsProvider({ children }: { children: ReactNode }) {
         () => undefined,
         () => undefined
       );
-      await replacement;
+      try {
+        await replacement;
+      } finally {
+        savingModelIdsRef.current.delete(id);
+        setSavingModelIds(new Set(savingModelIdsRef.current));
+      }
     },
     [loadRouter]
   );

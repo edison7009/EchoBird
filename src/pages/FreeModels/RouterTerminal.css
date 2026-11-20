@@ -50,6 +50,16 @@
   color: rgb(159 240 192 / 0.85);
 }
 
+:root[data-theme='light'] .router-terminal-groups > .view-mode-tab[aria-pressed='false'] {
+  color: #276748;
+}
+
+:root[data-theme='light']
+  .router-terminal-groups
+  > .view-mode-tab[aria-pressed='false']:hover:enabled {
+  color: #164c32;
+}
+
 .router-terminal-groups > .view-mode-tab > span {
   max-width: 180px;
   overflow: hidden;

@@ -1883,57 +1883,23 @@ export function FreeModelsPanel() {
   // models are added), whose model ID is switched on its route card.
   const addSavedKey = async (models: (typeof userModels)[number][]) => {
     const next = models.find((model) => !selectedIds.has(model.internalId));
-    if (next) return addSavedModel(next);
-    const base = models[0];
-    if (adding.current || !base) return;
+    const model = next ?? models[0];
+    if (adding.current || !model) return;
     adding.current = true;
     try {
-      const copy = await modelApi.addModel({
-        name: base.name,
-        baseUrl: base.baseUrl,
-        anthropicUrl: base.anthropicUrl || undefined,
-        apiKey: base.apiKey,
-        modelId: base.modelId,
-        scope: 'smartRouter',
-      });
-      try {
-        await addSelectedModel({
-          internalId: copy.internalId,
-          name: copy.name,
-          baseUrl: copy.baseUrl,
-          anthropicUrl: copy.anthropicUrl,
-          apiKey: copy.apiKey,
-          modelId: copy.modelId ?? base.modelId ?? '',
-          scope: copy.scope,
-        });
-      } catch (error) {
-        await modelApi.deleteModel(copy.internalId).catch((rollbackError) => {
-          console.error('Rollback smart router model failed:', rollbackError);
-        });
-        throw error;
-      }
-    } catch (error) {
-      console.error('Add saved key to smart router failed:', error);
-      showToast('error', t('freeModels.saved.addFailed'));
-    } finally {
-      adding.current = false;
-    }
-  };
-
-  const addSavedModel = async (model: (typeof userModels)[number]) => {
-    if (adding.current || selectedIds.has(model.internalId)) return;
-    adding.current = true;
-    try {
-      await addSelectedModel({
-        internalId: model.internalId,
-        name: model.name,
-        baseUrl: model.baseUrl,
-        anthropicUrl: model.anthropicUrl,
-        apiKey: model.apiKey,
-        modelId: model.modelId ?? '',
-        accountSource: model.accountSource,
-        scope: model.scope,
-      });
+      await addSelectedModel(
+        {
+          internalId: model.internalId,
+          name: model.name,
+          baseUrl: model.baseUrl,
+          anthropicUrl: model.anthropicUrl,
+          apiKey: model.apiKey,
+          modelId: model.modelId ?? '',
+          accountSource: model.accountSource,
+          scope: model.scope,
+        },
+        { copy: !next }
+      );
     } catch (error) {
       console.error('Add saved model to smart router failed:', error);
       showToast('error', t('freeModels.saved.addFailed'));

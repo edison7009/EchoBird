@@ -1163,6 +1163,7 @@ pub fn run() {
                 smart_router_commands::get_smart_router_candidates,
                 smart_router_commands::remove_smart_router_candidate,
                 smart_router_commands::set_smart_router_candidates,
+                smart_router_commands::replace_smart_router_candidate,
                 smart_router_commands::test_smart_router_candidate,
                 smart_router_commands::cancel_smart_router_probe,
                 process_commands::start_tool,

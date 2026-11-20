@@ -66,6 +66,17 @@ pub fn set_smart_router_candidates(
 }
 
 #[tauri::command]
+pub fn replace_smart_router_candidate(
+    internal_id: String,
+    replacement_id: String,
+    router_id: Option<String>,
+) -> Result<PublicConfig, String> {
+    smart_router::profiles::checked(router_id, || {
+        smart_router::replace_candidate(&internal_id, &replacement_id)
+    })?
+}
+
+#[tauri::command]
 pub fn get_smart_router_candidates(router_id: Option<String>) -> Result<Vec<ModelConfig>, String> {
     smart_router::profiles::checked(router_id, smart_router::get_candidate_models)
 }
