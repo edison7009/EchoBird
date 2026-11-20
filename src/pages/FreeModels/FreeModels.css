@@ -50,23 +50,20 @@
   background-color: rgb(var(--bg-elevated-rgb));
 }
 
-/* The hub. Off: a raised card, lit from above with a soft shadow beneath.
-   On: the accent glow inside it breathes slowly. */
+/* The hub: the same soft tint as the cards on the route, in the accent.
+   On: an accent glow inside and around it breathes slowly. */
 .free-model-router-group {
+  --router-tint: 22%;
   isolation: isolate;
   background-color: rgb(var(--bg-surface-rgb));
   background-image: linear-gradient(
-    180deg,
-    rgb(255 255 255 / 0.07),
-    rgb(255 255 255 / 0.015) 45%,
-    rgb(0 0 0 / 0.12)
+    135deg,
+    rgb(var(--bg-surface-rgb)) 30%,
+    color-mix(in srgb, rgb(var(--accent-rgb)) var(--router-tint), rgb(var(--bg-surface-rgb))) 100%
   );
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.1),
-    inset 0 0 0 1px rgb(var(--border-rgb) / 0.7),
-    inset 0 -2px 0 rgb(0 0 0 / 0.18),
-    0 14px 28px -16px rgb(0 0 0 / 0.7),
-    0 3px 6px -2px rgb(0 0 0 / 0.3);
+    inset 0 0 0 1px rgb(255 255 255 / 0.04),
+    inset 0 1px 0 rgb(255 255 255 / 0.05);
   border-color: transparent;
   display: flex;
   flex-direction: column;
@@ -101,13 +98,9 @@
   flex-direction: column;
 }
 
-:root[data-theme='light'] .free-model-router-group {
-  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.9), rgb(255 255 255 / 0) 55%);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.9),
-    inset 0 0 0 1px rgb(var(--border-rgb)),
-    0 14px 28px -16px rgb(0 0 0 / 0.25),
-    0 3px 6px -2px rgb(0 0 0 / 0.08);
+:root[data-theme='light'] .free-model-router-group,
+:root[data-theme='light'] .free-model-router-page-arrow {
+  --router-tint: 14%;
 }
 .free-model-router-group::before {
   content: '';
@@ -564,37 +557,24 @@
   box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.05);
 }
 
-/* Page arrows: small cards of the hub's own material, raised and lit from above. */
+/* Page arrows: small cards of the hub's own material. */
 .free-model-router-page-arrow {
+  --router-tint: 22%;
   background-color: rgb(var(--bg-surface-rgb));
   background-image: linear-gradient(
-    180deg,
-    rgb(255 255 255 / 0.07),
-    rgb(255 255 255 / 0.015) 45%,
-    rgb(0 0 0 / 0.12)
+    135deg,
+    rgb(var(--bg-surface-rgb)) 30%,
+    color-mix(in srgb, rgb(var(--accent-rgb)) var(--router-tint), rgb(var(--bg-surface-rgb))) 100%
   );
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.1),
-    inset 0 0 0 1px rgb(var(--border-rgb) / 0.7),
-    inset 0 -2px 0 rgb(0 0 0 / 0.18),
-    0 10px 20px -12px rgb(0 0 0 / 0.7),
-    0 2px 4px -1px rgb(0 0 0 / 0.3);
-  transition:
-    background-color 0.3s ease,
-    transform 0.3s cubic-bezier(0.2, 0.8, 0.3, 1);
-}
-:root[data-theme='light'] .free-model-router-page-arrow {
-  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.9), rgb(255 255 255 / 0) 55%);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.9),
-    inset 0 0 0 1px rgb(var(--border-rgb)),
-    0 10px 20px -12px rgb(0 0 0 / 0.25),
-    0 2px 4px -1px rgb(0 0 0 / 0.08);
+    inset 0 0 0 1px rgb(255 255 255 / 0.04),
+    inset 0 1px 0 rgb(255 255 255 / 0.05);
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 .free-model-router-page-arrow:hover:enabled {
-  /* Lifts a little and brightens; the outline stays as it is. */
+  /* Lifts a little and its tint deepens a step. */
+  --router-tint: 34%;
   transform: translateY(calc(-50% - 1px));
-  background-color: color-mix(in srgb, rgb(var(--text-primary-rgb)) 6%, rgb(var(--bg-surface-rgb)));
 }
 .free-model-router-page-arrow:active:enabled {
   transform: translateY(-50%) scale(0.96);
