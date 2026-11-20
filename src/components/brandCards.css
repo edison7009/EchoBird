@@ -436,10 +436,17 @@ div.brand-card {
     border-color 0.2s ease,
     color 0.2s ease;
 }
-.brand-add-slot:hover {
+.brand-add-slot:hover:not(:disabled) {
   border-color: rgb(var(--accent-rgb) / 0.55);
   color: rgb(var(--accent-rgb));
   background: rgb(var(--accent-rgb) / 0.06);
+}
+/* The same slot as a one-line button (plus and label side by side). */
+.brand-add-slot.is-row {
+  flex-direction: row;
+}
+.brand-add-slot:disabled {
+  opacity: 0.5;
 }
 @media (prefers-reduced-motion: reduce) {
   .brand-deck-card,

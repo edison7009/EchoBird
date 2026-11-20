@@ -29,6 +29,7 @@ import {
   type CustomSwitchChoice,
 } from '../../api/customRouterGroup';
 import { SMART_ROUTER_SWITCH_TOOLS, isSmartRouterId } from '../../utils/smartRouter';
+import '../../components/brandCards.css';
 
 interface Channel {
   key: string;
@@ -171,7 +172,7 @@ function QuickAddControl({ desktopTool }: { desktopTool?: DesktopSwitchTarget })
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="mb-2 flex h-14 w-full items-center justify-center gap-2 rounded-card border border-dashed border-cyber-border text-sm text-cyber-text-secondary enabled:hover:bg-cyber-elevated disabled:opacity-50"
+          className="brand-add-slot is-row mb-2 h-14 w-full text-sm"
         >
           <Plus size={20} />
           {t('agent.addCustomSwitch')}
