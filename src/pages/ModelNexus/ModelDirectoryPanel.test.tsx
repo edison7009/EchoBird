@@ -1,7 +1,7 @@
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { open as shellOpen } from '@tauri-apps/plugin-shell';
-import { DirectoryRow } from '../../components/DirectoryRow';
+import { BrandDeckCard } from '../../components/BrandDeckCard';
 import * as api from '../../api/tauri';
 import { ModelNexusPanel } from './ModelNexus';
 
@@ -117,7 +117,14 @@ it('merges the MiniMax editions into one provider with switchable variants', asy
   const labels = renderer!.root
     .findAll((node) => node.type === 'button')
     .map((node) => node.props['aria-label']);
-  expect(labels).toEqual(['btn.addModel', 'Add model: MiniMax', 'Add model: Other']);
+  // Each provider card adds a model; its link icon opens the site.
+  expect(labels).toEqual([
+    'btn.addModel',
+    'Add model: MiniMax',
+    'Open MiniMax website',
+    'Add model: Other',
+    'Open Other website',
+  ]);
   expect(shellOpen).not.toHaveBeenCalled();
   act(() => button('Add model: MiniMax').props.onClick());
   const form = setNewModelForm.mock.calls[0][0];
@@ -157,7 +164,7 @@ it('opens a blank add-model form from the first provider tile', async () => {
   expect(setShowAddModelModal).toHaveBeenCalledExactlyOnceWith(true);
 });
 
-it('keeps sponsored relays as full cards and lists providers compactly', async () => {
+it('lists sponsored relays first, then providers, as directory cards', async () => {
   const entry = (name: string) => ({
     name,
     url: 'https://fixture.test',
@@ -172,8 +179,9 @@ it('keeps sponsored relays as full cards and lists providers compactly', async (
   await act(async () => {
     renderer = create(<ModelNexusPanel />);
   });
-  expect(renderer!.root.findAllByType(DirectoryRow).map((row) => row.props.name)).toEqual([
+  expect(renderer!.root.findAllByType(BrandDeckCard).map((row) => row.props.name)).toEqual([
     'Relay',
+    'Provider',
   ]);
   act(() => button('Add model: Provider').props.onClick());
   expect(setNewModelForm.mock.calls[0][0]).toMatchObject({ name: 'Provider' });
@@ -216,7 +224,7 @@ it('opens one Sidrune relay before CC Vibe with both address tabs', async () => 
   await act(async () => {
     renderer = create(<ModelNexusPanel />);
   });
-  const rows = renderer!.root.findAllByType(DirectoryRow).map((row) => row.props.name);
+  const rows = renderer!.root.findAllByType(BrandDeckCard).map((row) => row.props.name);
   expect(rows.slice(0, 4)).toEqual(['88API', 'GrooRoute Pro', 'Sidrune AI', 'CC Vibe']);
   expect(rows.filter((name) => name.includes('Sidrune'))).toHaveLength(1);
   expect(setNewModelForm).not.toHaveBeenCalled();

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   DndContext,
   PointerSensor,
@@ -34,7 +34,7 @@ import { useAccountCardCache } from './useAccountCardCache';
 import { ZCodeAccountProviderChoice } from '../AppManager/ZCodeAccountSection';
 import { KimiAccountRegionChoice } from '../AppManager/KimiAccountSection';
 import { MinimaxAccountRegionChoice } from '../AppManager/MinimaxAccountSection';
-import { DirectoryRow } from '../../components/DirectoryRow';
+import { BrandDeck, BrandDeckCard } from '../../components/BrandDeckCard';
 import { SortableCard } from '../../components/SortableCard';
 import { AccountPrivacyButton } from '../../components/AccountPrivacyButton';
 import { PageActionButton } from '../../components/PageActionButton';
@@ -51,6 +51,8 @@ import {
   type AccountCardData,
   type AccountProvider,
 } from './accountCenterData';
+import { useBrandColour } from '../../utils/brandColour';
+import '../../components/brandCards.css';
 import '../ModelNexus/ModelNexus.css';
 
 export function AccountCard({
@@ -90,30 +92,55 @@ export function AccountCard({
   const evenlySpaced = !account.authorizationFailed && account.metrics.length === 2 && !balanceOnly;
   const compactMetrics =
     ['minimax', 'doubaowork', 'dola'].includes(provider.id) && account.metrics.length > 3;
+  // The card takes its colour from the provider's icon (as on the model page).
+  const brand = useBrandColour(provider.icon);
+  const logoClass = brand.neutral && brand.glyph ? ' is-neutral-logo' : '';
   return (
     <article
       aria-label={`${name} ${identity}`}
-      className="flex h-44 flex-col gap-2 rounded-card border border-transparent bg-cyber-surface/60 p-3 transition-colors hover:bg-cyber-elevated/70"
+      className="brand-card flex h-44 flex-col gap-2 rounded-card px-[0.95rem] pb-[0.85rem] pt-[0.8rem]"
+      style={{ '--brand': brand.from } as CSSProperties}
     >
-      <div className={`flex items-center ${dragHandle ? 'gap-1.5' : 'gap-2.5'}`}>
+      <img
+        src={provider.icon}
+        alt=""
+        draggable={false}
+        className={`brand-card-mark${logoClass}`}
+        onError={(event) => {
+          event.currentTarget.style.display = 'none';
+        }}
+      />
+      <div className={`flex items-center ${dragHandle ? 'gap-1.5' : 'gap-2'}`}>
         <span className="flex flex-shrink-0 items-center gap-1.5">
-          {dragHandle && <span className="-ml-1 flex h-6 items-center">{dragHandle}</span>}
-          <img src={provider.icon} alt="" className="h-6 w-6 flex-shrink-0 object-contain" />
+          {dragHandle && <span className="-ml-1.5 flex h-6 items-center">{dragHandle}</span>}
+          <img
+            src={provider.icon}
+            alt=""
+            className={`h-5 w-5 flex-shrink-0 rounded object-contain${logoClass}`}
+          />
         </span>
-        <span className="min-w-0 flex-1 truncate text-sm font-bold">{name}</span>
-        <span className="flex flex-shrink-0 items-center gap-1.5 text-cyber-text-muted">
+        <span className="min-w-0 flex-1 truncate text-[13.5px] font-bold">
+          {provider.name}
+          {account.detail && (
+            <span className="font-semibold text-cyber-text-secondary"> · {account.detail}</span>
+          )}
+        </span>
+        <span className="brand-card-actions">
           {account.claim && (
-            <AccountSectionRewardButton
-              email={identity}
-              claimed={claimed}
-              disabled={
-                account.pending ||
-                provider.busy ||
-                account.refreshing ||
-                (currentClaimStatus && account.claimDisabled)
-              }
-              onClaim={() => void account.claim!()}
-            />
+            // Unclaimed daily credits: the gift glows in the accent colour.
+            <span className="flex" data-unclaimed={claimed ? undefined : ''}>
+              <AccountSectionRewardButton
+                email={identity}
+                claimed={claimed}
+                disabled={
+                  account.pending ||
+                  provider.busy ||
+                  account.refreshing ||
+                  (currentClaimStatus && account.claimDisabled)
+                }
+                onClaim={() => void account.claim!()}
+              />
+            </span>
           )}
           {account.warmUp && (
             <AccountSectionWarmUpButton
@@ -138,7 +165,7 @@ export function AccountCard({
         }
       >
         <div className="flex min-w-0 items-center gap-3">
-          <h3 className="min-w-0 flex-1 truncate text-base font-bold">{identity}</h3>
+          <h3 className="min-w-0 flex-1 truncate text-[15px] font-bold">{identity}</h3>
           {(account.plan || hasSubscriptionExpiry) && (
             <span className="flex max-w-[132px] flex-shrink-0 items-center gap-2 text-xs text-cyber-text-secondary">
               {hasSubscriptionExpiry && (
@@ -151,7 +178,7 @@ export function AccountCard({
                 </span>
               )}
               {account.plan && (
-                <span className="min-w-0 truncate leading-normal">
+                <span className="brand-pill brand-plan min-w-0 truncate leading-normal">
                   {provider.id === 'minimax' ? account.plan : accountPlanLabel(account.plan)}
                 </span>
               )}
@@ -201,14 +228,13 @@ export function AccountCard({
             </span>
           ) : (
             account.metrics.map((metric, index) => {
-              const colors =
-                quotaColorClasses[
-                  metric.percent == null && metric.balanceState
-                    ? metric.balanceState === 'available'
-                      ? 'healthy'
-                      : 'critical'
-                    : quotaTone(metric.percent)
-                ];
+              const tone =
+                metric.percent == null && metric.balanceState
+                  ? metric.balanceState === 'available'
+                    ? 'healthy'
+                    : 'critical'
+                  : quotaTone(metric.percent);
+              const colors = quotaColorClasses[tone];
               const loneBalance =
                 balanceOnly && singleMetric && metric.label === t('model.balance');
               const hideLabel =
@@ -258,7 +284,7 @@ export function AccountCard({
                     </span>
                     <span
                       aria-label={hideLabel ? `${metric.label} ${metric.value}` : undefined}
-                      className={`block ${metric.value === '—' ? 'min-w-0 truncate' : 'flex-shrink-0'} ${loneBalance ? 'font-bold' : 'font-semibold'} tabular-nums ${balanceOnly ? 'text-2xl' : 'text-xs'} ${metric.percent != null || metric.balanceState ? colors.text : ''}`}
+                      className={`block ${metric.value === '—' ? 'min-w-0 truncate' : 'flex-shrink-0'} ${loneBalance ? 'font-bold' : 'font-semibold'} tabular-nums ${balanceOnly ? 'text-2xl' : 'text-xs'} ${metric.percent != null || metric.balanceState ? 'brand-quota-value' : ''}${tone === 'critical' ? ' is-critical' : ''}`}
                     >
                       {loneBalance && <span className="mr-2">{metric.label}</span>}
                       {metric.value === '—' ? t('model.noUsageData') : metric.value}
@@ -587,9 +613,7 @@ export function AccountCenterPanel() {
           </span>
           <span className="flex-1 h-px bg-cyber-border/60" />
         </h3>
-        <div className="flex h-12 items-center justify-center rounded-card bg-cyber-surface/60 text-xs text-cyber-text-muted">
-          {t('accountCenter.noSubscriptionProviders')}
-        </div>
+        <div className="brand-deck-empty">{t('accountCenter.noSubscriptionProviders')}</div>
       </section>
       <section>
         <h3 className="px-1 py-2 flex items-center gap-2">
@@ -599,71 +623,69 @@ export function AccountCenterPanel() {
           </span>
           <span className="flex-1 h-px bg-cyber-border/60" />
         </h3>
-        <div className="space-y-2">
+        {/* Each provider is a card of its brand colour in one deck: the card
+            adds an account, the link icon opens the site. */}
+        <BrandDeck>
           {providers.map((provider) => {
             const disabled = context.isLaunching || (pending && !provider.busy);
-            const hostname = provider.website ? new URL(provider.website).hostname : '—';
+            const waiting = (provider.waitingLabel ?? t('agent.waitingForBrowser')).replace(
+              '{seconds}',
+              String(provider.remainingSeconds)
+            );
+            const choice =
+              provider.id === 'minimax' ? (
+                <MinimaxAccountRegionChoice disabled={disabled} />
+              ) : provider.id === 'kimi' ? (
+                <KimiAccountRegionChoice disabled={disabled} />
+              ) : provider.id === 'zcode' ? (
+                <ZCodeAccountProviderChoice disabled={disabled} />
+              ) : null;
             return (
-              <section key={provider.id} aria-label={provider.name}>
-                <DirectoryRow
-                  name={provider.name}
-                  url={provider.website}
-                  iconSrc={provider.icon}
-                  onOpen={() => void openWebsite(provider.website!)}
-                  openLabel={t('accountCenter.website').replace('{name}', provider.name)}
-                  add={{
-                    onClick: provider.add,
-                    onCancel: provider.cancelLogin,
-                    cancelLabel: t('btn.cancel'),
-                    label: provider.busy
-                      ? (provider.waitingLabel ?? t('agent.waitingForBrowser')).replace(
-                          '{seconds}',
-                          String(provider.remainingSeconds)
-                        )
-                      : `${provider.addLabel ?? t('agent.addCurrentAccount')} ${provider.name}`,
-                    disabled,
-                    busy: provider.busy,
-                  }}
-                  secondary={
-                    provider.busy &&
-                    provider.id === 'minimax' &&
-                    context.minimaxAccounts.login?.userCode ? (
-                      <span className="flex items-center gap-2">
-                        <span>
-                          {(provider.waitingLabel ?? t('agent.waitingForBrowser')).replace(
-                            '{seconds}',
-                            String(provider.remainingSeconds)
-                          )}
-                        </span>
+              <BrandDeckCard
+                key={provider.id}
+                region={provider.name}
+                name={provider.name}
+                iconSrc={provider.icon}
+                label={
+                  provider.busy
+                    ? waiting
+                    : `${provider.addLabel ?? t('agent.addCurrentAccount')} ${provider.name}`
+                }
+                onClick={provider.add}
+                disabled={disabled}
+                busy={provider.busy}
+                off={!provider.installed}
+                cancel={
+                  provider.cancelLogin
+                    ? { onClick: provider.cancelLogin, label: t('btn.cancel') }
+                    : undefined
+                }
+                open={
+                  provider.website
+                    ? {
+                        onClick: () => void openWebsite(provider.website!),
+                        label: t('accountCenter.website').replace('{name}', provider.name),
+                      }
+                    : undefined
+                }
+                extra={
+                  provider.busy ? (
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="truncate">{waiting}</span>
+                      {provider.id === 'minimax' && context.minimaxAccounts.login?.userCode && (
                         <span className="font-mono">{context.minimaxAccounts.login.userCode}</span>
-                      </span>
-                    ) : provider.busy ? (
-                      (provider.waitingLabel ?? t('agent.waitingForBrowser')).replace(
-                        '{seconds}',
-                        String(provider.remainingSeconds)
-                      )
-                    ) : !provider.installed ? (
-                      `${hostname} · ${t('status.notInstalled')}`
-                    ) : ['zcode', 'minimax', 'kimi'].includes(provider.id) ? (
-                      <span className="flex items-center gap-2">
-                        <span className="min-w-0 truncate">{hostname}</span>
-                        <span className="pointer-events-auto relative flex-shrink-0">
-                          {provider.id === 'minimax' ? (
-                            <MinimaxAccountRegionChoice disabled={disabled} />
-                          ) : provider.id === 'kimi' ? (
-                            <KimiAccountRegionChoice disabled={disabled} />
-                          ) : (
-                            <ZCodeAccountProviderChoice disabled={disabled} />
-                          )}
-                        </span>
-                      </span>
-                    ) : undefined
-                  }
-                />
-              </section>
+                      )}
+                    </span>
+                  ) : !provider.installed ? (
+                    <span className="brand-deck-note">{t('status.notInstalled')}</span>
+                  ) : choice ? (
+                    <span className="brand-deck-chip brand-deck-control">{choice}</span>
+                  ) : undefined
+                }
+              />
             );
           })}
-        </div>
+        </BrandDeck>
       </section>
     </div>
   );

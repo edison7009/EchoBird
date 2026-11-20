@@ -10,7 +10,7 @@ import { AppManagerPanel, AppManagerBottom } from './AppManagerComponents';
 import { useAppManager } from './context';
 import { accountCenterProviders } from '../AccountCenter/accountCenterData';
 import { AccountSectionButton, AccountSectionRow } from './AccountSectionPrimitives';
-import { DirectoryRow } from '../../components/DirectoryRow';
+import { BrandDeckCard } from '../../components/BrandDeckCard';
 import { accountProxyStatus } from './accountProxyStatus';
 import { AccountCard, AccountCenterPanel } from '../AccountCenter/AccountCenter';
 import { QuotaCountdown } from './QuotaCountdown';
@@ -503,10 +503,10 @@ it.each(['apps', 'accounts'] as const)(
     await act(async () => {
       if (page === 'accounts') {
         const directory = renderer.root
-          .findAllByType(DirectoryRow)
+          .findAllByType(BrandDeckCard)
           .find((node) => node.props.name === 'CodeArts')!;
-        expect(directory.props.secondary).toBeUndefined();
-        directory.props.add.onClick();
+        expect(directory.props.extra).toBeUndefined();
+        directory.props.onClick();
       } else {
         const button = renderer.root.findByType(AccountSectionButton);
         expect(button.props.secondary).toBeUndefined();

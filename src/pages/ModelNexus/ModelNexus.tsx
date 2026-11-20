@@ -28,8 +28,8 @@ import {
   sortableKeyboardCoordinates,
   arrayMove,
 } from '@dnd-kit/sortable';
-import { X, Lock, Unlock, RefreshCw, GripVertical, Box, ExternalLink, Plus } from 'lucide-react';
-import { DirectoryRow } from '../../components/DirectoryRow';
+import { X, Lock, Unlock, RefreshCw, GripVertical, ExternalLink, Plus } from 'lucide-react';
+import { BrandDeck, BrandDeckAddCard, BrandDeckCard } from '../../components/BrandDeckCard';
 import { SortableCard } from '../../components/SortableCard';
 import { ModelCard, ModelCardSkeleton, getModelIcon } from '../../components';
 import { ViewModeTabs } from '../../components/ViewModeTabs';
@@ -49,6 +49,7 @@ import { saveVoiceSource } from '../VoiceInput/sources';
 import { useVoiceInputStore, voiceBusy } from '../../stores/voiceInputStore';
 import { useNavigationStore } from '../../stores/navigationStore';
 import type { TKey } from '../../i18n/types';
+import '../../components/brandCards.css';
 import './ModelNexus.css';
 export { ModelNexusProvider } from './provider';
 
@@ -274,15 +275,20 @@ export function ModelNexusMain() {
 
                 {/* Add new model button */}
                 <div
-                  className={`h-40 border border-dashed border-cyber-border flex flex-col items-center justify-center hover:border-cyber-border cursor-default transition-all rounded-card text-cyber-text-secondary hover:text-cyber-text`}
+                  className="brand-add-slot h-40 cursor-default"
                   onClick={() => {
                     setNewModelForm(BLANK_MODEL_FORM);
                     setEditingModelId(null);
                     setShowAddModelModal(true);
                   }}
                 >
-                  <span className="font-bold tracking-wider">{t('btn.addModel')}</span>
-                  <span className="text-[10px] opacity-60 mt-1">OpenAI / Anthropic API</span>
+                  <span className="brand-add-slot-plus" aria-hidden="true">
+                    <Plus size={20} strokeWidth={2.5} />
+                  </span>
+                  <span className="text-sm font-bold tracking-wider">{t('btn.addModel')}</span>
+                  <span className="-mt-1 text-[10.5px] text-cyber-text-secondary/80">
+                    OpenAI / Anthropic API
+                  </span>
                 </div>
               </>
             )}
@@ -361,16 +367,33 @@ function directoryVariant(entry: DirectoryEntry): DirectoryVariant {
   };
 }
 
-function RelayRow({ entry, onAdd }: { entry: DirectoryEntry; onAdd: () => void }) {
-  const openSite = () => shellOpen(entry.url).catch(() => window.open(entry.url, '_blank'));
+const openSite = (url: string) => shellOpen(url).catch(() => window.open(url, '_blank'));
+
+// One provider or relay in the directory deck: the card adds a model, the
+// link icon opens the site.
+function DirectoryCard({ item, onAdd }: { item: ProviderItem; onAdd: () => void }) {
+  const first = item.entries[0];
+  // Several editions of one company list them after the name; the site is
+  // behind the link icon.
+  const editions =
+    item.entries.length > 1
+      ? item.entries.map((entry) => editionInfo(entry).edition ?? entry.name).join(' / ')
+      : undefined;
   return (
-    <DirectoryRow
-      name={entry.name}
-      url={entry.url}
-      iconSrc={getModelIcon(entry.name, '')}
-      onOpen={openSite}
-      openLabel={`Open ${entry.name} website`}
-      add={{ onClick: onAdd, label: `Add model: ${entry.name}` }}
+    <BrandDeckCard
+      name={item.name}
+      detail={editions}
+      iconSrc={getModelIcon(first.name, '')}
+      label={`Add model: ${item.name}`}
+      onClick={onAdd}
+      open={
+        first.url
+          ? {
+              onClick: () => void openSite(first.url),
+              label: `Open ${item.name} website`,
+            }
+          : undefined
+      }
     />
   );
 }
@@ -409,51 +432,6 @@ function groupProviders(entries: DirectoryEntry[]): ProviderItem[] {
   // A group with only one edition present keeps that edition's own name.
   return items.map((item) =>
     item.entries.length === 1 ? { ...item, name: item.entries[0].name } : item
-  );
-}
-
-// Without an icon name the tile is the blank "add model" entry.
-function ProviderTile({
-  name,
-  iconName,
-  onAdd,
-}: {
-  name: string;
-  iconName?: string;
-  onAdd: () => void;
-}) {
-  const iconSrc = iconName ? getModelIcon(iconName, '') : null;
-  return (
-    <button
-      type="button"
-      onClick={onAdd}
-      aria-label={iconName ? `Add model: ${name}` : name}
-      className="group flex min-w-0 items-center gap-2 rounded-lg p-2 text-left transition-colors hover:bg-cyber-elevated/50"
-    >
-      {!iconName ? (
-        <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center text-cyber-text-muted">
-          <Plus
-            size={20}
-            strokeWidth={2}
-            className="flex-shrink-0 transition-colors group-hover:text-cyber-text"
-          />
-        </span>
-      ) : iconSrc ? (
-        <img
-          src={iconSrc}
-          alt=""
-          className="h-5 w-5 flex-shrink-0"
-          onError={(event) => {
-            event.currentTarget.style.display = 'none';
-          }}
-        />
-      ) : (
-        <Box size={18} className="flex-shrink-0 text-cyber-text" aria-hidden="true" />
-      )}
-      <span className="min-w-0 truncate text-sm text-cyber-text-secondary transition-colors group-hover:text-cyber-text">
-        {name}
-      </span>
-    </button>
   );
 }
 
@@ -533,30 +511,16 @@ export function ModelNexusPanel() {
             </span>
             <span className="flex-1 h-px bg-cyber-border/60" />
           </div>
-          {section.key === 'relays' ? (
-            // Sponsored relays keep their full cards.
-            <div className="space-y-2">
-              {groupProviders(section.entries).map((item) => (
-                <RelayRow
-                  key={item.name}
-                  entry={{ ...item.entries[0], name: item.name }}
-                  onAdd={() => openAddModel(item.entries)}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
-              <ProviderTile name={t('btn.addModel')} onAdd={openBlankModel} />
-              {groupProviders(section.entries).map((item) => (
-                <ProviderTile
-                  key={item.name}
-                  name={item.name}
-                  iconName={item.entries[0].name}
-                  onAdd={() => openAddModel(item.entries)}
-                />
-              ))}
-            </div>
-          )}
+          {/* Relays first, then providers, each a deck of brand cards; the
+              light "add model" card opens the providers' deck. */}
+          <BrandDeck>
+            {section.key === 'providers' && (
+              <BrandDeckAddCard name={t('btn.addModel')} onClick={openBlankModel} />
+            )}
+            {groupProviders(section.entries).map((item) => (
+              <DirectoryCard key={item.name} item={item} onAdd={() => openAddModel(item.entries)} />
+            ))}
+          </BrandDeck>
         </div>
       ))}
     </div>

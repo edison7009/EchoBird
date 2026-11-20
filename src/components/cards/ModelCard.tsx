@@ -1,7 +1,9 @@
 // ModelCard component
 
 import React from 'react';
-import { RefreshCw } from 'lucide-react';
+import { KeyRound, Pencil, RefreshCw, Trash2 } from 'lucide-react';
+import { useBrandColour } from '../../utils/brandColour';
+import '../brandCards.css';
 import { useConfirm } from '../ConfirmDialog';
 import { useI18n } from '../../hooks/useI18n';
 import type { ModelUsageData } from '../../api/tauri';
@@ -218,245 +220,230 @@ export const ModelCard = React.memo(
         !!usageData?.quotas.some((quota) => quota.balance == null && quota.resetAt > 0)
     );
 
+    // Usage mode shows the provider's logo (from the address), config mode
+    // the model's; the card takes its colour from the logo it shows.
+    const usageIcon = viewMode === 'usage' ? getModelIcon('', baseUrl || anthropicUrl || '') : null;
+    const shownIcon = viewMode === 'usage' ? usageIcon : iconPath;
+    const brand = useBrandColour(shownIcon);
+    const logoClass = brand.neutral && brand.glyph ? ' is-neutral-logo' : '';
+    const hostname = (() => {
+      const url = baseUrl || anthropicUrl;
+      if (!url) return '-';
+      try {
+        return new URL(url).hostname;
+      } catch {
+        return url;
+      }
+    })();
+
     return (
       <div
-        className={`h-40 p-4 border border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70 relative isolate overflow-hidden rounded-card cursor-default transition-colors flex flex-col`}
+        className="brand-card relative flex h-40 flex-col px-4 pb-[0.9rem] pt-[0.85rem] cursor-default"
+        style={{ '--brand': brand.from } as React.CSSProperties}
       >
-        {iconPath && viewMode === 'config' && (
+        {shownIcon && (
           <img
-            src={iconPath}
+            src={shownIcon}
             alt=""
             draggable={false}
-            className="pointer-events-none absolute -bottom-7 -right-5 -z-10 size-[8.5rem] select-none object-contain opacity-20"
+            className={`brand-card-mark${logoClass}`}
             onError={(event) => {
               event.currentTarget.style.display = 'none';
             }}
           />
         )}
-        <div className="-mx-2 -mt-2 mb-3 flex items-center gap-2">
-          <div className="flex-1 flex items-center gap-2 min-w-0">
-            {dragHandle}
-            {/* Show provider logo in usage mode (based on baseUrl) */}
-            {viewMode === 'usage' &&
-              (() => {
-                const url = baseUrl || anthropicUrl || '';
-                const providerIcon = getModelIcon('', url);
-                return providerIcon ? (
-                  <img
-                    src={providerIcon}
-                    alt=""
-                    className="w-6 h-6 flex-shrink-0"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                ) : null;
-              })()}
-            <div className="text-lg font-bold truncate h-7 flex-1">
-              {name || <span className="invisible">-</span>}
-            </div>
-          </div>
-          {/* Action buttons — top right, different for config vs usage mode */}
-          {viewMode === 'config' ? (
-            // Config mode: [删除] [编辑]
-            (onEdit || onDelete) && (
-              <div className="flex shrink-0 gap-0.5 whitespace-nowrap">
-                {onDelete && (
-                  <button
-                    className="text-xs font-mono text-cyber-text-muted/70 hover:text-red-500 transition-colors"
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      const ok = await confirm({
-                        title: t('model.deleteTitle'),
-                        message: t('model.deleteConfirm'),
-                        confirmText: t('btn.delete'),
-                        cancelText: t('btn.cancel'),
-                        type: 'danger',
-                      });
-                      if (ok) {
-                        onDelete();
-                      }
-                    }}
-                  >
-                    [{t('btn.delete')}]
-                  </button>
-                )}
-                {onEdit && (
-                  <button
-                    className="text-xs font-mono text-cyber-text-muted/70 hover:text-cyber-text transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEdit();
-                    }}
-                  >
-                    [{t('btn.edit')}]
-                  </button>
-                )}
-              </div>
-            )
-          ) : (
-            // Usage mode: [访问权限] [刷新]
-            <div className="ml-auto flex shrink-0 gap-1.5 whitespace-nowrap">
-              {onAccessKey && (
-                <button
-                  className="usage-card-action-button text-xs font-mono"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAccessKey();
-                  }}
-                >
-                  [{t('model.accessKey')}]
-                </button>
-              )}
-              {onRefresh && (
-                <button
-                  className="usage-card-action-button text-xs font-mono"
-                  disabled={isRefreshingUsage}
-                  aria-busy={isRefreshingUsage}
-                  aria-label={t('btn.refresh')}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!isRefreshingUsage) {
-                      onRefresh();
-                    }
-                  }}
-                >
-                  <span className={isRefreshingUsage ? 'invisible' : 'visible'}>
-                    {t('btn.refresh')}
-                  </span>
-                  {isRefreshingUsage && (
-                    <span
-                      className="absolute inset-0 flex items-center justify-center"
-                      aria-hidden="true"
-                    >
-                      <RefreshCw size={11} className="animate-spin" />
-                    </span>
-                  )}
-                </button>
-              )}
-            </div>
+        <div className="flex items-center gap-2">
+          {dragHandle && <span className="-ml-1.5 flex">{dragHandle}</span>}
+          {shownIcon && (
+            <img
+              src={shownIcon}
+              alt=""
+              draggable={false}
+              className={`h-5 w-5 flex-shrink-0 object-contain${logoClass}`}
+              onError={(event) => {
+                event.currentTarget.style.display = 'none';
+              }}
+            />
           )}
+          <div className="h-7 min-w-0 flex-1 truncate text-base font-bold leading-7">
+            {name || <span className="invisible">-</span>}
+          </div>
+          {/* Actions as icons in one pill: edit / delete, or access key / refresh. */}
+          {viewMode === 'config'
+            ? (onEdit || onDelete) && (
+                <div className="brand-card-actions">
+                  {onEdit && (
+                    <button
+                      type="button"
+                      aria-label={t('btn.edit')}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEdit();
+                      }}
+                    >
+                      <Pencil size={14} aria-hidden="true" />
+                    </button>
+                  )}
+                  {onDelete && (
+                    <button
+                      type="button"
+                      data-danger
+                      aria-label={t('btn.delete')}
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        const ok = await confirm({
+                          title: t('model.deleteTitle'),
+                          message: t('model.deleteConfirm'),
+                          confirmText: t('btn.delete'),
+                          cancelText: t('btn.cancel'),
+                          type: 'danger',
+                        });
+                        if (ok) {
+                          onDelete();
+                        }
+                      }}
+                    >
+                      <Trash2 size={14} aria-hidden="true" />
+                    </button>
+                  )}
+                </div>
+              )
+            : (onAccessKey || onRefresh) && (
+                <div className="brand-card-actions">
+                  {onAccessKey && (
+                    <button
+                      type="button"
+                      aria-label={t('model.accessKey')}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAccessKey();
+                      }}
+                    >
+                      <KeyRound size={14} aria-hidden="true" />
+                    </button>
+                  )}
+                  {onRefresh && (
+                    <button
+                      type="button"
+                      disabled={isRefreshingUsage}
+                      aria-busy={isRefreshingUsage}
+                      aria-label={t('btn.refresh')}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isRefreshingUsage) {
+                          onRefresh();
+                        }
+                      }}
+                    >
+                      <RefreshCw
+                        size={14}
+                        className={isRefreshingUsage ? 'animate-spin' : ''}
+                        aria-hidden="true"
+                      />
+                    </button>
+                  )}
+                </div>
+              )}
         </div>
 
-        {/* Content area - switches based on viewMode */}
         {viewMode === 'usage' ? (
-          // Usage mode - show quota bars or balance
-          <div className="flex-1 flex flex-col justify-center space-y-1">
+          // Usage: quota bars, or one large balance.
+          <div className="flex flex-1 flex-col justify-end gap-2 pt-2">
             {usageData?.quotas && usageData.quotas.length > 0 ? (
               usageData.quotas.map((quota, idx) => {
                 const remaining = quotaPercent(quota);
-                const colors = quotaColorClasses[quotaTone(remaining)];
-                return (
+                const tone = quotaTone(remaining);
+                const colors = quotaColorClasses[tone];
+                return quota.balance !== undefined && quota.balance !== null ? (
+                  <div key={idx} className="m-auto flex items-baseline justify-center gap-2">
+                    <span className="text-xs text-cyber-text-secondary">
+                      {t(balanceLabelKey(quota))}
+                    </span>
+                    <span className="text-[1.75rem] font-extrabold tabular-nums text-cyber-text">
+                      {quota.balance.toFixed(2)}
+                    </span>
+                    <span className="text-xs font-bold text-cyber-text-secondary">
+                      {quota.balanceUnit || 'CNY'}
+                    </span>
+                  </div>
+                ) : (
                   <div key={idx} className="space-y-1">
-                    {quota.balance !== undefined && quota.balance !== null ? (
-                      // Balance display (for providers like DeepSeek) - centered, one line
-                      <div className="flex items-center justify-center gap-2">
-                        <span className="text-cyber-text font-bold text-2xl">
-                          {t(balanceLabelKey(quota))}
+                    <div className="flex items-baseline gap-2 text-xs">
+                      {quota.period && (
+                        <span className="flex-shrink-0 font-bold text-cyber-text">
+                          {`${t(quotaPeriodKeys[quota.period])} ${t('model.quota.remaining')}`}
                         </span>
-                        <span className="text-cyber-text font-bold text-2xl">
-                          {quota.balance.toFixed(2)} {quota.balanceUnit || 'CNY'}
-                        </span>
-                      </div>
-                    ) : (
-                      // Percentage progress bar (for quota-based providers)
-                      <>
-                        <div className="flex items-center gap-2 text-xs">
-                          <span className="flex min-w-0 flex-1 items-center gap-2">
-                            {quota.period && (
-                              <span className="min-w-0 truncate text-cyber-text font-bold">
-                                {`${t(quotaPeriodKeys[quota.period])} ${t('model.quota.remaining')}`}
-                              </span>
-                            )}
-                            <span className="min-w-0 truncate text-cyber-text-muted text-[10px] translate-y-[2px]">
-                              {quota.resetAt > 0 ? formatCountdown(quota.resetAt - now, t) : '—'}
-                            </span>
-                          </span>
-                          <span className={`flex-shrink-0 font-bold ${colors.text}`}>
-                            {formatQuotaPercent(quota)}
-                          </span>
-                        </div>
-                        <div
-                          role="progressbar"
-                          aria-label={
-                            quota.period ? t(quotaPeriodKeys[quota.period]) : t('model.quota.used')
-                          }
-                          aria-valuemin={0}
-                          aria-valuemax={100}
-                          aria-valuenow={remaining ?? undefined}
-                          className={`relative h-0 flex-shrink-0 rounded-full border-t-[6px] ${colors.track}`}
-                        >
-                          <div
-                            className={`quota-progress-fill absolute bottom-0 left-0 h-0 rounded-full border-t-[length:inherit] border-transparent bg-origin-border bg-gradient-to-r ${colors.gradient}`}
-                            style={{ width: `${remaining ?? 0}%` }}
-                          />
-                        </div>
-                      </>
-                    )}
+                      )}
+                      <span className="min-w-0 flex-1 truncate text-[10.5px] text-cyber-text-secondary/85">
+                        {quota.resetAt > 0 ? formatCountdown(quota.resetAt - now, t) : '—'}
+                      </span>
+                      <span
+                        className={`brand-quota-value flex-shrink-0 font-extrabold tabular-nums${tone === 'critical' ? ' is-critical' : ''}`}
+                      >
+                        {formatQuotaPercent(quota)}
+                      </span>
+                    </div>
+                    <div
+                      role="progressbar"
+                      aria-label={
+                        quota.period ? t(quotaPeriodKeys[quota.period]) : t('model.quota.used')
+                      }
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={remaining ?? undefined}
+                      className={`relative h-0 flex-shrink-0 rounded-full border-t-[6px] ${colors.track}`}
+                    >
+                      <div
+                        className={`quota-progress-fill absolute bottom-0 left-0 h-0 rounded-full border-t-[length:inherit] border-transparent bg-origin-border bg-gradient-to-r ${colors.gradient}`}
+                        style={{ width: `${remaining ?? 0}%` }}
+                      />
+                    </div>
                   </div>
                 );
               })
             ) : (
-              <div className="text-center text-cyber-text-muted text-xs">
+              <div className="m-auto text-center text-xs text-cyber-text-secondary">
                 {akSkMissing ? t('model.akSkRequired') : t('model.noUsageData')}
               </div>
             )}
           </div>
         ) : (
-          // Config mode - show existing info
-          <div className="text-xs space-y-1.5 font-mono">
-            <div className="flex items-center gap-1 truncate">
-              <span className="text-cyber-text/60">{t('model.label')}:</span>
-              <span className="truncate text-cyber-text/60">{modelId || '-'}</span>
+          // Config: model, source and latency on labelled rows; the protocols below.
+          <>
+            <div className="mt-[0.7rem] flex min-w-0 items-baseline gap-1.5 font-mono text-[13.5px] font-semibold text-cyber-text/90">
+              <span className="brand-card-label">{t('model.label')}</span>
+              <span className="truncate">{modelId || '-'}</span>
             </div>
-            <div className="flex items-center gap-1 truncate">
-              <span className="text-cyber-text/60">{t('model.source')}:</span>
-              <span className="truncate text-cyber-text/60">
-                {(() => {
-                  const url = baseUrl || anthropicUrl;
-                  if (!url) return '-';
-                  try {
-                    return new URL(url).hostname;
-                  } catch {
-                    return url;
-                  }
-                })()}
-              </span>
+            <div className="mt-0.5 flex min-w-0 items-baseline gap-1.5 text-xs text-cyber-text-secondary/90">
+              <span className="brand-card-label">{t('model.source')}</span>
+              <span className="truncate">{hostname}</span>
             </div>
-
-            <div className="flex items-center gap-1">
-              <span className="text-cyber-text/60">{t('model.latency')}:</span>
+            <div className="brand-card-latency mt-0.5 flex min-w-0 items-center gap-1.5 text-xs">
+              <span className="brand-card-label">{t('model.latency')}</span>
               {isPinging ? (
                 <LatencyIndicator />
               ) : latency === -2 ? (
-                <span className="text-red-500 font-bold">{t('model.timedOut')}</span>
+                <span className="font-bold text-red-500">{t('model.timedOut')}</span>
               ) : latency === -1 ? (
-                <span className="text-red-500 font-bold">Error</span>
+                <span className="font-bold text-red-500">Error</span>
               ) : latency !== undefined ? (
-                <span className={modelLatencyColor(latency)}>{latency}ms</span>
+                <span className={`font-bold ${modelLatencyColor(latency)}`}>{latency}ms</span>
               ) : (
-                <span className="text-cyber-text-muted/70 text-xs">{t('model.notTested')}</span>
+                <span className="text-cyber-text-muted">{t('model.notTested')}</span>
               )}
             </div>
-
-            {/* Protocol row */}
-            <div className="flex items-center gap-1 truncate">
-              <span className="truncate text-cyber-text/60">
-                {protocols.includes('openai') && (
-                  <span className={openaiTested ? 'text-cyber-text/60' : 'text-cyber-text/30'}>
-                    [OpenAI]
-                  </span>
-                )}
-                {protocols.includes('openai') && protocols.includes('anthropic') && ' '}
-                {protocols.includes('anthropic') && (
-                  <span className={anthropicTested ? 'text-cyber-text/60' : 'text-cyber-text/30'}>
-                    [Anthropic]
-                  </span>
-                )}
-                {protocols.length === 0 && '-'}
-              </span>
+            <div className="mt-auto flex min-w-0 items-center gap-1.5 overflow-hidden">
+              {protocols.includes('openai') && (
+                <span className={`brand-pill${openaiTested ? '' : ' is-untested'}`}>OpenAI</span>
+              )}
+              {protocols.includes('anthropic') && (
+                <span className={`brand-pill${anthropicTested ? '' : ' is-untested'}`}>
+                  Anthropic
+                </span>
+              )}
+              {protocols.length === 0 && <span className="text-xs text-cyber-text-muted">-</span>}
             </div>
-          </div>
+          </>
         )}
       </div>
     );

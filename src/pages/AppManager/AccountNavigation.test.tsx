@@ -15,7 +15,7 @@ import { AppManagerProvider } from '../../pages/AppManager/AppManagerProvider';
 import { useAppManager } from '../../pages/AppManager/context';
 import { AppManagerErrorModal, AppManagerPanel, CodexAccountSection } from './AppManagerComponents';
 import { AccountSectionButton, AccountSectionRow } from './AccountSectionPrimitives';
-import { DirectoryRow } from '../../components/DirectoryRow';
+import { BrandDeckCard } from '../../components/BrandDeckCard';
 import {
   AccountCenterMain,
   AccountCenterPanel,
@@ -3135,9 +3135,9 @@ for (const page of ['apps', 'accounts'] as const) {
           if (page === 'apps') renderer.root.findByType(AccountSectionButton).props.onClick();
           else
             renderer.root
-              .findAllByType(DirectoryRow)
-              .find((row) => !row.props.add?.disabled)!
-              .props.add.onClick();
+              .findAllByType(BrandDeckCard)
+              .find((row) => !row.props.disabled)!
+              .props.onClick();
         };
         await act(async () => clickAdd());
         await tick();
@@ -3500,7 +3500,7 @@ it('Account Center: ZCode choice is passive, website follows the region and add 
     (node) => node.type === 'button' && node.props['aria-label'] === 'accountCenter.website'
   )[0];
   expect(
-    section.findAll((node) => node.type === 'span' && node.children.includes('bigmodel.cn'))
+    section.findAll((node) => node.type === 'span' && node.children.includes('BigModel'))
   ).toHaveLength(1);
   await act(async () => website.props.onClick());
   expect(api.openExternal).toHaveBeenCalledWith('https://bigmodel.cn/glm-coding');
@@ -3511,7 +3511,7 @@ it('Account Center: ZCode choice is passive, website follows the region and add 
   expect(api.startZCodeLogin).not.toHaveBeenCalled();
   expect(api.openExternal).not.toHaveBeenCalled();
   expect(
-    section.findAll((node) => node.type === 'span' && node.children.includes('z.ai'))
+    section.findAll((node) => node.type === 'span' && node.children.includes('Z.ai'))
   ).toHaveLength(1);
   await act(async () => website.props.onClick());
   expect(api.openExternal).toHaveBeenCalledWith('https://z.ai/subscribe');
@@ -3523,7 +3523,7 @@ it('Account Center: ZCode choice is passive, website follows the region and add 
   act(() => choice.props.onClick());
   expect(state.zcodeAccounts.provider).toBe('bigmodel');
   expect(
-    section.findAll((node) => node.type === 'span' && node.children.includes('bigmodel.cn'))
+    section.findAll((node) => node.type === 'span' && node.children.includes('BigModel'))
   ).toHaveLength(1);
   expect(api.openExternal).not.toHaveBeenCalled();
   act(() => choice.props.onClick());

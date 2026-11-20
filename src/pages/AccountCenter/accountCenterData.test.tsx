@@ -253,7 +253,7 @@ describe('Account Center display data', () => {
     expect(providers(state).find((p) => p.id === 'dumate')!.accounts[0].claim).toBeUndefined();
   });
   it.each([null, 0, 100])(
-    'colors exhausted DuMate credits red even when their capacity is %s',
+    'marks exhausted DuMate credits as critical even when their capacity is %s',
     (total) => {
       const state = context();
       const row: DuMateAccount = {
@@ -290,9 +290,9 @@ describe('Account Center display data', () => {
       let html = renderToStaticMarkup(
         <AccountCard provider={provider} account={provider.accounts[0]} />
       );
-      expect(html).toMatch(/class="[^"]*text-cyber-error[^"]*"[^>]*>0<\/span>/);
+      expect(html).toMatch(/class="[^"]*brand-quota-value is-critical[^"]*"[^>]*>0<\/span>/);
       expect(html).toContain('border-cyber-error/20');
-      expect(html).toMatch(/class="[^"]*text-green-500[^"]*"[^>]*>100<\/span>/);
+      expect(html).toMatch(/class="[^"]*brand-quota-value[^"]*"[^>]*>100<\/span>/);
       expect(html).toContain('border-green-500');
       expect(html.match(/role="progressbar"/g) ?? []).toHaveLength(total ? 1 : 0);
 
@@ -302,7 +302,7 @@ describe('Account Center display data', () => {
       html = renderToStaticMarkup(
         <AccountCard provider={provider} account={provider.accounts[0]} />
       );
-      expect(html).not.toContain('text-cyber-error');
+      expect(html).not.toContain('brand-quota-value is-critical');
       expect(html).not.toContain('border-cyber-error');
       expect(html).not.toContain('role="progressbar"');
       expect(state.dumateAccounts.refresh).not.toHaveBeenCalled();
@@ -481,7 +481,7 @@ describe('Account Center display data', () => {
       <AccountCard provider={provider} account={provider.accounts[0]} />
     );
     expect(html).not.toContain('border-green-500');
-    expect(html).toContain('text-cyber-error');
+    expect(html).toContain('brand-quota-value is-critical');
     expect(html).toContain('border-cyber-error/20');
     expect(html).not.toContain('aria-valuenow=');
     row.remaining = 2099.75;

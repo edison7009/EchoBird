@@ -1,0 +1,434 @@
+/*
+ * Brand cards: the model and account pages.
+ *
+ * Deck cards (.brand-deck) are the right-hand directories: full-width cards in
+ * the provider's colour, stacked so each tucks its foot under the next; the
+ * hovered card rises a little out of the deck.
+ *
+ * Brand cards (.brand-card) are the cards in the middle: the provider's colour
+ * runs across the card, light top-left to deep bottom-right, with its logo
+ * faded into the corner. --brand comes from the icon (utils/brandColour.ts).
+ */
+
+/* ---------- Deck ---------- */
+.brand-deck {
+  display: flex;
+  flex-direction: column;
+  padding-top: 2px;
+}
+.brand-deck > .brand-deck-card + .brand-deck-card {
+  margin-top: -7px;
+}
+/* Nothing lies on the last card: it needs no hidden foot. */
+.brand-deck > .brand-deck-card:last-child {
+  height: 37px;
+  padding-bottom: 0;
+}
+.brand-deck-card {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 8px 7px 7px;
+  overflow: hidden;
+  border-radius: 10px;
+  color: #fff;
+  background: linear-gradient(180deg, var(--deck-from), var(--deck-to));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.2),
+    0 -3px 8px rgb(0 0 0 / 0.32),
+    0 -1px 2px rgb(0 0 0 / 0.25);
+  transition: transform 0.26s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.brand-deck-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(100deg, rgb(255 255 255 / 0.1), transparent 45%);
+}
+.brand-deck-card:hover {
+  transform: translateY(-3px);
+}
+.brand-deck-card:has(> .brand-deck-hit:active) {
+  transform: translateY(-1px);
+  transition-duration: 0.08s;
+}
+/* The whole card is the main action; the controls on it sit above. */
+.brand-deck-hit {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+}
+.brand-deck-card > :not(.brand-deck-hit) {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+.brand-deck-card .brand-deck-control {
+  pointer-events: auto;
+}
+:root .brand-deck-card .brand-deck-icon {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  border-radius: 6px;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.25));
+}
+:root .brand-deck-card .brand-deck-icon.is-glyph {
+  filter: brightness(0) invert(1) drop-shadow(0 1px 1px rgb(0 0 0 / 0.25));
+}
+.brand-deck-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 1px rgb(0 0 0 / 0.18);
+}
+.brand-deck-name em {
+  font-style: normal;
+  font-weight: 600;
+  opacity: 0.85;
+}
+.brand-deck-open {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  color: rgb(255 255 255 / 0.75);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+.brand-deck-open:hover:enabled {
+  background: rgb(255 255 255 / 0.16);
+  color: #fff;
+}
+.brand-deck-open:disabled {
+  opacity: 0.4;
+}
+/* Small text on the card: a region choice, "not installed", a countdown. */
+.brand-deck-extra {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 11px;
+  font-weight: 700;
+}
+.brand-deck-note {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  background: rgb(0 0 0 / 0.25);
+  color: rgb(255 255 255 / 0.85);
+}
+/* A region or provider switch, shown as a chip on the card. */
+.brand-deck-chip > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: rgb(0 0 0 / 0.22);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.18);
+}
+.brand-deck-chip > button:hover:enabled {
+  background: rgb(0 0 0 / 0.32);
+}
+/* Not installed: the card loses its colour. */
+.brand-deck-card.is-off {
+  filter: grayscale(0.85) brightness(0.8);
+}
+/* Waiting for the browser: a light sweeps across. */
+.brand-deck-card.is-busy::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgb(255 255 255 / 0.22) 50%,
+    transparent 70%
+  );
+  background-size: 250% 100%;
+  animation: brand-deck-sweep 1.6s linear infinite;
+}
+@keyframes brand-deck-sweep {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+.brand-deck-cancel {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.25);
+  color: #fff;
+}
+/* Add: the first card of a deck, the only light one; the plus is the accent. */
+.brand-deck-card.is-add {
+  --deck-from: #fbf7f1;
+  --deck-to: #ece4d8;
+  color: #3b2c22;
+}
+.brand-deck-card.is-add::after {
+  background: linear-gradient(100deg, rgb(255 255 255 / 0.5), transparent 50%);
+}
+.brand-deck-card.is-add .brand-deck-name {
+  text-shadow: none;
+}
+.brand-deck-plus {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin: 0 1px;
+  border-radius: 999px;
+  background: rgb(var(--accent-rgb));
+  color: #fff;
+  box-shadow: 0 2px 6px rgb(var(--accent-rgb) / 0.5);
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.brand-deck-card.is-add:hover .brand-deck-plus {
+  transform: rotate(90deg);
+}
+:root[data-theme='light'] .brand-deck-card.is-add {
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.08),
+    0 -3px 8px rgb(0 0 0 / 0.18);
+}
+.brand-deck-empty {
+  display: grid;
+  place-items: center;
+  height: 37px;
+  border: 1.5px dashed rgb(var(--border-rgb));
+  border-radius: 10px;
+  font-size: 12px;
+  color: rgb(var(--text-muted-rgb));
+}
+
+/* ---------- Brand card (middle) ---------- */
+article.brand-card,
+div.brand-card {
+  border-radius: 12px;
+}
+.brand-card {
+  --brand-tint: 65%;
+  --brand-mark: 0.2;
+  --brand-pill: 0 0 0 / 0.2;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 12px;
+  background-color: rgb(var(--bg-surface-rgb));
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--brand) 16%, rgb(var(--bg-surface-rgb))) 0%,
+    color-mix(in srgb, var(--brand) var(--brand-tint), rgb(var(--bg-surface-rgb))) 100%
+  );
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.04),
+    inset 0 1px 0 rgb(255 255 255 / 0.05);
+}
+:root[data-theme='light'] .brand-card {
+  --brand-tint: 44%;
+  --brand-mark: 0.24;
+  --brand-pill: 255 255 255 / 0.55;
+}
+.brand-card-mark {
+  position: absolute;
+  right: -1.4rem;
+  bottom: -1.9rem;
+  z-index: -1;
+  width: 8.5rem;
+  height: 8.5rem;
+  object-fit: contain;
+  opacity: var(--brand-mark);
+  pointer-events: none;
+  user-select: none;
+  transform: rotate(-10deg);
+}
+/* Black-and-white logos follow the theme: white in dark, black in light. */
+.brand-card .is-neutral-logo {
+  filter: brightness(0) invert(1);
+}
+:root[data-theme='light'] .brand-card .is-neutral-logo {
+  filter: brightness(0);
+}
+/* Actions as icons in a small pill, readable on any brand colour. */
+.brand-card-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0;
+  margin-right: -4px;
+  padding: 2px;
+  border-radius: 9px;
+  background: rgb(var(--brand-pill));
+}
+.brand-card-actions button,
+.brand-card-actions .account-icon-button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  color: rgb(var(--text-secondary-rgb) / 0.9);
+  background: transparent;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+.brand-card-actions .account-icon-button svg {
+  width: 14px;
+  height: 14px;
+}
+.brand-card-actions button:hover:enabled {
+  background: rgb(var(--text-primary-rgb) / 0.12);
+  color: rgb(var(--text-primary-rgb));
+}
+.brand-card-actions button[data-danger]:hover:enabled {
+  background: rgb(239 68 68 / 0.16);
+  color: #ef4444;
+}
+/* Unclaimed daily credits: the gift glows in the accent colour until taken. */
+.brand-card-actions [data-unclaimed] > button {
+  color: rgb(var(--accent-rgb));
+}
+.brand-card-actions [data-unclaimed] > button svg {
+  filter: drop-shadow(0 0 4px rgb(var(--accent-rgb) / 0.7));
+}
+.brand-card-label {
+  flex: none;
+  width: 2.4em;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgb(var(--text-secondary-rgb) / 0.75);
+}
+.brand-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: rgb(var(--text-primary-rgb) / 0.08);
+  color: rgb(var(--text-primary-rgb) / 0.82);
+}
+.brand-pill.is-untested {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgb(var(--text-primary-rgb) / 0.16);
+  color: rgb(var(--text-primary-rgb) / 0.42);
+}
+.brand-plan {
+  flex: none;
+  height: 19px;
+  padding: 0 8px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: rgb(var(--text-primary-rgb));
+  background: rgb(var(--text-primary-rgb) / 0.1);
+  box-shadow: inset 0 0 0 1px rgb(var(--text-primary-rgb) / 0.12);
+}
+/* Quota numbers stay in the text colour so they read on any brand card; the
+   bar carries the colour. Danger puts the number in a small red badge. */
+:root .brand-card .brand-quota-value {
+  color: rgb(var(--text-primary-rgb));
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+}
+:root[data-theme='light'] .brand-card .brand-quota-value {
+  text-shadow: none;
+}
+:root .brand-card .brand-quota-value.is-critical {
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 16px;
+  color: #fff;
+  background: #dc2626;
+  text-shadow: none;
+  box-shadow: 0 0 8px rgb(220 38 38 / 0.6);
+}
+/* Latency colours a shade darker on light cards. */
+:root[data-theme='light'] .brand-card .brand-card-latency .text-green-500 {
+  color: #15803d;
+}
+:root[data-theme='light'] .brand-card .brand-card-latency .text-yellow-500 {
+  color: #a16207;
+}
+:root[data-theme='light'] .brand-card .brand-card-latency .text-red-500 {
+  color: #b91c1c;
+}
+/* Add: an empty slot in the grid, in the app's accent colour. */
+.brand-add-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1.5px dashed rgb(var(--accent-rgb) / 0.5);
+  border-radius: 12px;
+  color: rgb(var(--accent-rgb));
+  background: rgb(var(--accent-rgb) / 0.06);
+  transition: background-color 0.2s ease;
+}
+.brand-add-slot:hover {
+  background: rgb(var(--accent-rgb) / 0.12);
+}
+.brand-add-slot-plus {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgb(var(--accent-rgb));
+  box-shadow: 0 4px 14px rgb(var(--accent-rgb) / 0.45);
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.brand-add-slot:hover .brand-add-slot-plus {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-deck-card,
+  .brand-deck-plus,
+  .brand-add-slot-plus {
+    transition: none;
+  }
+  .brand-deck-card.is-busy::before {
+    animation: none;
+  }
+}
