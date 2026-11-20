@@ -369,12 +369,17 @@ enum BackupOutcome {
 /// re-scans it.
 fn backup_state_db(conn: &rusqlite::Connection, db_path: &Path) -> BackupOutcome {
     let bak = backup_path(db_path);
-    // Single-quote the path for the SQL string literal (sqlite does no
-    // backslash processing, so Windows paths are safe once quotes are
-    // doubled).
-    let escaped = bak.to_string_lossy().replace('\'', "''");
-    match conn.execute_batch(&format!("VACUUM INTO '{escaped}'")) {
-        Ok(()) => BackupOutcome::Ok,
+    // Bundled SQLite accepts an empty output file. Reserve it with private
+    // permissions before SQLite writes any history data into it.
+    if let Err(e) = create_private_history_file(&bak).map(drop) {
+        return BackupOutcome::Failed(e.to_string());
+    }
+    let result = conn.execute("VACUUM INTO ?1", [bak.to_string_lossy().as_ref()]);
+    if result.is_err() {
+        let _ = std::fs::remove_file(&bak);
+    }
+    match result {
+        Ok(_) => BackupOutcome::Ok,
         Err(e) if is_busy(&e) => BackupOutcome::Locked,
         Err(e) => BackupOutcome::Failed(e.to_string()),
     }
@@ -540,11 +545,7 @@ fn rewrite_rollout_meta(path: &Path, active: &str) -> std::io::Result<bool> {
     // full-transcript backup on every switch would grow with chat history.
     // Never overwrite this evidence on subsequent provider changes.
     let backup = path.with_extension("jsonl.eb-merge-original-meta");
-    match OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(&backup)
-    {
+    match create_private_history_file(&backup) {
         Ok(mut file) => {
             if let Err(e) = file
                 .write_all(first.as_bytes())
@@ -582,12 +583,18 @@ fn rewrite_rollout_meta(path: &Path, active: &str) -> std::io::Result<bool> {
         .unwrap_or("rollout.jsonl");
     let tmp = dir.join(format!(".{file_name}.{}.eb-tmp", uuid::Uuid::new_v4()));
     let result = (|| {
-        let mut out =
-            std::io::BufWriter::new(OpenOptions::new().write(true).create_new(true).open(&tmp)?);
+        let mut out = std::io::BufWriter::new(create_private_history_file(&tmp)?);
         out.write_all(new_first.as_bytes())?;
         out.write_all(b"\n")?;
         std::io::copy(&mut reader, &mut out)?; // lines 2..N, untouched
         out.flush()?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mode = before.permissions().mode() & 0o777;
+            out.get_ref()
+                .set_permissions(std::fs::Permissions::from_mode(mode))?;
+        }
         out.get_ref().sync_all()?;
         drop(out);
         drop(reader);
@@ -611,10 +618,30 @@ fn replace_unchanged_rollout(
             "rollout changed during merge; retry next launch",
         ));
     }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if after.permissions().mode() != before.permissions().mode() {
+            return Err(io::Error::other(
+                "rollout permissions changed during merge; retry next launch",
+            ));
+        }
+    }
     std::fs::rename(tmp, path)
 }
 
 // ─── helpers ─────────────────────────────────────────────────────────────
+
+fn create_private_history_file(path: &Path) -> io::Result<File> {
+    let mut options = OpenOptions::new();
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    options.open(path)
+}
 
 fn is_busy(e: &rusqlite::Error) -> bool {
     matches!(
@@ -882,6 +909,44 @@ mod tests {
         assert_eq!(report.rollouts_retagged, 0);
         assert_eq!(provider_count(&db, "openai"), 1);
         assert_eq!(std::fs::read(&path).unwrap(), before);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn merge_preserves_rollout_permissions_and_writes_private_backups() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = tmp_dir("history_permissions");
+        let db = dir.join("state_5.sqlite");
+        make_state_db(&db, &[("s1", "openai"), ("s2", "openai")]);
+        let private = old_rollout(&dir, "s1");
+        let shared = old_rollout(&dir, "s2");
+        let rollouts = [(&private, 0o600), (&shared, 0o640)];
+        for (path, mode) in [(&db, 0o600)].into_iter().chain(rollouts) {
+            std::fs::set_permissions(path, std::fs::Permissions::from_mode(mode)).unwrap();
+        }
+
+        let report = retag_all(&dir, "custom");
+        assert_eq!(report.failures, 0);
+        assert_eq!(report.threads_retagged, 2);
+        assert_eq!(report.rollouts_retagged, 2);
+        let access_mode =
+            |path: &Path| std::fs::metadata(path).unwrap().permissions().mode() & 0o777;
+        for (path, mode) in rollouts {
+            assert_eq!(access_mode(path), mode);
+            assert_eq!(
+                access_mode(&path.with_extension("jsonl.eb-merge-original-meta")),
+                0o600
+            );
+        }
+        let snapshot = std::fs::read_dir(&dir)
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .find(|path| path.to_string_lossy().contains(BACKUP_MARKER))
+            .unwrap();
+        assert_eq!(access_mode(&snapshot), 0o600);
+        assert_eq!(provider_count(&snapshot, "openai"), 2);
         std::fs::remove_dir_all(dir).unwrap();
     }
 
