@@ -247,8 +247,8 @@ export function ModelNexusMain() {
           autoScroll={false}
         >
           <div className="model-nexus-grid model-nexus-grid-fill grid gap-4">
-            {/* Show skeleton when loading */}
-            {isLoadingModels ? (
+            {/* Skeletons only on the first load; a later reload keeps the cards. */}
+            {isLoadingModels && userModels.length === 0 ? (
               <>
                 <ModelCardSkeleton />
                 <ModelCardSkeleton />

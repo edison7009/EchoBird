@@ -1777,16 +1777,12 @@ function FreeModelProviderRow({
 /** A saved key as a deck card: one more card on the route for each click. */
 function SavedKeyCard({
   model,
-  adding,
-  disabled,
   label,
   usage,
   onAdd,
   t,
 }: {
   model: ModelConfig;
-  adding: boolean;
-  disabled: boolean;
   label: string;
   usage?: ModelUsageData;
   onAdd: () => void;
@@ -1798,8 +1794,6 @@ function SavedKeyCard({
       iconSrc={getModelIcon('', model.modelId || '') || getModelIcon(model.name, '')}
       label={label}
       onClick={onAdd}
-      // While a click is being added the card only waits; the plus stays still.
-      disabled={disabled || adding}
       addMark
       extra={
         usage && (
@@ -1817,7 +1811,9 @@ export function FreeModelsPanel() {
   const compactTabs = locale === 'en' || locale === 'ja';
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<'saved' | 'account' | 'free'>('saved');
-  const [addingId, setAddingId] = useState<string | null>(null);
+  // One addition at a time for the whole list. A ref, not state: locking the
+  // list must not re-render or restyle the cards mid-click.
+  const adding = useRef(false);
   const setActivePage = useNavigationStore((state) => state.setActivePage);
   const modelContext = useModelNexus();
   const {
@@ -1889,8 +1885,8 @@ export function FreeModelsPanel() {
     const next = models.find((model) => !selectedIds.has(model.internalId));
     if (next) return addSavedModel(next);
     const base = models[0];
-    if (addingId || !base) return;
-    setAddingId(base.internalId);
+    if (adding.current || !base) return;
+    adding.current = true;
     try {
       const copy = await modelApi.addModel({
         name: base.name,
@@ -1920,13 +1916,13 @@ export function FreeModelsPanel() {
       console.error('Add saved key to smart router failed:', error);
       showToast('error', t('freeModels.saved.addFailed'));
     } finally {
-      setAddingId(null);
+      adding.current = false;
     }
   };
 
   const addSavedModel = async (model: (typeof userModels)[number]) => {
-    if (addingId || selectedIds.has(model.internalId)) return;
-    setAddingId(model.internalId);
+    if (adding.current || selectedIds.has(model.internalId)) return;
+    adding.current = true;
     try {
       await addSelectedModel({
         internalId: model.internalId,
@@ -1942,7 +1938,7 @@ export function FreeModelsPanel() {
       console.error('Add saved model to smart router failed:', error);
       showToast('error', t('freeModels.saved.addFailed'));
     } finally {
-      setAddingId(null);
+      adding.current = false;
     }
   };
 
@@ -2006,7 +2002,9 @@ export function FreeModelsPanel() {
       >
         {activeTab === 'saved' ? (
           <div className="flex-1 px-2 pt-0.5 pb-2 overflow-y-auto">
-            {isLoadingModels ? (
+            {/* Only the first load shows the spinner; later reloads (after an
+                addition) keep the cards in place instead of blanking the list. */}
+            {isLoadingModels && userModels.length === 0 ? (
               <div className="h-full flex items-center justify-center" aria-busy="true">
                 <RefreshCw size={18} className="animate-spin text-cyber-text-muted" />
               </div>
@@ -2032,8 +2030,6 @@ export function FreeModelsPanel() {
                     <SavedKeyCard
                       key={group.key}
                       model={shown}
-                      adding={group.models.some((model) => addingId === model.internalId)}
-                      disabled={Boolean(addingId)}
                       label={`${t('freeModels.addToRouter')}: ${shown.name}`}
                       usage={modelUsageData[shown.internalId]}
                       onAdd={() => void addSavedKey(group.models)}

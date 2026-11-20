@@ -58,6 +58,11 @@
   transform: translateY(-1px);
   transition-duration: 0.08s;
 }
+/* Cards that add one more per click stay lifted while pressed: no dip and
+   spring back on every click. */
+.brand-deck-card.is-repeat:has(> .brand-deck-hit:active) {
+  transform: translateY(-3px);
+}
 /* The whole card is the main action; the controls on it sit above. */
 .brand-deck-hit {
   position: absolute;
