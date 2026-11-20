@@ -120,6 +120,13 @@ export const getVoiceModels = () => invoke<ModelConfig[]>('voice_input_models');
 export const getVoiceDevices = () => invoke<string[]>('voice_input_devices');
 export const saveVoiceConfig = (config: VoiceConfig) =>
   invoke<VoiceSnapshot>('voice_input_save', { config });
+export const addVoiceApiSource = (input: {
+  name: string;
+  baseUrl: string;
+  apiKey: string;
+  modelId: string;
+  options: VoiceApiOptions;
+}) => invoke<[VoiceSnapshot, ModelConfig]>('voice_input_add_api_source', { input });
 export const startVoice = () => invoke<VoiceSnapshot>('voice_input_start');
 export const recordVoice = () => invoke<VoiceSnapshot>('voice_input_record');
 export const stopVoice = () => invoke<VoiceSnapshot>('voice_input_stop');

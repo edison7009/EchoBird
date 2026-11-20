@@ -5,6 +5,17 @@ import type { ModelConfig } from '../api/types';
 export const voiceBusy = (phase?: string) =>
   ['starting', 'recording', 'testing', 'transcribing', 'inserting'].includes(phase ?? '');
 
+const attachedModels = (models: ModelConfig[], config?: api.VoiceConfig) => {
+  const attached = config
+    ? models.filter((model) =>
+        config.channels.some(
+          (channel) => channel.kind === 'model' && channel.id === model.internalId
+        )
+      )
+    : models;
+  return attached.length === models.length ? models : attached;
+};
+
 interface VoiceInputState {
   models: ModelConfig[];
   snapshot: api.VoiceSnapshot | null;
@@ -16,6 +27,7 @@ interface VoiceInputState {
   /** When this window's own start reached listening; a stop just after it is the tail of a double click. */
   listeningSince: number;
   accept: (snapshot: api.VoiceSnapshot) => void;
+  acceptModels: (models: ModelConfig[]) => void;
   load: () => Promise<void>;
   save: (changes: Partial<api.VoiceConfig>) => Promise<boolean>;
   start: () => Promise<void>;
@@ -39,12 +51,25 @@ export const useVoiceInputStore = create<VoiceInputState>((set, get) => ({
       const completed = snapshot.origin !== 'test' && ['done', 'error'].includes(snapshot.phase);
       return {
         snapshot,
+        models: attachedModels(state.models, snapshot.config),
         lastResult:
           completed && (snapshot.text || snapshot.error)
             ? { text: snapshot.text, error: snapshot.error, resultAudioId: snapshot.resultAudioId }
             : state.lastResult,
       };
     }),
+  acceptModels: (rows) =>
+    set((state) => ({
+      models: attachedModels(
+        [
+          ...state.models.filter(
+            (model) => !rows.some((row) => row.internalId === model.internalId)
+          ),
+          ...rows,
+        ],
+        state.snapshot?.config
+      ),
+    })),
   load: async () => {
     const results = await Promise.allSettled([api.getVoiceState(), api.getVoiceDevices()]);
     if (results[0].status === 'fulfilled') get().accept(results[0].value);

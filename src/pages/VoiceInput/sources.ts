@@ -1,4 +1,4 @@
-import * as api from '../../api/models';
+import { addVoiceApiSource } from '../../api/voiceInput';
 import { speechSourceFromSelector } from '../../api/accountProxy';
 import { useVoiceInputStore, voiceBusy } from '../../stores/voiceInputStore';
 import type { NewModelForm } from '../ModelNexus/context';
@@ -36,36 +36,19 @@ export async function saveVoiceSource(form: NewModelForm, isCurrent = () => true
   } catch {
     throw new Error('voice.error.speechApi');
   }
-  const model = await api.addModel({
-    name: form.name.trim(),
-    baseUrl: form.baseUrl.trim(),
-    apiKey: form.apiKey,
-    modelId: form.modelId.trim(),
-    scope: 'voiceInput',
-  });
+  useVoiceInputStore.setState({ saving: true, error: null });
   try {
-    if (!isCurrent()) {
-      await api.deleteModel(model.internalId);
-      return;
-    }
+    const [snapshot, model] = await addVoiceApiSource({
+      name: form.name.trim(),
+      baseUrl: form.baseUrl.trim(),
+      apiKey: form.apiKey,
+      modelId: form.modelId.trim(),
+      options: form.voiceOptions ?? { protocol: 'openai' },
+    });
     const latest = useVoiceInputStore.getState();
-    const current = latest.snapshot?.config;
-    if (!current || current.channels.length >= 3) throw new Error('voice.error.channels');
-    if (
-      !(await latest.save({
-        channels: [...current.channels, { kind: 'model', id: model.internalId }],
-        apiOptions: {
-          ...current.apiOptions,
-          [model.internalId]: form.voiceOptions ?? { protocol: 'openai' },
-        },
-      }))
-    )
-      throw new Error('voice.error.save');
-    useVoiceInputStore.setState((previous) => ({
-      models: [...previous.models.filter((row) => row.internalId !== model.internalId), model],
-    }));
-  } catch (error) {
-    await api.deleteModel(model.internalId);
-    throw error;
+    latest.accept(snapshot);
+    latest.acceptModels([model]);
+  } finally {
+    useVoiceInputStore.setState({ saving: false });
   }
 }

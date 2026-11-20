@@ -1,4 +1,5 @@
-use crate::services::voice_input::{self, config::Config, Snapshot};
+use crate::models::model::ModelConfig;
+use crate::services::voice_input::{self, config::Config, ApiSourceInput, Snapshot};
 use tauri::{AppHandle, WebviewWindow};
 
 fn allowed(window: &WebviewWindow, main_only: bool) -> Result<(), String> {
@@ -11,13 +12,21 @@ fn allowed(window: &WebviewWindow, main_only: bool) -> Result<(), String> {
 
 #[tauri::command]
 pub fn voice_input_models(
+    app: AppHandle,
     window: WebviewWindow,
-) -> Result<Vec<crate::models::model::ModelConfig>, String> {
+) -> Result<Vec<ModelConfig>, String> {
     allowed(&window, true)?;
-    Ok(crate::services::model_manager::get_user_models()
-        .into_iter()
-        .filter(|model| model.scope == crate::models::model::ModelScope::VoiceInput)
-        .collect())
+    Ok(voice_input::models(&app))
+}
+
+#[tauri::command]
+pub async fn voice_input_add_api_source(
+    app: AppHandle,
+    window: WebviewWindow,
+    input: ApiSourceInput,
+) -> Result<(Snapshot, ModelConfig), String> {
+    allowed(&window, true)?;
+    voice_input::add_api_source(&app, input).await
 }
 
 #[tauri::command]

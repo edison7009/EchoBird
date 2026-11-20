@@ -18,7 +18,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { open as shellOpen } from '@tauri-apps/plugin-shell';
-import { AudioLines, Check, Copy, Languages, Keyboard, Mic, Plus, X } from 'lucide-react';
+import { AudioLines, Check, Copy, Languages, Keyboard, Mic, X } from 'lucide-react';
 import { useI18n } from '../../hooks/useI18n';
 import type { TKey } from '../../i18n';
 import type { VoiceChannel, VoiceConfig } from '../../api/voiceInput';
@@ -29,7 +29,6 @@ import { RemoteModelSelector } from '../../components/RemoteModelSelector';
 import { IslandScaleSlider } from '../../components/IslandScaleSlider';
 import { MiniSelect } from '../../components/MiniSelect';
 import { ViewModeTabs } from '../../components/ViewModeTabs';
-import { ModelListCard } from '../../components/ModelListCard';
 import { SortableCard } from '../../components/SortableCard';
 import { DirectoryRow } from '../../components/DirectoryRow';
 import { BrandDeck } from '../../components/BrandDeckCard';
@@ -677,7 +676,7 @@ export function VoiceInputPanel() {
       const attempt = ++revision;
       void getVoiceModels()
         .then((rows) => {
-          if (!disposed && attempt === revision) useVoiceInputStore.setState({ models: rows });
+          if (!disposed && attempt === revision) useVoiceInputStore.getState().acceptModels(rows);
         })
         .catch(() => {});
     };
@@ -752,54 +751,26 @@ export function VoiceInputPanel() {
             accountCounts={accounts.accountCounts}
           />
         ) : (
-          <>
-            {state.models
-              .filter(
-                (model) =>
-                  !state.snapshot?.config.channels.some(
-                    (channel) => channel.kind === 'model' && channel.id === model.internalId
-                  )
-              )
-              .map((model) => (
-                <ModelListCard
-                  compact
-                  key={model.internalId}
-                  model={model}
-                  t={t}
-                  selectionDisabled={disabled}
-                  selection={<Plus size={22} className="text-cyber-text-muted" />}
-                  onSelect={() => {
-                    if (!disabled && state.snapshot)
-                      void state.save({
-                        channels: [
-                          ...state.snapshot.config.channels,
-                          { kind: 'model', id: model.internalId },
-                        ],
-                      });
-                  }}
-                />
-              ))}
-            <BrandDeck>
-              {directory.map((entry) => (
-                <DirectoryRow
-                  key={entry.name}
-                  name={entry.name}
-                  url={entry.url}
-                  iconSrc={getModelIcon(entry.name, '')}
-                  secondary={entry.modelId}
-                  onOpen={() =>
-                    void shellOpen(entry.url).catch(() => window.open(entry.url, '_blank'))
-                  }
-                  openLabel={`Open ${entry.name} website`}
-                  add={{
-                    onClick: () => openModel(entry),
-                    label: `${t('btn.addModel')}: ${entry.name}`,
-                    disabled,
-                  }}
-                />
-              ))}
-            </BrandDeck>
-          </>
+          <BrandDeck>
+            {directory.map((entry) => (
+              <DirectoryRow
+                key={entry.name}
+                name={entry.name}
+                url={entry.url}
+                iconSrc={getModelIcon(entry.name, '')}
+                secondary={entry.modelId}
+                onOpen={() =>
+                  void shellOpen(entry.url).catch(() => window.open(entry.url, '_blank'))
+                }
+                openLabel={`Open ${entry.name} website`}
+                add={{
+                  onClick: () => openModel(entry),
+                  label: `${t('btn.addModel')}: ${entry.name}`,
+                  disabled,
+                }}
+              />
+            ))}
+          </BrandDeck>
         )}
       </div>
     </div>

@@ -1,6 +1,6 @@
 // Tauri Commands for model operations �?exposed to frontend via invoke()
 
-use crate::models::model::{ModelConfig, PingResult, TestResult};
+use crate::models::model::{ModelConfig, ModelScope, PingResult, TestResult};
 use crate::services::model_manager::{self, AddModelInput, UpdateModelInput};
 use crate::services::upstream_model_catalog::{self, CatalogInput, ModelCatalog};
 use crate::services::usage_providers::{self, UsageResult};
@@ -33,6 +33,9 @@ pub fn get_models() -> Result<Vec<ModelConfig>, String> {
 /// Add a new model
 #[tauri::command]
 pub async fn add_model(input: AddModelInput) -> Result<ModelConfig, String> {
+    if input.scope == ModelScope::VoiceInput {
+        return Err("voice.error.config".into());
+    }
     if let Some(source) = &input.account_source {
         crate::services::account_model_sources::validate_source(source).await?;
         if input

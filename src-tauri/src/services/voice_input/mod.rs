@@ -33,7 +33,7 @@ mod wayland_state;
 
 use audio::Recorder;
 use axum::body::Bytes;
-use config::{Config, Saved};
+use config::{ApiOptions, Channel, Config, Saved};
 use island_input::{WINDOW_HEIGHT as ISLAND_HEIGHT, WINDOW_WIDTH as ISLAND_WIDTH};
 use serde::Serialize;
 use std::path::PathBuf;
@@ -42,6 +42,9 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter, Manager};
 use tokio_util::sync::CancellationToken;
+
+use super::model_manager::{self, AddModelInput};
+use crate::models::model::{ModelConfig, ModelScope};
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -195,7 +198,10 @@ fn shared(app: &AppHandle) -> Arc<Voice> {
 pub fn init(app: &AppHandle) {
     let path = crate::utils::platform::echobird_dir().join("config/voice-input.json");
     let (saved, error) = match config::load(&path) {
-        Ok(saved) => (saved, None),
+        Ok(saved) => {
+            prune_detached_models(&saved.config);
+            (saved, None)
+        }
         Err(error) => (Saved::default(), Some(error)),
     };
     let config = saved.config.clone();
@@ -301,15 +307,114 @@ pub fn devices() -> Result<Vec<String>, String> {
     audio::devices()
 }
 
-pub async fn save(app: &AppHandle, mut config: Config) -> Result<Snapshot, String> {
+fn prune_detached_models(config: &Config) {
+    if let Err(error) = model_manager::prune_voice_models(&config.model_ids()) {
+        log::warn!("Failed to clean up detached voice models: {error}");
+    }
+}
+
+pub fn models(app: &AppHandle) -> Vec<ModelConfig> {
+    let models = model_manager::get_user_models();
+    let voice = shared(app);
+    let saved = voice.saved.lock().unwrap();
+    let attached = saved.config.model_ids();
+    models
+        .into_iter()
+        .filter(|model| {
+            model.scope == ModelScope::VoiceInput && attached.contains(model.internal_id.as_str())
+        })
+        .map(|mut model| {
+            model.api_key.clear();
+            model
+        })
+        .collect()
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApiSourceInput {
+    name: String,
+    base_url: String,
+    api_key: String,
+    model_id: String,
+    options: ApiOptions,
+}
+
+pub async fn add_api_source(
+    app: &AppHandle,
+    input: ApiSourceInput,
+) -> Result<(Snapshot, ModelConfig), String> {
+    let voice = shared(app);
+    let _operation = voice.operation.lock().await;
+    if voice.runtime.lock().unwrap().active() {
+        return Err("voice.error.busy".into());
+    }
+    let mut config = voice.saved.lock().unwrap().config.clone();
+    if config.channels.len() >= 3 {
+        return Err("voice.error.channels".into());
+    }
+    let name = input.name.trim();
+    let model_id = input.model_id.trim();
+    if name.is_empty() || model_id.is_empty() {
+        return Err("voice.error.missingSource".into());
+    }
+    let base_url = input.base_url.trim();
+    let url = url::Url::parse(base_url).map_err(|_| "voice.error.speechApi")?;
+    if !matches!(url.scheme(), "http" | "https")
+        || !url.has_host()
+        || !url.username().is_empty()
+        || url.password().is_some()
+    {
+        return Err("voice.error.speechApi".into());
+    }
+    let mut model = model_manager::add_model(AddModelInput {
+        name: Some(name.into()),
+        base_url: Some(base_url.into()),
+        api_key: Some(input.api_key),
+        model_id: Some(model_id.into()),
+        scope: ModelScope::VoiceInput,
+        ..Default::default()
+    })?;
+    config.channels.push(Channel {
+        kind: "model".into(),
+        id: model.internal_id.clone(),
+    });
+    config
+        .api_options
+        .insert(model.internal_id.clone(), input.options);
+    config.shortcut_enabled = true;
+    match save_locked(app, &voice, config).await {
+        Ok(snapshot) => {
+            model.api_key.clear();
+            Ok((snapshot, model))
+        }
+        Err(error) => {
+            if let Err(cleanup_error) = model_manager::delete_model(&model.internal_id) {
+                log::warn!("Failed to roll back a voice model: {cleanup_error}");
+            }
+            Err(error)
+        }
+    }
+}
+
+pub async fn save(app: &AppHandle, config: Config) -> Result<Snapshot, String> {
+    let voice = shared(app);
+    let _operation = voice.operation.lock().await;
+    save_locked(app, &voice, config).await
+}
+
+async fn save_locked(
+    app: &AppHandle,
+    voice: &Voice,
+    mut config: Config,
+) -> Result<Snapshot, String> {
     config.normalize_selection();
     config.disable_without_channels();
+    config.retain_attached_api_options();
     config.validate()?;
     if !native::modifier(&config.shortcut) {
         shortcut::parse(&config.shortcut)?;
     }
-    let voice = shared(app);
-    let _operation = voice.operation.lock().await;
     if voice.runtime.lock().unwrap().active() {
         return Err("voice.error.busy".into());
     }
@@ -326,6 +431,11 @@ pub async fn save(app: &AppHandle, mut config: Config) -> Result<Snapshot, Strin
     let mut saved = voice.saved.lock().unwrap().clone();
     let mode_changed = saved.config.hotkey_mode != config.hotkey_mode;
     let zoom_changed = saved.config.island_scale != config.island_scale;
+    let model_detached = saved
+        .config
+        .channels
+        .iter()
+        .any(|channel| channel.kind == "model" && !config.channels.contains(channel));
     saved.config = config.clone();
     if let Err(error) = config::save(&voice.path, &saved) {
         if let Some(registration) = &replacement {
@@ -351,6 +461,9 @@ pub async fn save(app: &AppHandle, mut config: Config) -> Result<Snapshot, Strin
         runtime.error = None;
     }
     *voice.saved.lock().unwrap() = saved;
+    if model_detached {
+        prune_detached_models(&config);
+    }
     selection::close(app);
     if zoom_changed {
         if let Some(window) = app.get_webview_window("voice-island") {

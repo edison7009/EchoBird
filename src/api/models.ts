@@ -53,7 +53,7 @@ export async function addModel(input: {
   accountSource?: AccountSource;
   anthropicUrl?: string;
   modelId?: string;
-  scope?: 'modelCenter' | 'smartRouter' | 'voiceInput';
+  scope?: 'modelCenter' | 'smartRouter';
 }): Promise<ModelConfig> {
   const result = await invoke<ModelConfig>('add_model', { input });
   modelRepository.ingest([result]);

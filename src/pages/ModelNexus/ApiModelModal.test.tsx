@@ -11,7 +11,7 @@ import { useModelNexus, type NewModelForm } from './context';
 import { useVoiceInputStore } from '../../stores/voiceInputStore';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { voiceSnapshot } from '../VoiceInput/testFixtures';
-import { saveVoiceConfig } from '../../api/voiceInput';
+import { addVoiceApiSource, saveVoiceConfig } from '../../api/voiceInput';
 
 const { showToast, addSelectedModel, updateSelectedModel, selectedIds, t } = vi.hoisted(() => ({
   showToast: vi.fn(),
@@ -54,6 +54,7 @@ vi.mock('../../api/models', () => ({
 }));
 vi.mock('../../api/voiceInput', async (original) => ({
   ...(await original<typeof import('../../api/voiceInput')>()),
+  addVoiceApiSource: vi.fn(),
   saveVoiceConfig: vi.fn(),
 }));
 vi.mock('@tauri-apps/api/core', () => ({
@@ -160,10 +161,18 @@ it.each(['mimo', 'doubao'] as const)(
     useNavigationStore.setState({ activePage: 'voice' });
     useVoiceInputStore.setState({ snapshot: voiceSnapshot() });
     const speech = { ...saved, internalId: 'speech-fixture', scope: 'voiceInput' as const };
-    vi.mocked(catalogApi.addModel).mockResolvedValue(speech);
-    vi.mocked(saveVoiceConfig).mockImplementation(async (config) =>
-      voiceSnapshot({ config, revision: 2 })
-    );
+    vi.mocked(addVoiceApiSource).mockResolvedValue([
+      voiceSnapshot({
+        config: {
+          ...voiceSnapshot().config,
+          channels: [{ kind: 'model', id: speech.internalId }],
+          apiOptions: { [speech.internalId]: { protocol } },
+          shortcutEnabled: true,
+        },
+        revision: 2,
+      }),
+      speech,
+    ]);
     await mount();
     await act(async () => context.setModelModalDestination('voiceInput'));
     await openAdd({ voiceOptions: { protocol } });
@@ -181,8 +190,8 @@ it.each(['mimo', 'doubao'] as const)(
     ).toBe(false);
     expect(catalogApi.fetchUpstreamModelCatalog).not.toHaveBeenCalled();
     await act(async () => button('model.enterSave').props.onClick());
-    expect(catalogApi.addModel).toHaveBeenCalledWith(
-      expect.objectContaining({ scope: 'voiceInput', baseUrl: saved.baseUrl })
+    expect(addVoiceApiSource).toHaveBeenCalledWith(
+      expect.objectContaining({ baseUrl: saved.baseUrl, options: { protocol } })
     );
     expect(api.addModel).not.toHaveBeenCalled();
     expect(addSelectedModel).not.toHaveBeenCalled();
@@ -211,6 +220,7 @@ it('allows a full voice source form and reports the limit only on Save without w
   await act(async () => button('model.enterSave').props.onClick());
   expect(showToast).toHaveBeenCalledExactlyOnceWith('error', 'voice.error.channels');
   expect(context.showAddModelModal).toBe(true);
+  expect(addVoiceApiSource).not.toHaveBeenCalled();
   expect(catalogApi.addModel).not.toHaveBeenCalled();
   expect(api.addModel).not.toHaveBeenCalled();
   expect(saveVoiceConfig).not.toHaveBeenCalled();

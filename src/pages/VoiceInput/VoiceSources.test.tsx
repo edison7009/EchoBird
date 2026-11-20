@@ -14,6 +14,7 @@ import * as api from '../../api/models';
 import * as voiceApi from '../../api/voiceInput';
 import { open } from '@tauri-apps/plugin-shell';
 import { DirectoryRow } from '../../components/DirectoryRow';
+import { ModelListCard } from '../../components/ModelListCard';
 import { ViewModeTabs } from '../../components/ViewModeTabs';
 import { AccountProxyPanel } from '../FreeModels/AccountProxyPanel';
 import bundled from '../../data/modelDirectory.json';
@@ -156,6 +157,52 @@ it('has two compact tabs; navigation does not open a form, log in, refresh quota
   expect(api.addModel).not.toHaveBeenCalled();
   expect(voiceApi.saveVoiceConfig).not.toHaveBeenCalled();
   expect(voiceApi.startVoice).not.toHaveBeenCalled();
+});
+it('removes a speech API channel without listing it or legacy saved models in the sidebar', async () => {
+  const model = {
+    internalId: 'speech-one',
+    name: 'Added speech source',
+    baseUrl: 'https://speech.example',
+    apiKey: '',
+    scope: 'voiceInput' as const,
+  };
+  const detached = { ...model, internalId: 'legacy', name: 'Legacy speech source' };
+  voice.setState({
+    snapshot: voiceSnapshot({
+      config: {
+        ...voiceSnapshot().config,
+        channels: [{ kind: 'model', id: model.internalId }],
+      },
+    }),
+  });
+  vi.mocked(voiceApi.getVoiceModels).mockResolvedValue([model, detached]);
+  vi.mocked(voiceApi.saveVoiceConfig).mockImplementation(async (config) =>
+    voiceSnapshot({ config, revision: 2 })
+  );
+  await act(async () => {
+    renderer = create(
+      <>
+        <VoiceInputMain />
+        <VoiceInputPanel />
+      </>
+    );
+  });
+  await modelTab();
+  expect(voice.getState().models).toEqual([model]);
+  const sidebar = renderer.root.findByType(VoiceInputPanel);
+  const catalog = sidebar.findAllByType(DirectoryRow).map((row) => row.props.name);
+  expect(catalog).toHaveLength(12);
+
+  await act(async () => {
+    renderer.root.findByProps({ 'aria-label': 'voice.removeChannel' }).props.onClick();
+  });
+  expect(voiceApi.saveVoiceConfig).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({ channels: [] })
+  );
+  await act(async () => voice.getState().acceptModels([model, detached]));
+  expect(voice.getState().models).toEqual([]);
+  expect(sidebar.findAllByType(DirectoryRow).map((row) => row.props.name)).toEqual(catalog);
+  expect(sidebar.findAllByType(ModelListCard)).toHaveLength(0);
 });
 it('opens the shared account form only on explicit selection and uses the speech destination', async () => {
   await mount();

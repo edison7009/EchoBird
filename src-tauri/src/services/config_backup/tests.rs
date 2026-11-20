@@ -303,6 +303,41 @@ fn symlink_targets_are_rejected_without_modifying_their_contents() {
 }
 
 #[test]
+fn voice_credentials_without_channels_are_excluded_from_backup_and_legacy_restore() {
+    let source = tempfile::tempdir().unwrap();
+    let target = tempfile::tempdir().unwrap();
+    let voice_model = json!({
+        "internalId": "voice-fixture",
+        "name": "Voice fixture",
+        "modelId": "voice-model",
+        "baseUrl": "https://example.invalid/v1",
+        "apiKey": "enc:v1:S:voice-key",
+        "scope": "voiceInput"
+    });
+    write(
+        source.path(),
+        "config/models.json",
+        json!([voice_model.clone()]),
+    );
+    let mut legacy = collect(source.path(), "source".into(), BTreeMap::new(), &|_| {
+        panic!("voice credentials must not be exported")
+    })
+    .unwrap();
+    assert!(legacy.records.is_empty());
+    legacy.records.push(Record {
+        kind: "model".into(),
+        id: "voice-fixture".into(),
+        data: voice_model,
+        device_bound: false,
+    });
+    let (plan, outcome) = prepare(target.path(), legacy, &encrypt, &decrypt).unwrap();
+    assert_eq!(outcome.skipped, 1);
+    assert_eq!(outcome.records, 0);
+    publish(&plan).unwrap();
+    assert!(!target.path().join("config/models.json").exists());
+}
+
+#[test]
 fn shared_api_keys_keep_distinct_model_ids_and_scopes_when_restored() {
     let source = tempfile::tempdir().unwrap();
     let target = tempfile::tempdir().unwrap();

@@ -1,10 +1,11 @@
 // Model Manager �?mirrors old modelManager.ts
 // Handles model CRUD, API testing, ping, and API key encryption
 
+use std::collections::HashSet;
 use std::fs;
 use std::time::Instant;
 
-use crate::models::model::{ModelConfig, ModelType, PingResult, TestResult};
+use crate::models::model::{ModelConfig, ModelScope, ModelType, PingResult, TestResult};
 use crate::utils::platform::echobird_dir;
 
 #[cfg(test)]
@@ -481,6 +482,20 @@ fn new_model_from(input: AddModelInput, internal_id: String) -> ModelConfig {
 /// Delete a user model by internal ID
 pub fn delete_model(internal_id: &str) -> Result<bool, String> {
     delete_model_at(&models_config_path(), internal_id)
+}
+
+pub(crate) fn prune_voice_models(attached: &HashSet<&str>) -> Result<(), String> {
+    prune_voice_models_at(&models_config_path(), attached)
+}
+
+fn prune_voice_models_at(path: &std::path::Path, attached: &HashSet<&str>) -> Result<(), String> {
+    super::json_store::mutate(path, |models: &mut Vec<ModelConfig>| {
+        let before = models.len();
+        models.retain(|model| {
+            model.scope != ModelScope::VoiceInput || attached.contains(model.internal_id.as_str())
+        });
+        Ok(((), models.len() != before))
+    })
 }
 
 fn delete_model_at(path: &std::path::Path, internal_id: &str) -> Result<bool, String> {

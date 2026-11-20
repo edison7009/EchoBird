@@ -1230,6 +1230,7 @@ pub fn run() {
                 settings_commands::get_avatar,
                 commands::voice_input_commands::voice_input_state,
                 commands::voice_input_commands::voice_input_models,
+                commands::voice_input_commands::voice_input_add_api_source,
                 commands::voice_input_commands::voice_input_devices,
                 commands::usage_island_commands::usage_island_set_visible,
                 commands::usage_island_commands::usage_island_resize,

@@ -266,7 +266,7 @@ fn collect(
         ui_preferences,
     };
     let mut backup = backup;
-    restrict_to_api_models(&mut backup);
+    restrict_to_portable_api_models(&mut backup);
     for entry in &mut backup.records {
         records::map_secrets(&mut entry.data, true, decrypt, 0)?;
     }
@@ -362,17 +362,18 @@ fn add_bytes(
     }
     Ok(())
 }
-// Older v1 backups can contain OS-bound login records. Ignore them before
-// unsealing credentials, and keep routes/order limited to portable API models.
-fn restrict_to_api_models(backup: &mut Backup) -> usize {
+// Voice credentials belong to channels, which this backup does not include.
+// Exclude them and OS-bound logins before unsealing credentials.
+fn restrict_to_portable_api_models(backup: &mut Backup) -> usize {
     let mut skipped = 0;
     backup.records.retain(|record| {
         let excluded = record.kind.starts_with("account:")
             || record.kind == "model"
-                && record
+                && (record
                     .data
                     .get("accountSource")
-                    .is_some_and(|source| !source.is_null());
+                    .is_some_and(|source| !source.is_null())
+                    || record.data["scope"].as_str() == Some("voiceInput"));
         if excluded {
             skipped += 1;
         }
@@ -454,7 +455,7 @@ fn prepare(
     decrypt: &impl Fn(&str) -> Result<String, String>,
 ) -> Result<(Vec<Planned>, Outcome), String> {
     validate_header(&backup)?;
-    let skipped = restrict_to_api_models(&mut backup);
+    let skipped = restrict_to_portable_api_models(&mut backup);
     // Secrets are unwrapped in memory before schema validation, never into a temporary file.
     for record in &mut backup.records {
         records::map_secrets(&mut record.data, false, &|s| Ok(s.to_owned()), 0)?;

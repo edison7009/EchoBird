@@ -87,6 +87,22 @@ pub(super) fn language_name(language: &str) -> Option<&'static str> {
 }
 
 impl Config {
+    pub(super) fn model_ids(&self) -> HashSet<&str> {
+        self.channels
+            .iter()
+            .filter(|channel| channel.kind == "model")
+            .map(|channel| channel.id.as_str())
+            .collect()
+    }
+
+    pub(super) fn retain_attached_api_options(&mut self) {
+        self.api_options.retain(|id, _| {
+            self.channels
+                .iter()
+                .any(|channel| channel.kind == "model" && &channel.id == id)
+        });
+    }
+
     pub fn hotkey_active(&self) -> bool {
         self.shortcut_enabled && self.hotkey_enabled
     }
@@ -210,6 +226,7 @@ pub fn load(path: &Path) -> Result<Saved, String> {
             let mut saved: Saved =
                 serde_json::from_slice(&bytes).map_err(|_| "voice.error.config")?;
             saved.config.normalize_selection();
+            saved.config.retain_attached_api_options();
             saved.config.validate()?;
             saved.config.disable_without_channels();
             Ok(saved)
@@ -228,4 +245,35 @@ pub fn save(path: &Path, saved: &Saved) -> Result<(), String> {
     std::fs::write(&temporary, bytes)
         .and_then(|()| std::fs::rename(&temporary, path))
         .map_err(|_| "voice.error.save".into())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn loading_voice_config_keeps_protocol_options_only_for_attached_models() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("voice-input.json");
+        let mut saved = Saved::default();
+        saved.config.channels.push(Channel {
+            kind: "model".into(),
+            id: "attached".into(),
+        });
+        saved.config.api_options.insert(
+            "attached".into(),
+            ApiOptions {
+                protocol: "mimo".into(),
+            },
+        );
+        saved
+            .config
+            .api_options
+            .insert("detached".into(), ApiOptions::default());
+        save(&path, &saved).unwrap();
+        let loaded = load(&path).unwrap();
+        assert_eq!(loaded.config.model_ids(), HashSet::from(["attached"]));
+        assert_eq!(loaded.config.api_options.len(), 1);
+        assert_eq!(loaded.config.api_options["attached"].protocol, "mimo");
+    }
 }
