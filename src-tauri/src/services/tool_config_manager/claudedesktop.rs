@@ -5,6 +5,8 @@ use serde_json::json;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+mod egress;
+
 pub(super) const CLAUDE_DESKTOP_PROFILE_ID: &str = "7d8f4e2a-9c3b-4f1a-b0e5-1a2b3c4d5e6f";
 pub(crate) static SELECTION_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
@@ -144,6 +146,8 @@ fn apply_at(info: &ModelInfo, paths: &ClaudeDesktopLayout, relay: &Path) -> Resu
     let _lock = native_account_files::DirectoryLock::acquire(relay)?;
     let mut official = native_account_files::object(&paths.cfg_official)?;
     let mut threep = native_account_files::object(&paths.cfg_threep)?;
+    let egress = egress::retire(&paths.lib_dir)?;
+    let mut transaction = Transaction::guarded();
     let backup = backup_library(paths);
     clear_empty_backup_conflict(
         &paths.lib_dir,
@@ -156,7 +160,6 @@ fn apply_at(info: &ModelInfo, paths: &ClaudeDesktopLayout, relay: &Path) -> Resu
         "apiKey":if key.is_empty() { "local-no-auth" } else {key},
         "actualModel":model,"modelName":info.name.as_deref().unwrap_or(model),
         "relayMode":true,"oneMContext":info.one_m_context,"webSearch":info.web_search});
-    let mut transaction = Transaction::guarded();
     transaction.replace(&paths.cfg_official, &native_account_files::json(&official)?)?;
     transaction.replace(&paths.cfg_threep, &native_account_files::json(&threep)?)?;
     transaction.replace(relay, &native_account_files::json(&config)?)?;
@@ -167,11 +170,29 @@ fn apply_at(info: &ModelInfo, paths: &ClaudeDesktopLayout, relay: &Path) -> Resu
             .map_err(|error| format!("Cannot preserve Claude profiles: {error}"))?;
     }
     transaction.commit();
+    if let Some(egress) = egress {
+        egress.commit();
+    }
     Ok(())
 }
 
 pub(crate) fn relay_path() -> PathBuf {
     echobird_dir().join("claudedesktop.json")
+}
+
+pub(crate) fn prepare_cowork_proxy(port: u16) -> Result<(), String> {
+    let paths = resolve_claudedesktop_paths().ok_or("Cannot resolve Claude Desktop profiles.")?;
+    let _lock = native_account_files::DirectoryLock::acquire(&relay_path())?;
+    egress::write_proxy(&paths.lib_dir, port)
+}
+
+pub(crate) fn clear_cowork_proxy() -> Result<(), String> {
+    let paths = resolve_claudedesktop_paths().ok_or("Cannot resolve Claude Desktop profiles.")?;
+    let _lock = native_account_files::DirectoryLock::acquire(&relay_path())?;
+    if let Some(egress) = egress::retire(&paths.lib_dir)? {
+        egress.commit();
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -187,6 +208,8 @@ pub(crate) fn restore_with<T>(
     let _lock = native_account_files::DirectoryLock::acquire(relay)?;
     let mut official = native_account_files::object(&paths.cfg_official)?;
     let mut threep = native_account_files::object(&paths.cfg_threep)?;
+    let egress = egress::retire(&paths.lib_dir)?;
+    let mut transaction = Transaction::guarded();
     let backup = backup_library(paths);
     clear_empty_backup_conflict(
         &paths.lib_dir,
@@ -195,7 +218,6 @@ pub(crate) fn restore_with<T>(
     )?;
     official["deploymentMode"] = json!("1p");
     threep["deploymentMode"] = json!("1p");
-    let mut transaction = Transaction::guarded();
     transaction.replace(&paths.cfg_official, &native_account_files::json(&official)?)?;
     transaction.replace(&paths.cfg_threep, &native_account_files::json(&threep)?)?;
     // Retire EchoBird's legacy 3p profile during upgrade as well as restore.
@@ -228,6 +250,9 @@ pub(crate) fn restore_with<T>(
     match finish(&mut transaction) {
         Ok(value) => {
             transaction.commit();
+            if let Some(egress) = egress {
+                egress.commit();
+            }
             Ok(value)
         }
         Err(error) => {
@@ -332,6 +357,38 @@ mod tests {
             b"original-profile"
         );
         assert!(!relay.exists());
+    }
+
+    #[test]
+    fn retiring_local_mode_restores_the_previous_library_and_rolls_back_on_account_failure() {
+        let root = TestDir::new();
+        let paths = claudedesktop_paths_at(root.path());
+        let relay = root.path().join("state/relay.json");
+        fs::create_dir_all(&paths.lib_dir).unwrap();
+        fs::write(paths.lib_dir.join("other.json"), b"original profile").unwrap();
+        with_test_models(|| apply_at(&test_info(), &paths, &relay)).unwrap();
+        egress::write_proxy(&paths.lib_dir, 35801).unwrap();
+        let before = fs::read(paths.lib_dir.join("_meta.json")).unwrap();
+
+        let failed = restore_with(&paths, &relay, |_| Err::<(), _>("failed auth".into()));
+        assert_eq!(failed.unwrap_err(), "failed auth");
+        assert_eq!(fs::read(paths.lib_dir.join("_meta.json")).unwrap(), before);
+        assert_eq!(
+            fs::read(backup_library(&paths).join("other.json")).unwrap(),
+            b"original profile"
+        );
+        assert!(relay.exists());
+
+        with_test_models(|| apply_at(&test_info(), &paths, &relay)).unwrap();
+        assert!(!paths.lib_dir.exists());
+        egress::write_proxy(&paths.lib_dir, 35802).unwrap();
+        restore_at(&paths, &relay).unwrap();
+        assert_eq!(
+            fs::read(paths.lib_dir.join("other.json")).unwrap(),
+            b"original profile"
+        );
+        assert_eq!(fs::read_dir(&paths.lib_dir).unwrap().count(), 1);
+        assert!(!backup_library(&paths).exists());
     }
 
     #[test]

@@ -25,6 +25,7 @@ mod assets;
 mod certificates;
 mod desktop;
 mod localization;
+mod plugins;
 mod workspace_prompt;
 
 pub(crate) async fn ensure_certificate_trusted(path: &std::path::Path) -> Result<(), String> {
@@ -73,6 +74,7 @@ struct Context {
     selection: Arc<Mutex<Value>>,
     selection_path: PathBuf,
     desktop: Arc<desktop::State>,
+    plugins: Arc<plugins::State>,
     assets: Option<Arc<assets::Archive>>,
     locale: String,
 }
@@ -170,6 +172,7 @@ async fn ensure_started_at(
         assets: assets.clone(),
         locale: locale.clone(),
         desktop: Arc::new(desktop::State::new(directory.join("device.json"))),
+        plugins: Arc::new(plugins::State::new(directory.join("plugins"))?),
     };
     tokio::spawn(async move {
         loop {
@@ -508,6 +511,10 @@ async fn route(
             return StatusCode::FORBIDDEN.into_response();
         }
     }
+    let request = match plugins::response(request, &context).await {
+        Ok(response) => return response,
+        Err(request) => request,
+    };
     if path.starts_with("/claudeai-rpc/")
         || (path.starts_with("/api/organizations/")
             && matches!(
@@ -980,7 +987,7 @@ mod tests {
             async move {
                 assert!(headers["authorization"].to_str().unwrap().starts_with("Bearer echobird-local-"));
                 assert!(headers.get("cookie").is_none());
-                assert_eq!(body["model"], "fixture-model");
+                assert!(matches!(body["model"].as_str(), Some("fixture-model" | "fixture-other")));
                 observed.fetch_add(1, Ordering::SeqCst);
                 received.lock().await.push(body);
                 Json(json!({"type":"message","content":[{"type":"text","text":"fixture reply"}]}))
@@ -1109,6 +1116,49 @@ mod tests {
         assert_eq!(calls.load(Ordering::SeqCst), 0);
 
         let organization = format!("{base}/api/organizations/{ORGANIZATION}");
+        let plugin_list = client
+            .get(format!(
+                "{organization}/plugins/list-plugins?enabled_only=true"
+            ))
+            .header("origin", "https://claude.ai")
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(
+            plugin_list.headers()["access-control-allow-origin"],
+            "https://claude.ai"
+        );
+        assert_eq!(
+            plugin_list.json::<Value>().await.unwrap()["plugins"],
+            json!([])
+        );
+        let preflight = client
+            .request(
+                reqwest::Method::OPTIONS,
+                format!("{organization}/plugins/plugin_fixture/enabled"),
+            )
+            .header("origin", "https://claude.ai")
+            .header("access-control-request-method", "PUT")
+            .header("access-control-request-headers", "content-type")
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(preflight.status(), StatusCode::NO_CONTENT);
+        assert_eq!(
+            preflight.headers()["access-control-allow-headers"],
+            "content-type"
+        );
+        let unsolicited = client
+            .put(format!("{organization}/plugins/plugin_fixture/enabled"))
+            .header("origin", "https://untrusted.example")
+            .bearer_auth(&expected_token)
+            .json(&json!({"enabled":true}))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(unsolicited.status(), StatusCode::FORBIDDEN);
+        assert!(!directory.join("plugins").exists());
+
         let old_chat = directory.join("chat/old-conversation.json");
         super::super::native_account_files::write(&old_chat, b"saved-chat").unwrap();
         let old_selector = directory.join("chat-selector.json");
@@ -1289,7 +1339,7 @@ mod tests {
             .unwrap();
         assert_eq!(result["content"][0]["text"], "fixture reply");
         assert_eq!(calls.load(Ordering::SeqCst), 1);
-        let tool_round = json!({"model":"fixture-model","system":[{"type":"text","text":"native task"}],
+        let tool_round = json!({"model":"fixture-other","system":[{"type":"text","text":"native task"}],
             "tools":[{"name":"Read","description":"Read a selected file","input_schema":{"type":"object","properties":{"path":{"type":"string"}}}}],
             "messages":[{"role":"user","content":"Read the selected file"},
                 {"role":"assistant","content":[{"type":"tool_use","id":"tool-1","name":"Read","input":{"path":"/selected/file"}}]},
@@ -1321,6 +1371,19 @@ mod tests {
                 .await
                 .unwrap();
         assert_eq!(local_token(&directory).unwrap(), expected_token);
+        for (index, model) in ["fixture-model", "fixture-other"].into_iter().enumerate() {
+            let continuation = json!({"model":model,"messages":[{"role":"user","content":"Continue the native conversation"}]});
+            client
+                .post(format!("http://127.0.0.1:{}/v1/messages", restarted.port))
+                .bearer_auth(&expected_token)
+                .json(&continuation)
+                .send()
+                .await
+                .unwrap()
+                .error_for_status()
+                .unwrap();
+            assert_eq!(received.lock().await[index + 2], continuation);
+        }
         let restored: Value = client
             .get(format!(
                 "http://127.0.0.1:{}/api/organizations/{ORGANIZATION}/model_selector/code",

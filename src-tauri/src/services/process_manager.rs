@@ -300,10 +300,10 @@ impl ProcessManager {
                 .await;
                 if let Err(error) = &result {
                     crate::services::claude_desktop_local::stop().await;
-                    if let Err(restore) =
-                        crate::services::claude_desktop_accounts::end_local_mode().await
-                    {
-                        return Err(format!("Unable to restore native authentication ({restore}) after local startup failed ({error})"));
+                    let egress = super::tool_config_manager::claudedesktop::clear_cowork_proxy();
+                    let auth = crate::services::claude_desktop_accounts::end_local_mode().await;
+                    if let Err(restore) = auth.and(egress) {
+                        return Err(format!("Unable to restore Claude Desktop ({restore}) after local startup failed ({error})"));
                     }
                 }
                 return result;
@@ -1131,6 +1131,7 @@ impl ProcessManager {
         let relay: serde_json::Value =
             serde_json::from_slice(&std::fs::read(relay_path).map_err(|error| error.to_string())?)
                 .map_err(|error| error.to_string())?;
+        super::tool_config_manager::claudedesktop::prepare_cowork_proxy(settings.port)?;
         let mut command = claude_local_command(
             &executable,
             &settings,

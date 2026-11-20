@@ -158,7 +158,7 @@ async fn trusted(thumbprint: &str) -> Result<bool, String> {
 #[cfg(target_os = "macos")]
 pub(super) async fn ensure_trusted(ca_path: &Path) -> Result<(), String> {
     let server_path = ca_path.with_file_name("local-server.der");
-    if macos_trusted(&server_path).await? {
+    if macos_trusted(&server_path, ca_path).await? {
         return Ok(());
     }
     let keychain = run(
@@ -178,24 +178,33 @@ pub(super) async fn ensure_trusted(ca_path: &Path) -> Result<(), String> {
     if keychain.is_empty() {
         return Err("Cannot locate the macOS login keychain.".into());
     }
-    // macOS owns any authorization prompt for changing the user's SSL trust.
+    // The desktop needs SSL trust. Cowork only transfers roots trusted for the basic policy.
     let result = run(
         crate::utils::process::async_command("/usr/bin/security")
-            .args(["add-trusted-cert", "-r", "trustRoot", "-p", "ssl", "-k"])
+            .args([
+                "add-trusted-cert",
+                "-r",
+                "trustRoot",
+                "-p",
+                "ssl",
+                "-p",
+                "basic",
+                "-k",
+            ])
             .arg(keychain)
             .arg(ca_path),
         120,
     )
     .await?;
-    if !result.status.success() || !macos_trusted(&server_path).await? {
+    if !result.status.success() || !macos_trusted(&server_path, ca_path).await? {
         return Err("EchoBird Claude local certificate was not trusted. Confirm the macOS keychain prompt, then retry.".into());
     }
     Ok(())
 }
 
 #[cfg(target_os = "macos")]
-async fn macos_trusted(server_path: &Path) -> Result<bool, String> {
-    Ok(run(
+async fn macos_trusted(server_path: &Path, ca_path: &Path) -> Result<bool, String> {
+    let ssl = run(
         crate::utils::process::async_command("/usr/bin/security")
             .args([
                 "verify-cert",
@@ -212,7 +221,17 @@ async fn macos_trusted(server_path: &Path) -> Result<bool, String> {
     )
     .await?
     .status
-    .success())
+    .success();
+    Ok(ssl
+        && run(
+            crate::utils::process::async_command("/usr/bin/security")
+                .args(["verify-cert", "-L", "-q", "-p", "basic", "-c"])
+                .arg(ca_path),
+            10,
+        )
+        .await?
+        .status
+        .success())
 }
 
 #[cfg(any(target_os = "linux", test))]

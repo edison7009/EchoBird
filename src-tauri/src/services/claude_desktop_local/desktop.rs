@@ -86,7 +86,7 @@ impl State {
     }
 }
 
-fn authorized(request: &Request<Body>, token: &str) -> bool {
+pub(super) fn authorized(request: &Request<Body>, token: &str) -> bool {
     request
         .headers()
         .get("authorization")
@@ -242,8 +242,6 @@ pub fn response(path: &str, method: &str) -> Option<Response<Body>> {
         json!({"features":{}})
     } else if path.ends_with("/skills/list-skills") {
         json!({"skills":[]})
-    } else if path.ends_with("/plugins/list-plugins") {
-        json!({"plugins":[],"installed_plugin_ids":[]})
     } else if path.ends_with("/mcp/remote_servers_with_connection") {
         json!([])
     } else if path.ends_with("/memory/settings") {
