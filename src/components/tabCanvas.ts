@@ -77,7 +77,7 @@ export function paintTabCanvas(
     const keyHeight = Math.max(0, region.height - inset * 2);
     const keyRadius = Math.max(
       2,
-      Math.min(Array.isArray(selection) ? keyHeight / 2 : palette.radius - inset + 1, keyHeight / 2)
+      Math.min(Array.isArray(selection) ? keyHeight / 2 : palette.radius - inset, keyHeight / 2)
     );
     const fill = context.createLinearGradient?.(0, y, 0, y + keyHeight);
     if (fill) {
