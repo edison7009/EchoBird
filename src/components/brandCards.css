@@ -662,37 +662,29 @@ button.brand-deck-card:disabled:hover {
 .brand-new-row:disabled {
   opacity: 0.45;
 }
-/* Rows in the page's own colour: quieter until chosen. */
-.brand-row.is-quiet:not(.is-selected) {
-  --row-tint: 10%;
-}
-:root[data-theme='light'] .brand-row.is-quiet:not(.is-selected) {
-  --row-tint: 8%;
-}
+/* Cards placed on a route (smart access, voice, usage island): the same soft
+   tint as the model and account cards, so the large order numbers lead. An
+   empty slot is a quiet dashed outline, like the add-model slot. */
 .brand-slot.is-filled {
-  --brand-tint: 24%;
+  --brand-tint: 22%;
   isolation: isolate;
   background-origin: border-box;
   background-color: rgb(var(--bg-surface-rgb));
   background-image: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--brand) 16%, rgb(var(--bg-surface-rgb))) 0%,
+    rgb(var(--bg-surface-rgb)) 30%,
     color-mix(in srgb, var(--brand) var(--brand-tint), rgb(var(--bg-surface-rgb))) 100%
   );
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.05);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.04),
+    inset 0 1px 0 rgb(255 255 255 / 0.05);
 }
 :root[data-theme='light'] .brand-slot.is-filled {
   --brand-tint: 14%;
 }
-.brand-slot.is-filled.is-neutral {
-  --brand-tint: 14%;
-}
-:root[data-theme='light'] .brand-slot.is-filled.is-neutral {
-  --brand-tint: 8%;
-}
 .brand-slot.is-empty {
-  background: rgb(var(--bg-surface-rgb) / 0.25);
-  border: 1.5px dashed rgb(var(--border-rgb));
+  background: transparent;
+  border: 1.5px dashed rgb(var(--text-primary-rgb) / 0.2);
 }
 .brand-slot-empty {
   position: relative;
