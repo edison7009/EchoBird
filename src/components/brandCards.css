@@ -5,9 +5,9 @@
  * the provider's colour, stacked so each tucks its foot under the next; the
  * hovered card rises a little out of the deck.
  *
- * Brand cards (.brand-card) are the cards in the middle: the provider's colour
- * runs across the card, light top-left to deep bottom-right, with its logo
- * faded into the corner. --brand comes from the icon (utils/brandColour.ts).
+ * Brand cards (.brand-card) are the cards in the middle: mostly the plain card
+ * colour, with the provider's colour showing softly from the lower-right corner
+ * and its logo faded there. --brand comes from the icon (utils/brandColour.ts).
  */
 
 /* ---------- Deck ---------- */
@@ -246,17 +246,19 @@ div.brand-card {
      layer, so the turning logo would spill out and the card seem to move.
      A rounded clip path holds in every engine. */
   clip-path: inset(0 round 12px);
-  --brand-tint: 65%;
-  --brand-mark: 0.2;
+  --brand-tint: 22%;
+  --brand-mark: 0.12;
   --brand-pill: 0 0 0 / 0.2;
   position: relative;
   isolation: isolate;
   overflow: hidden;
   border-radius: 12px;
   background-color: rgb(var(--bg-surface-rgb));
+  /* Mostly the plain card colour; the brand shows softly from the lower-right
+     corner, so a row of cards reads calm while each stays recognisable. */
   background-image: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--brand) 6%, rgb(var(--bg-surface-rgb))) 0%,
+    rgb(var(--bg-surface-rgb)) 30%,
     color-mix(in srgb, var(--brand) var(--brand-tint), rgb(var(--bg-surface-rgb))) 100%
   );
   box-shadow:
@@ -264,8 +266,8 @@ div.brand-card {
     inset 0 1px 0 rgb(255 255 255 / 0.05);
 }
 :root[data-theme='light'] .brand-card {
-  --brand-tint: 44%;
-  --brand-mark: 0.24;
+  --brand-tint: 14%;
+  --brand-mark: 0.12;
   --brand-pill: 255 255 255 / 0.55;
 }
 .brand-card-mark {
