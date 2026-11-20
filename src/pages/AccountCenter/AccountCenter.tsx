@@ -17,7 +17,7 @@ import {
   sortableKeyboardCoordinates,
   arrayMove,
 } from '@dnd-kit/sortable';
-import { Gift, GripVertical, LoaderCircle, RefreshCw, Users } from 'lucide-react';
+import { Gift, GripVertical, LoaderCircle, RefreshCw, Users, Zap } from 'lucide-react';
 import { useAccounts } from '../../features/accounts/context';
 import {
   AccountSectionActions,
@@ -461,7 +461,7 @@ export function AccountCenterTitleActions() {
   const providers = accountCenterProviders(context, t, locale);
   const latest = useRef(providers);
   const batch = useRef<symbol | null>(null);
-  const [running, setRunning] = useState<'refresh' | 'claim' | null>(null);
+  const [running, setRunning] = useState<'refresh' | 'claim' | 'warmUp' | null>(null);
   useEffect(() => {
     latest.current = providers;
   }, [providers]);
@@ -491,7 +491,7 @@ export function AccountCenterTitleActions() {
         provider.busy ||
         provider.accounts.some((account) => account.refreshing)
     );
-  const run = async (action: 'refresh' | 'claim') => {
+  const run = async (action: 'refresh' | 'claim' | 'warmUp') => {
     if (batch.current || blocked || activePage !== 'accounts' || !accounts.length) return;
     if (!useRewardClaimStore.getState().tryStart()) return;
     const request = Symbol();
@@ -524,7 +524,10 @@ export function AccountCenterTitleActions() {
           });
         };
         try {
-          if (action === 'claim') {
+          if (action === 'warmUp') {
+            // Same warm-up as the card's own button, for every account that has one.
+            if (account.warmUp) await account.warmUp(collectError);
+          } else if (action === 'claim') {
             if (account.claim && !claimedProviders.has(provider.id)) {
               const deviceClaimed = await account.claim(collectError);
               if (deviceClaimed === true && batch.current === request)
@@ -546,7 +549,9 @@ export function AccountCenterTitleActions() {
               otherFailures,
               action === 'claim'
                 ? 'accountCenter.batchClaimFailed'
-                : 'accountCenter.batchRefreshFailed',
+                : action === 'warmUp'
+                  ? 'accountCenter.batchWarmUpFailed'
+                  : 'accountCenter.batchRefreshFailed',
             ],
           ] as const
         )
@@ -569,6 +574,14 @@ export function AccountCenterTitleActions() {
   return (
     <div className="ml-auto flex-shrink-0 flex items-center gap-3">
       <AccountPrivacyButton />
+      <PageActionButton
+        icon={running === 'warmUp' ? LoaderCircle : Zap}
+        spinning={running === 'warmUp'}
+        aria-label={t('accountCenter.warmUpAll')}
+        pending={blocked || running !== null}
+        disabled={blocked || running !== null || !accounts.some(({ account }) => account.warmUp)}
+        onClick={() => run('warmUp')}
+      />
       <PageActionButton
         icon={running === 'claim' ? LoaderCircle : Gift}
         spinning={running === 'claim'}

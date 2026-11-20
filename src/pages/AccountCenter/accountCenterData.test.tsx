@@ -1402,6 +1402,56 @@ describe('Account Center display data', () => {
     }
   });
 
+  it('warms up every subscribed account from the title bar and reports the ones that fail', async () => {
+    const state = context();
+    const group = state.claudeCodeAccounts as unknown as ReturnType<typeof useClaudeCodeAccounts>;
+    const max = { id: 'max', email: 'max@example.test', plan: 'Max', active: true };
+    const free = { id: 'free', email: 'free@example.test', plan: 'Free', active: false };
+    const pro = { id: 'pro', email: 'pro@example.test', plan: 'Pro', active: false };
+    group.accounts = [max, free, pro];
+    group.warmUp = vi.fn(async (account: { id: string }, onError?: (error: unknown) => void) => {
+      if (account.id === 'pro') onError?.(new Error('offline'));
+    }) as never;
+    state.detectedTools = [
+      { id: 'claudecode', name: 'Claude Code', category: 'CLI', installed: true },
+    ];
+    const { installed } = usePluginsStore.getState();
+    const { developerMode } = useNavigationStore.getState();
+    useNavigationStore.setState({ developerMode: true });
+    usePluginsStore.setState({ installed: installedAccountPlugins() });
+    useNavigationStore.getState().setActivePage('accounts');
+    let renderer: ReactTestRenderer | undefined;
+    try {
+      act(() => {
+        renderer = create(
+          <AppManagerContext.Provider value={state}>
+            <AccountDirectoryContext.Provider value={state}>
+              <AccountCenterTitleActions />
+            </AccountDirectoryContext.Provider>
+          </AppManagerContext.Provider>
+        );
+      });
+      const button = renderer!.root.findByProps({ 'aria-label': 'accountCenter.warmUpAll' });
+      expect(button.props.disabled).toBe(false);
+      await act(async () => {
+        await button.props.onClick();
+      });
+      // Free plans have no warm-up; the others are warmed in order.
+      expect(group.warmUp).toHaveBeenCalledTimes(2);
+      expect(group.warmUp).toHaveBeenNthCalledWith(1, max, expect.any(Function));
+      expect(group.warmUp).toHaveBeenNthCalledWith(2, pro, expect.any(Function));
+      expect(state.setApplyError).toHaveBeenLastCalledWith(
+        expect.stringContaining('accountCenter.batchWarmUpFailed')
+      );
+      expect(group.refresh).not.toHaveBeenCalled();
+    } finally {
+      act(() => renderer?.unmount());
+      useNavigationStore.getState().setActivePage('apps');
+      useNavigationStore.setState({ developerMode });
+      usePluginsStore.setState({ installed });
+    }
+  });
+
   it.each(['device claimed', 'no device claim', 'ignored response'] as const)(
     'uses the actual TRAE claim result before a render snapshot updates (%s)',
     async (result) => {

@@ -293,6 +293,8 @@ export type TKey =
   | 'accountCenter.subscriptionProviders'
   | 'accountCenter.noSubscriptionProviders'
   | 'accountCenter.claimAll'
+  | 'accountCenter.warmUpAll'
+  | 'accountCenter.batchWarmUpFailed'
   | 'accountCenter.refreshAll'
   | 'accountCenter.batchRefreshSummary'
   | 'accountCenter.batchClaimSummary'

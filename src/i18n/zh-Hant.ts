@@ -298,6 +298,8 @@ const zhHant: Partial<Translations> = {
   'accountCenter.subscriptionProviders': '特別鳴謝：帳號及代儲值',
   'accountCenter.noSubscriptionProviders': '暫未收錄',
   'accountCenter.claimAll': '一鍵領取獎勵',
+  'accountCenter.warmUpAll': '一鍵預熱全部帳號',
+  'accountCenter.batchWarmUpFailed': '預熱失敗：{n} 個帳號，請檢查網路或稍後重試。',
   'accountCenter.refreshAll': '重新整理額度',
   'accountCenter.batchRefreshSummary': '已重新整理 {success} 個帳號，{failed} 個失敗',
   'accountCenter.batchClaimSummary': '已領取 {success} 個帳號的獎勵，{failed} 個失敗',

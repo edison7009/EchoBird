@@ -317,6 +317,9 @@ const en: Translations = {
   'accountCenter.subscriptionProviders': 'Special Thanks: Accounts & Top-ups',
   'accountCenter.noSubscriptionProviders': 'No providers listed yet',
   'accountCenter.claimAll': 'Claim all rewards',
+  'accountCenter.warmUpAll': 'Warm up all accounts',
+  'accountCenter.batchWarmUpFailed':
+    'Could not warm up {n} accounts. Check your network or try again later.',
   'accountCenter.refreshAll': 'Refresh quotas',
   'accountCenter.batchRefreshSummary': 'Refreshed {success} accounts; {failed} failed',
   'accountCenter.batchClaimSummary': 'Claimed rewards for {success} accounts; {failed} failed',

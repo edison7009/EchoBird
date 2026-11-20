@@ -297,6 +297,8 @@ const zhHans: Partial<Translations> = {
   'accountCenter.subscriptionProviders': '特别鸣谢：账号及代充值',
   'accountCenter.noSubscriptionProviders': '暂未收录',
   'accountCenter.claimAll': '一键领取奖励',
+  'accountCenter.warmUpAll': '一键预热全部账号',
+  'accountCenter.batchWarmUpFailed': '预热失败：{n} 个账号，请检查网络或稍后重试。',
   'accountCenter.refreshAll': '刷新额度',
   'accountCenter.batchRefreshSummary': '已刷新 {success} 个账号，{failed} 个失败',
   'accountCenter.batchClaimSummary': '已领取 {success} 个账号的奖励，{failed} 个失败',

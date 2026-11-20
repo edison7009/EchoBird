@@ -419,7 +419,7 @@ export const ModelCard = React.memo(
                 <span className="brand-card-label">{t('model.source')}</span>
                 <span className="truncate">{hostname}</span>
               </div>
-              <div className="brand-card-latency flex min-w-0 items-center gap-1.5 text-xs">
+              <div className="brand-card-latency flex h-5 min-w-0 items-center gap-1.5 text-xs">
                 <span className="brand-card-label">{t('model.latency')}</span>
                 {isPinging ? (
                   <LatencyIndicator />

@@ -318,6 +318,9 @@ const ja: Partial<Translations> = {
   'accountCenter.subscriptionProviders': '特別謝辞：アカウント・チャージ代行',
   'accountCenter.noSubscriptionProviders': '未掲載',
   'accountCenter.claimAll': '報酬を一括受取',
+  'accountCenter.warmUpAll': 'すべてのアカウントをウォームアップ',
+  'accountCenter.batchWarmUpFailed':
+    '{n} 個のアカウントをウォームアップできませんでした。ネットワークを確認するか、しばらくしてから再試行してください。',
   'accountCenter.refreshAll': '利用枠を更新',
   'accountCenter.batchRefreshSummary': '{success} 件を更新、{failed} 件に失敗しました',
   'accountCenter.batchClaimSummary': '{success} 件を受取、{failed} 件に失敗しました',
