@@ -616,6 +616,31 @@ html.is-macos .usage-island.usage-island-theme-auto {
   border-top-color: #ececec;
   outline-color: rgb(0 0 0 / 0.16);
 }
+/* Page action buttons share the tab well's material: a sunken surface with
+   a faint shade along its top edge; hovering lifts its tone, never its place. */
+.page-action-button {
+  color: rgb(var(--text-primary-rgb));
+  background-color: rgb(var(--bg-surface-rgb));
+  box-shadow: inset 0 1px 0 rgb(0 0 0 / 0.22);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+.page-action-button:hover:enabled {
+  background-color: color-mix(in srgb, rgb(var(--text-primary-rgb)) 8%, rgb(var(--bg-surface-rgb)));
+}
+.page-action-button:focus-visible {
+  box-shadow:
+    inset 0 1px 0 rgb(0 0 0 / 0.22),
+    0 0 0 1px rgb(var(--accent-rgb) / 0.6);
+}
+:root[data-theme='light'] .page-action-button {
+  background-color: #ececec;
+  box-shadow: inset 0 1px 0 rgb(0 0 0 / 0.08);
+}
+:root[data-theme='light'] .page-action-button:hover:enabled {
+  background-color: #e2e2e2;
+}
 /* Labels on a cream key are dark in every theme. */
 [data-tab-renderer='canvas'] > .view-mode-tab[aria-pressed='true'],
 [data-tab-renderer='canvas'] > .view-mode-tab[aria-selected='true'],
