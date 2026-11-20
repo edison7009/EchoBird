@@ -755,21 +755,23 @@ button.brand-deck-card:disabled:hover {
   /* The light from the top, over a pill lifted a touch overall so its lower
      edge stays clear of the panel too. */
   background-image:
-    radial-gradient(120% 90% at 50% 0%, rgb(255 255 255 / 0.16), transparent 70%),
-    linear-gradient(rgb(255 255 255 / 0.05), rgb(255 255 255 / 0.05));
+    radial-gradient(120% 90% at 50% 0%, rgb(255 255 255 / 0.24), transparent 70%),
+    linear-gradient(rgb(255 255 255 / 0.08), rgb(255 255 255 / 0.08));
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.14),
-    inset 0 -1px 0 rgb(255 255 255 / 0.06),
+    inset 0 1px 0 rgb(255 255 255 / 0.2),
+    inset 0 -1px 0 rgb(255 255 255 / 0.08),
     0 6px 14px -8px rgb(0 0 0 / 0.8);
 }
 [data-theme='light'] .account-pill.is-selected {
+  /* On a light pill the light alone barely shows: the chosen one also sits a
+     clear step darker, with the light kept along its top. */
   background-image:
-    radial-gradient(120% 90% at 50% 0%, rgb(255 255 255 / 0.95), transparent 75%),
-    linear-gradient(rgb(0 0 0 / 0.05), rgb(0 0 0 / 0.05));
+    radial-gradient(120% 70% at 50% 0%, rgb(255 255 255 / 0.6), transparent 70%),
+    linear-gradient(rgb(0 0 0 / 0.11), rgb(0 0 0 / 0.11));
   box-shadow:
-    inset 0 1px 0 #fff,
-    inset 0 -1px 0 rgb(0 0 0 / 0.06),
-    0 6px 14px -10px rgb(0 0 0 / 0.25);
+    inset 0 1px 0 rgb(255 255 255 / 0.8),
+    inset 0 -1px 0 rgb(0 0 0 / 0.08),
+    0 6px 14px -10px rgb(0 0 0 / 0.3);
 }
 
 /* The sign-in or snapshot button lights the same way when hovered. */
@@ -779,19 +781,21 @@ button.brand-deck-card:disabled:hover {
   /* The light from the top, over a pill lifted a touch overall so its lower
      edge stays clear of the panel too. */
   background-image:
-    radial-gradient(120% 90% at 50% 0%, rgb(255 255 255 / 0.16), transparent 70%),
-    linear-gradient(rgb(255 255 255 / 0.05), rgb(255 255 255 / 0.05));
+    radial-gradient(120% 90% at 50% 0%, rgb(255 255 255 / 0.24), transparent 70%),
+    linear-gradient(rgb(255 255 255 / 0.08), rgb(255 255 255 / 0.08));
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.14),
-    inset 0 -1px 0 rgb(255 255 255 / 0.06),
+    inset 0 1px 0 rgb(255 255 255 / 0.2),
+    inset 0 -1px 0 rgb(255 255 255 / 0.08),
     0 6px 14px -8px rgb(0 0 0 / 0.8);
 }
 [data-theme='light'] .account-pill:not([role='radio']):not(:disabled):hover {
+  /* On a light pill the light alone barely shows: the chosen one also sits a
+     clear step darker, with the light kept along its top. */
   background-image:
-    radial-gradient(120% 90% at 50% 0%, rgb(255 255 255 / 0.95), transparent 75%),
-    linear-gradient(rgb(0 0 0 / 0.05), rgb(0 0 0 / 0.05));
+    radial-gradient(120% 70% at 50% 0%, rgb(255 255 255 / 0.6), transparent 70%),
+    linear-gradient(rgb(0 0 0 / 0.11), rgb(0 0 0 / 0.11));
   box-shadow:
-    inset 0 1px 0 #fff,
-    inset 0 -1px 0 rgb(0 0 0 / 0.06),
-    0 6px 14px -10px rgb(0 0 0 / 0.25);
+    inset 0 1px 0 rgb(255 255 255 / 0.8),
+    inset 0 -1px 0 rgb(0 0 0 / 0.08),
+    0 6px 14px -10px rgb(0 0 0 / 0.3);
 }

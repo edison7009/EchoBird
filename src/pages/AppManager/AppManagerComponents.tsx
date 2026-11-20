@@ -110,17 +110,21 @@ export const AppManagerTitleActions: React.FC = () => {
       <div className="flex items-center gap-2">
         {(appsTab === 'desktop' || appsTab === 'install' || appsTab === 'all') && (
           <>
-            {appsTab !== 'all' && (
-              <PageActionButton
-                icon={Settings}
-                onClick={() => {
-                  void api.openToolPathsConfig().catch(() => {});
-                }}
-                aria-label={t('btn.editPaths')}
-              >
-                {t('btn.editPaths')}
-              </PageActionButton>
-            )}
+            {/* The system view has no paths to edit, but the button keeps its
+                place so the view tabs beside it never shift when switching. */}
+            <PageActionButton
+              icon={Settings}
+              onClick={() => {
+                void api.openToolPathsConfig().catch(() => {});
+              }}
+              aria-label={t('btn.editPaths')}
+              aria-hidden={appsTab === 'all' || undefined}
+              tabIndex={appsTab === 'all' ? -1 : undefined}
+              disabled={appsTab === 'all'}
+              className={appsTab === 'all' ? 'invisible' : ''}
+            >
+              {t('btn.editPaths')}
+            </PageActionButton>
             <PageActionButton
               icon={RefreshCw}
               spinning={isScanning}

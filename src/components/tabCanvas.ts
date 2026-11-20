@@ -41,7 +41,7 @@ function roundedRect(
 /**
  * Paints a segmented control as keys in a well: a bordered group becomes a
  * sunken well, and each chosen tab a raised cream key (lighter at the top,
- * a fine highlight along its top edge, a soft shadow beneath). Static: only a
+ * a soft shadow beneath). Static: only a
  * key sliding to a new tab needs more than one frame.
  */
 export function paintTabCanvas(
@@ -95,9 +95,6 @@ export function paintTabCanvas(
     context.fillStyle = fill ?? palette.surface;
     context.fill?.();
     context.restore();
-    // A fine highlight along the key's top edge.
-    context.fillStyle = 'rgb(255 255 255 / 0.55)';
-    context.fillRect(x + keyRadius, y, Math.max(0, keyWidth - keyRadius * 2), 1);
   }
   context.restore();
 }
