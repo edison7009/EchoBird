@@ -419,21 +419,27 @@ div.brand-card {
 :root[data-theme='light'] .brand-card .brand-card-latency .text-red-500 {
   color: #b91c1c;
 }
-/* Add: an empty slot in the grid, in the app's accent colour. */
+/* Add: an empty slot in the grid, as quiet as the cards beside it; the
+   accent shows only when hovered. */
 .brand-add-slot {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border: 1.5px dashed rgb(var(--accent-rgb) / 0.5);
+  border: 1.5px dashed rgb(var(--text-primary-rgb) / 0.2);
   border-radius: 12px;
-  color: rgb(var(--accent-rgb));
-  background: rgb(var(--accent-rgb) / 0.06);
-  transition: background-color 0.2s ease;
+  color: rgb(var(--text-secondary-rgb));
+  background: transparent;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
 }
 .brand-add-slot:hover {
-  background: rgb(var(--accent-rgb) / 0.12);
+  border-color: rgb(var(--accent-rgb) / 0.55);
+  color: rgb(var(--accent-rgb));
+  background: rgb(var(--accent-rgb) / 0.06);
 }
 @media (prefers-reduced-motion: reduce) {
   .brand-deck-card,
