@@ -65,11 +65,9 @@ export function paintTabCanvas(
   roundedRect(context, 0, 0, width, height, palette.radius);
   context.clip();
   if (palette.border !== 'transparent') {
-    // The well, with a faint shade along its top edge.
+    // The well: a plain, slightly deeper surface behind the keys.
     context.fillStyle = palette.well;
     context.fillRect(0, 0, width, height);
-    context.fillStyle = 'rgb(0 0 0 / 0.22)';
-    context.fillRect(0, 0, width, 1);
   }
   for (const region of Array.isArray(selection) ? selection : [selection]) {
     const inset = Math.min(KEY_INSET, region.width / 4, region.height / 4);
