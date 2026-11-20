@@ -1,6 +1,6 @@
 .router-terminal {
   /* The CRT glass shared by the screen and its chosen tab. */
-  --crt-edge: #04140b;
+  --crt-edge: #030e08;
   --crt-rim: rgb(129 213 166 / 0.22);
   --crt-scanlines: repeating-linear-gradient(180deg, rgb(0 0 0 / 0.22) 0 1px, transparent 1px 3px);
   display: flex;
@@ -114,7 +114,7 @@
   /* A green phosphor screen: brightest in the middle, settling to the edge
      colour its tab shares; the shade gathers at the sides and the foot, so
      the top edge meets the tab without a seam. */
-  background: radial-gradient(120% 90% at 50% 45%, #082a19, var(--crt-edge) 72%);
+  background: radial-gradient(120% 90% at 50% 45%, #061a10, var(--crt-edge) 72%);
   box-shadow:
     inset 0 -50px 60px -30px rgb(0 0 0 / 0.55),
     inset 50px 0 60px -40px rgb(0 0 0 / 0.35),
