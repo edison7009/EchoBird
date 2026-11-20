@@ -12,7 +12,9 @@ vi.mock('../services/updateManifest', async (original) => ({
 const toast = vi.hoisted(() => vi.fn());
 vi.mock('../api/tauri', () => ({
   onSelfUpdateProgress: vi.fn(),
-  downloadAndInstallUpdate: vi.fn(),
+  isUpdateDownloaded: vi.fn(),
+  installDownloadedUpdate: vi.fn(),
+  downloadUpdate: vi.fn(),
 }));
 vi.mock('../components/Toast', () => ({ useToast: () => ({ showToast: toast }) }));
 vi.mock('./useI18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
@@ -20,8 +22,8 @@ let view: ReactTestRenderer;
 let state: ReturnType<typeof useSelfUpdateDownload>;
 let notify: Parameters<typeof api.onSelfUpdateProgress>[0];
 let stop: ReturnType<typeof vi.fn<() => void>>;
-function Harness() {
-  const value = useSelfUpdateDownload();
+function Harness({ version = '6.2.1' }: { version?: string } = {}) {
+  const value = useSelfUpdateDownload(version);
   useLayoutEffect(() => {
     state = value;
   });
@@ -31,12 +33,14 @@ beforeEach(() => {
   vi.clearAllMocks();
   useNavigationStore.setState(useNavigationStore.getInitialState());
   vi.mocked(fetchLatestManifest).mockResolvedValue(null);
+  vi.mocked(api.isUpdateDownloaded).mockResolvedValue(false);
+  vi.mocked(api.installDownloadedUpdate).mockResolvedValue(true);
   stop = vi.fn();
   vi.mocked(api.onSelfUpdateProgress).mockImplementation(async (callback) => {
     notify = callback;
     return stop;
   });
-  vi.mocked(api.downloadAndInstallUpdate).mockResolvedValue(undefined);
+  vi.mocked(api.downloadUpdate).mockResolvedValue(false);
 });
 afterEach(() => act(() => view?.unmount()));
 const mount = async () => {
@@ -48,23 +52,25 @@ it('does not subscribe, download or show feedback during passive renders', async
   await mount();
   await act(async () => view.update(<Harness />));
   expect(api.onSelfUpdateProgress).not.toHaveBeenCalled();
+  expect(api.isUpdateDownloaded).toHaveBeenCalledExactlyOnceWith('6.2.1');
+  expect(api.installDownloadedUpdate).not.toHaveBeenCalled();
   expect(fetchLatestManifest).not.toHaveBeenCalled();
-  expect(api.downloadAndInstallUpdate).not.toHaveBeenCalled();
+  expect(api.downloadUpdate).not.toHaveBeenCalled();
   expect(toast).not.toHaveBeenCalled();
 });
 it('downloads explicitly once, keeps progress through rerenders and releases listener on completion', async () => {
   let finish!: () => void;
-  vi.mocked(api.downloadAndInstallUpdate).mockReturnValueOnce(
-    new Promise<void>((resolve) => {
-      finish = resolve;
+  vi.mocked(api.downloadUpdate).mockReturnValueOnce(
+    new Promise<boolean>((resolve) => {
+      finish = () => resolve(false);
     })
   );
   await mount();
   await act(async () => {
-    void state.download('6.2.1');
-    void state.download('6.2.1');
+    void state.activate('6.2.1');
+    void state.activate('6.2.1');
   });
-  expect(api.downloadAndInstallUpdate).toHaveBeenCalledExactlyOnceWith('6.2.1');
+  expect(api.downloadUpdate).toHaveBeenCalledExactlyOnceWith('6.2.1');
   act(() => notify({ status: 'downloading', percent: 42 }));
   await act(async () => view.update(<Harness />));
   expect(state.progress?.percent).toBe(42);
@@ -75,26 +81,26 @@ it('downloads explicitly once, keeps progress through rerenders and releases lis
   act(() => oldNotify({ status: 'downloading', percent: 99 }));
   expect(state.progress).toBeNull();
   let finishRetry!: () => void;
-  vi.mocked(api.downloadAndInstallUpdate).mockReturnValueOnce(
-    new Promise<void>((resolve) => {
-      finishRetry = resolve;
+  vi.mocked(api.downloadUpdate).mockReturnValueOnce(
+    new Promise<boolean>((resolve) => {
+      finishRetry = () => resolve(false);
     })
   );
   await act(async () => {
-    void state.download('6.2.1');
+    void state.activate('6.2.1');
   });
   act(() => oldNotify({ status: 'downloading', percent: 99 }));
   expect(state.progress?.percent).toBe(0);
   await act(async () => finishRetry());
 });
 it('shows failure and permits explicit retry without opening a browser', async () => {
-  vi.mocked(api.downloadAndInstallUpdate).mockRejectedValueOnce(new Error('offline'));
+  vi.mocked(api.downloadUpdate).mockRejectedValueOnce(new Error('offline'));
   await mount();
-  await act(async () => state.download('6.2.1'));
+  await act(async () => state.activate('6.2.1'));
   expect(toast).toHaveBeenCalledExactlyOnceWith('error', 'updates.failed');
   expect(state.progress).toBeNull();
-  await act(async () => state.download('6.2.1'));
-  expect(api.downloadAndInstallUpdate).toHaveBeenCalledTimes(2);
+  await act(async () => state.activate('6.2.1'));
+  expect(api.downloadUpdate).toHaveBeenCalledTimes(2);
 });
 it('does not start a download when listener registration completes after unmount', async () => {
   let finish!: (stop: () => void) => void;
@@ -105,24 +111,24 @@ it('does not start a download when listener registration completes after unmount
   );
   await mount();
   act(() => {
-    void state.download('6.2.1');
+    void state.activate('6.2.1');
   });
   act(() => view.unmount());
   await act(async () => finish(stop));
   expect(stop).toHaveBeenCalledOnce();
-  expect(api.downloadAndInstallUpdate).not.toHaveBeenCalled();
+  expect(api.downloadUpdate).not.toHaveBeenCalled();
 });
 
 it('releases an active subscription only once when unmounted during download', async () => {
   let finish!: () => void;
-  vi.mocked(api.downloadAndInstallUpdate).mockReturnValueOnce(
-    new Promise<void>((resolve) => {
-      finish = resolve;
+  vi.mocked(api.downloadUpdate).mockReturnValueOnce(
+    new Promise<boolean>((resolve) => {
+      finish = () => resolve(false);
     })
   );
   await mount();
   await act(async () => {
-    void state.download('6.2.1');
+    void state.activate('6.2.1');
   });
   act(() => view.unmount());
   expect(stop).toHaveBeenCalledOnce();
@@ -139,8 +145,8 @@ it('refreshes a stale version notification only after an explicit click', async 
   vi.mocked(fetchLatestManifest).mockResolvedValueOnce({ version: '6.2.2' });
   await mount();
   expect(fetchLatestManifest).not.toHaveBeenCalled();
-  await act(async () => state.download('6.2.1'));
-  expect(api.downloadAndInstallUpdate).toHaveBeenCalledExactlyOnceWith('6.2.2');
+  await act(async () => state.activate('6.2.1'));
+  expect(api.downloadUpdate).toHaveBeenCalledExactlyOnceWith('6.2.2');
   expect(useNavigationStore.getState().updateAvailable).toBe('6.2.2');
 });
 it('ignores a version response after unmount without starting a download', async () => {
@@ -152,11 +158,68 @@ it('ignores a version response after unmount without starting a download', async
   );
   await mount();
   await act(async () => {
-    void state.download('6.2.1');
+    void state.activate('6.2.1');
   });
   act(() => view.unmount());
   await act(async () => finish({ version: '6.2.2' }));
-  expect(api.downloadAndInstallUpdate).not.toHaveBeenCalled();
+  expect(api.downloadUpdate).not.toHaveBeenCalled();
   expect(useNavigationStore.getState().updateAvailable).toBeNull();
   expect(stop).toHaveBeenCalledOnce();
+});
+
+it('keeps download and install as separate clicks and can reopen the installer', async () => {
+  vi.mocked(api.downloadUpdate).mockResolvedValueOnce(true);
+  await mount();
+  await act(async () => state.activate('6.2.1'));
+  expect(state.ready).toBe(true);
+  expect(api.installDownloadedUpdate).not.toHaveBeenCalled();
+
+  await act(async () => state.activate('6.2.1'));
+  await act(async () => state.activate('6.2.1'));
+  expect(api.installDownloadedUpdate).toHaveBeenCalledTimes(2);
+  expect(api.downloadUpdate).toHaveBeenCalledExactlyOnceWith('6.2.1');
+  expect(state.ready).toBe(true);
+});
+
+it('offers the cached package after reopening and returns to download if it disappears', async () => {
+  vi.mocked(api.isUpdateDownloaded).mockResolvedValueOnce(true);
+  vi.mocked(api.installDownloadedUpdate).mockResolvedValueOnce(false);
+  await mount();
+  expect(state.ready).toBe(true);
+  expect(api.downloadUpdate).not.toHaveBeenCalled();
+  await act(async () => state.activate('6.2.1'));
+  expect(state.ready).toBe(false);
+  expect(api.installDownloadedUpdate).toHaveBeenCalledExactlyOnceWith('6.2.1');
+  expect(api.downloadUpdate).not.toHaveBeenCalled();
+});
+
+it('does not offer a previously downloaded version for a new update', async () => {
+  vi.mocked(api.isUpdateDownloaded).mockResolvedValueOnce(true);
+  await mount();
+  expect(state.ready).toBe(true);
+  await act(async () => view.update(<Harness version="6.2.2" />));
+  expect(state.ready).toBe(false);
+  expect(api.isUpdateDownloaded).toHaveBeenLastCalledWith('6.2.2');
+});
+
+it('checks the new version when the previous download finishes', async () => {
+  let finish!: (ready: boolean) => void;
+  vi.mocked(api.downloadUpdate).mockReturnValueOnce(
+    new Promise<boolean>((resolve) => {
+      finish = resolve;
+    })
+  );
+  await mount();
+  await act(async () => {
+    void state.activate('6.2.1');
+  });
+  await act(async () => view.update(<Harness version="6.2.2" />));
+  expect(api.isUpdateDownloaded).toHaveBeenCalledExactlyOnceWith('6.2.1');
+
+  vi.mocked(api.isUpdateDownloaded).mockResolvedValueOnce(true);
+  await act(async () => finish(true));
+  expect(api.isUpdateDownloaded).toHaveBeenLastCalledWith('6.2.2');
+  expect(state.ready).toBe(true);
+  await act(async () => state.activate('6.2.2'));
+  expect(api.installDownloadedUpdate).toHaveBeenCalledExactlyOnceWith('6.2.2');
 });

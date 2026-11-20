@@ -122,11 +122,24 @@ pub async fn clear_llm_custom_command() -> Result<(), String> {
 // ─── Self-update: download installer and finish according to the platform ───
 
 #[tauri::command]
-pub async fn download_and_install_update(
+pub async fn download_update(
     app_handle: tauri::AppHandle,
     version: String,
-) -> Result<(), String> {
-    crate::services::self_update::download_and_install(app_handle, version).await
+) -> Result<bool, String> {
+    crate::services::self_update::download(app_handle, version).await
+}
+
+#[tauri::command]
+pub async fn is_update_downloaded(version: String) -> Result<bool, String> {
+    crate::services::self_update::is_downloaded(version).await
+}
+
+#[tauri::command]
+pub async fn install_downloaded_update(
+    app_handle: tauri::AppHandle,
+    version: String,
+) -> Result<bool, String> {
+    crate::services::self_update::install(app_handle, version).await
 }
 
 #[tauri::command]

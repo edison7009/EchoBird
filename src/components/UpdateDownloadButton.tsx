@@ -1,4 +1,4 @@
-import { Download, RotateCw } from 'lucide-react';
+import { Download, PackageOpen, RotateCw } from 'lucide-react';
 import type { SelfUpdateProgress } from '../api/tauri';
 import { useI18n } from '../hooks/useI18n';
 import { RoutingHint } from './RoutingToggle';
@@ -7,22 +7,24 @@ export function UpdateDownloadButton({
   version,
   progress,
   collapsed,
+  ready = false,
   onClick,
 }: {
   version: string;
   collapsed: boolean;
   progress: SelfUpdateProgress | null;
+  ready?: boolean;
   onClick: () => void;
 }) {
   const { t } = useI18n();
   const percent = Math.max(0, Math.min(100, progress?.percent ?? 0));
-  const restarting = progress?.status === 'launching';
+  const launching = progress?.status === 'launching';
   const label = !progress
-    ? `${t('updates.download')} v${version}`
+    ? `${t(ready ? 'updates.install' : 'updates.download')} v${version}`
     : progress.status === 'speed_test'
       ? t('updates.connecting')
-      : restarting
-        ? t('updates.restarting')
+      : launching
+        ? t('updates.openingInstaller')
         : `${t('updates.downloading')} ${percent}%`;
   return (
     <RoutingHint hint={label} placement={collapsed ? 'right' : 'top'} navigation>
@@ -32,9 +34,9 @@ export function UpdateDownloadButton({
         aria-busy={!!progress}
         disabled={!!progress}
         onClick={onClick}
-        className="relative mx-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-red-400 transition-colors hover:bg-cyber-elevated/50"
+        className={`relative mx-auto flex h-10 shrink-0 items-center justify-center rounded-lg text-red-400 transition-colors hover:bg-cyber-elevated/50 ${ready && !collapsed && !progress ? 'min-w-10 px-2 text-xs font-medium' : 'w-10'}`}
       >
-        {restarting ? (
+        {launching ? (
           <RotateCw size={20} aria-hidden="true" />
         ) : progress ? (
           <svg
@@ -74,6 +76,12 @@ export function UpdateDownloadButton({
               }
             />
           </svg>
+        ) : ready ? (
+          collapsed ? (
+            <PackageOpen size={20} aria-hidden="true" />
+          ) : (
+            t('updates.install')
+          )
         ) : (
           <Download size={20} aria-hidden="true" />
         )}

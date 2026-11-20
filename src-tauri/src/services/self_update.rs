@@ -1,8 +1,9 @@
 //! Explicit self-update downloads: version-matched mirrors and website fallback.
-//! Save a verified installer in Downloads. Windows runs it silently (`/S`), the
-//! Tauri NSIS template relaunches EchoBird afterwards (`/R`), and a failed
-//! silent run falls back to the visible wizard; macOS and
-//! Linux reveal the containing folder and keep EchoBird running.
+//! Save a verified installer in Downloads. Windows keeps it ready for an
+//! explicit installation. macOS and Linux reveal the folder.
+
+#[cfg(any(windows, test))]
+mod windows;
 
 use futures_util::{future::join_all, StreamExt};
 use sha2::{Digest, Sha256};
@@ -26,7 +27,7 @@ struct MirrorManifest {
     #[serde(default)]
     files: HashMap<String, MirrorFile>,
 }
-#[derive(serde::Deserialize, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, Clone)]
 struct MirrorFile {
     size: u64,
     sha256: String,
@@ -178,7 +179,11 @@ async fn probe(client: &reqwest::Client, source: Source, asset: &str) -> Result<
     })
 }
 
-async fn write_download(opened: Opened, path: &Path, progress: impl Fn(u8)) -> Result<(), String> {
+async fn write_download(
+    opened: Opened,
+    path: &Path,
+    progress: impl Fn(u8),
+) -> Result<MirrorFile, String> {
     let mut file = tokio::fs::File::create(path)
         .await
         .map_err(|e| e.to_string())?;
@@ -211,12 +216,9 @@ async fn write_download(opened: Opened, path: &Path, progress: impl Fn(u8)) -> R
         }
     }
     file.sync_all().await.map_err(|e| e.to_string())?;
-    verify(
-        opened.source.expected.as_ref(),
-        opened.total,
-        size,
-        &format!("{:x}", hasher.finalize()),
-    )
+    let sha256 = format!("{:x}", hasher.finalize());
+    verify(opened.source.expected.as_ref(), opened.total, size, &sha256)?;
+    Ok(MirrorFile { size, sha256 })
 }
 
 fn download_destination(dir: &Path, asset: &str) -> PathBuf {
@@ -236,42 +238,33 @@ fn download_destination(dir: &Path, asset: &str) -> PathBuf {
     dir.join(format!("{stem}-{}.{ext}", uuid::Uuid::new_v4()))
 }
 
-/// `cmd` arguments that run the installer silently (`/S`, relaunching with
-/// `/R`) and open its visible wizard when the silent run fails, so a failed
-/// update never leaves the user without EchoBird or an explanation.
-#[cfg_attr(not(target_os = "windows"), allow(dead_code))]
-fn installer_command_line(path: &Path) -> Result<String, String> {
-    let path = path.to_string_lossy();
-    // cmd cannot escape these inside a quoted path.
-    if path.contains(['"', '%', '\n', '\r']) {
-        return Err("Installer path cannot be launched safely".into());
+#[cfg(any(target_os = "windows", all(test, unix)))]
+async fn run_windows_installer(path: &Path) -> Result<(), String> {
+    // Open the full wizard and let it close EchoBird when installation begins.
+    // Keep the update lock held until the wizard is closed or EchoBird exits.
+    let status = crate::utils::process::async_command(path)
+        .status()
+        .await
+        .map_err(|e| format!("Failed to launch installer: {e}"))?;
+    // NSIS exit code 1 means the user cancelled the wizard.
+    if !matches!(status.code(), Some(0 | 1)) {
+        return Err(format!("Installer stopped without completing: {status}"));
     }
-    Ok(format!(
-        "/d /c start \"\" /wait \"{path}\" /S /R || start \"\" \"{path}\""
-    ))
+    Ok(())
 }
 
-#[cfg(target_os = "windows")]
-fn spawn_installer(path: &Path) -> Result<(), String> {
-    use std::os::windows::process::CommandExt;
-    crate::utils::process::command("cmd")
-        .raw_arg(installer_command_line(path)?)
-        .spawn()
-        .map(|_| ())
-        .map_err(|e| format!("Failed to launch installer: {e}"))
-}
-
-pub async fn download_and_install(app: AppHandle, version: String) -> Result<(), String> {
+pub async fn download(app: AppHandle, version: String) -> Result<bool, String> {
     let _guard = DOWNLOAD_LOCK
         .try_lock()
         .map_err(|_| "An update download is already running")?;
     let result = run(&app, &version).await;
-    if result.is_err() {
+    if let Err(error) = &result {
+        log::warn!("[SelfUpdate] {error}");
         emit(&app, "error", 0);
     }
     result
 }
-async fn run(app: &AppHandle, version: &str) -> Result<(), String> {
+fn update_location(version: &str) -> Result<(PathBuf, String, &'static str), String> {
     if !valid_version(version) {
         return Err("Invalid update version".into());
     }
@@ -285,6 +278,54 @@ async fn run(app: &AppHandle, version: &str) -> Result<(), String> {
     let dir = dirs::download_dir()
         .or_else(|| dirs::home_dir().map(|p| p.join("Downloads")))
         .ok_or("Could not locate the system Downloads folder")?;
+    Ok((dir, asset, id))
+}
+
+pub async fn is_downloaded(version: String) -> Result<bool, String> {
+    #[cfg(windows)]
+    {
+        let (dir, asset, id) = update_location(&version)?;
+        Ok(windows::find(&dir, &asset, &version, id).await?.is_some())
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = version;
+        Ok(false)
+    }
+}
+
+pub async fn install(app: AppHandle, version: String) -> Result<bool, String> {
+    #[cfg(windows)]
+    {
+        let _guard = DOWNLOAD_LOCK
+            .try_lock()
+            .map_err(|_| "An update is already running")?;
+        let (dir, asset, id) = update_location(&version)?;
+        let Some(package) = windows::find(&dir, &asset, &version, id).await? else {
+            return Ok(false);
+        };
+        windows::remember(&asset, &package.fingerprint);
+        emit(&app, "launching", 100);
+        if let Err(error) = run_windows_installer(&package.path).await {
+            log::warn!("[SelfUpdate] {error}");
+            return Err(error);
+        }
+        Ok(true)
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (app, version);
+        Ok(false)
+    }
+}
+
+async fn run(app: &AppHandle, version: &str) -> Result<bool, String> {
+    let (dir, asset, id) = update_location(version)?;
+    #[cfg(windows)]
+    if let Some(package) = windows::find(&dir, &asset, version, id).await? {
+        windows::remember(&asset, &package.fingerprint);
+        return Ok(true);
+    }
     tokio::fs::create_dir_all(&dir)
         .await
         .map_err(|e| e.to_string())?;
@@ -310,37 +351,36 @@ async fn run(app: &AppHandle, version: &str) -> Result<(), String> {
         .collect();
     opened.sort_by(|a, b| b.rate.total_cmp(&a.rate));
     let mut last_error = "No download source is reachable".to_string();
-    let mut done = false;
+    let mut downloaded = None;
     for source in opened {
         match write_download(source, &part, |pct| emit(app, "downloading", pct)).await {
-            Ok(()) => {
-                done = true;
+            Ok(fingerprint) => {
+                downloaded = Some(fingerprint);
                 break;
             }
             Err(error) => last_error = error,
         }
     }
-    if !done {
+    let Some(fingerprint) = downloaded else {
         let _ = tokio::fs::remove_file(&part).await;
         return Err(last_error);
-    }
+    };
     if let Err(error) = tokio::fs::rename(&part, &dest).await {
         let _ = tokio::fs::remove_file(&part).await;
         return Err(format!("Could not save installer: {error}"));
     }
-    emit(app, "launching", 100);
-    #[cfg(target_os = "windows")]
+    #[cfg(windows)]
     {
-        spawn_installer(&dest)?;
-        tokio::time::sleep(Duration::from_millis(600)).await;
-        app.exit(0);
+        windows::remember(&asset, &fingerprint);
+        Ok(true)
     }
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(not(windows))]
     {
+        let _ = fingerprint;
         crate::commands::tool_commands::open_folder(dir.to_string_lossy().into_owned()).await?;
         emit(app, "downloaded", 100);
+        Ok(false)
     }
-    Ok(())
 }
 
 #[cfg(test)]
@@ -404,16 +444,41 @@ mod tests {
         assert!(platform("linux", "x86_64", false, false).is_err());
         assert!(platform("macos", "riscv64", false, false).is_err());
     }
-    #[test]
-    fn installs_silently_and_falls_back_to_the_wizard() {
-        let path = Path::new(r"C:\Users\A B\Downloads\EchoBird_6.3.1_Windows_x64-setup.exe");
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn launches_the_installer_directly_and_waits_for_its_result() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = tempfile::tempdir().unwrap();
+        let installer = dir.path().join("installer with spaces & percent %");
+        assert!(run_windows_installer(&installer)
+            .await
+            .unwrap_err()
+            .contains("Failed to launch installer"));
+
+        std::fs::write(
+            &installer,
+            r#"#!/bin/sh
+printf '%s\n' "$#" > "$0.args"
+if [ -e "$0.status" ]; then
+    exit "$(cat "$0.status")"
+fi
+"#,
+        )
+        .unwrap();
+        std::fs::set_permissions(&installer, std::fs::Permissions::from_mode(0o700)).unwrap();
+        assert!(run_windows_installer(&installer).await.is_ok());
         assert_eq!(
-            installer_command_line(path).unwrap(),
-            r#"/d /c start "" /wait "C:\Users\A B\Downloads\EchoBird_6.3.1_Windows_x64-setup.exe" /S /R || start "" "C:\Users\A B\Downloads\EchoBird_6.3.1_Windows_x64-setup.exe""#
+            std::fs::read_to_string(installer.with_extension("args")).unwrap(),
+            "0\n"
         );
-        for unsafe_path in [r#"C:\a"b\setup.exe"#, r"C:\%TEMP%\setup.exe"] {
-            assert!(installer_command_line(Path::new(unsafe_path)).is_err());
-        }
+        std::fs::write(installer.with_extension("status"), "1").unwrap();
+        assert!(run_windows_installer(&installer).await.is_ok());
+        std::fs::write(installer.with_extension("status"), "2").unwrap();
+        assert!(run_windows_installer(&installer)
+            .await
+            .unwrap_err()
+            .contains("exit status: 2"));
     }
     #[test]
     fn rejects_unsafe_versions_and_incomplete_or_corrupt_files() {

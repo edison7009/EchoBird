@@ -1,6 +1,6 @@
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { RotateCw } from 'lucide-react';
+import { PackageOpen, RotateCw } from 'lucide-react';
 import type { SelfUpdateProgress } from '../api/tauri';
 import { RoutingHint } from './RoutingToggle';
 import { UpdateDownloadButton } from './UpdateDownloadButton';
@@ -8,7 +8,7 @@ import { UpdateDownloadButton } from './UpdateDownloadButton';
 let renderer: ReactTestRenderer;
 afterEach(() => act(() => renderer?.unmount()));
 
-function render(progress: SelfUpdateProgress | null, collapsed = true) {
+function render(progress: SelfUpdateProgress | null, collapsed = true, ready = false) {
   const onClick = vi.fn();
   act(() => {
     renderer = create(
@@ -16,6 +16,7 @@ function render(progress: SelfUpdateProgress | null, collapsed = true) {
         version="4.2.0"
         progress={progress}
         collapsed={collapsed}
+        ready={ready}
         onClick={onClick}
       />
     );
@@ -24,12 +25,12 @@ function render(progress: SelfUpdateProgress | null, collapsed = true) {
 }
 
 describe('UpdateDownloadButton', () => {
-  it('labels each of the four states with a tip and no restart icon before launch', () => {
+  it('labels each of the four states with a tip and no installer icon before launch', () => {
     const cases: [SelfUpdateProgress | null, string][] = [
       [null, 'updates.download v4.2.0'],
       [{ status: 'speed_test', percent: 0 }, 'updates.connecting'],
       [{ status: 'downloading', percent: 61 }, 'updates.downloading 61%'],
-      [{ status: 'launching', percent: 100 }, 'updates.restarting'],
+      [{ status: 'launching', percent: 100 }, 'updates.openingInstaller'],
     ];
     for (const [progress, label] of cases) {
       const { button } = render(progress);
@@ -40,6 +41,17 @@ describe('UpdateDownloadButton', () => {
       );
       act(() => renderer.unmount());
     }
+  });
+
+  it('offers installation when a verified package is ready', () => {
+    const { button } = render(null, false, true);
+    expect(button.props['aria-label']).toBe('updates.install v4.2.0');
+    expect(button.props.children).toBe('updates.install');
+    expect(button.props.disabled).toBe(false);
+    act(() => renderer.unmount());
+
+    render(null, true, true);
+    expect(renderer.root.findAllByType(PackageOpen)).toHaveLength(1);
   });
 
   it('places the tip right when collapsed and above when expanded', () => {

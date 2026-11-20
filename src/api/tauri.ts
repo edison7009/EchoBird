@@ -178,13 +178,18 @@ export interface SelfUpdateProgress {
   percent: number;
 }
 
-/// Download to system Downloads. Windows installs silently, exits and relaunches;
-/// macOS/Linux open the containing folder and keep running.
-export async function downloadAndInstallUpdate(version: string): Promise<void> {
-  return invoke('download_and_install_update', { version });
+export async function downloadUpdate(version: string): Promise<boolean> {
+  return invoke('download_update', { version });
 }
 
-/// Subscribe to self-update progress while downloadAndInstallUpdate runs.
+export async function isUpdateDownloaded(version: string): Promise<boolean> {
+  return invoke('is_update_downloaded', { version });
+}
+
+export async function installDownloadedUpdate(version: string): Promise<boolean> {
+  return invoke('install_downloaded_update', { version });
+}
+
 export function onSelfUpdateProgress(
   callback: (data: SelfUpdateProgress) => void
 ): Promise<UnlistenFn> {

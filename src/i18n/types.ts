@@ -338,10 +338,11 @@ export type TKey =
   | 'feedback.networkNote'
   // Settings
   | 'plugins.latestVersion'
+  | 'updates.install'
   | 'updates.download'
   | 'updates.downloading'
   | 'updates.connecting'
-  | 'updates.restarting'
+  | 'updates.openingInstaller'
   | 'updates.failed'
   | 'settings.title'
   | 'settings.autoImport'
