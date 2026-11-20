@@ -20,8 +20,12 @@ function render(positionRef?: { current: ViewModeTabPosition | null }) {
     );
   });
 }
-beforeEach(() => canvas.mount.mockReturnValue(canvas.cleanup));
-afterEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  canvas.mount.mockReturnValue(canvas.cleanup);
+});
+afterEach(() => {
+  vi.clearAllMocks();
+});
 
 it('delegates paint to one canvas owner on every platform and releases it on exit', () => {
   const positionRef = { current: null as ViewModeTabPosition | null };
@@ -36,4 +40,24 @@ it('remembers geometry locally when no shared position is supplied', () => {
   render();
   expect(canvas.mount).toHaveBeenCalledWith(root, { current: null });
   act(() => renderer.unmount());
+});
+
+it('keeps the same canvas owner when the selected tab and children change', () => {
+  render();
+  act(() => {
+    renderer.update(
+      <ViewModeTabGroup className="view-mode-tabs" role="tablist">
+        <button className="view-mode-tab" role="tab" aria-selected={false}>
+          Selected
+        </button>
+        <button className="view-mode-tab" role="tab" aria-selected>
+          Next
+        </button>
+      </ViewModeTabGroup>
+    );
+  });
+  expect(canvas.mount).toHaveBeenCalledOnce();
+  expect(canvas.cleanup).not.toHaveBeenCalled();
+  act(() => renderer.unmount());
+  expect(canvas.cleanup).toHaveBeenCalledOnce();
 });

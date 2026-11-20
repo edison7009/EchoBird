@@ -30,7 +30,7 @@ export function ViewModeTabGroup({
     const group = groupRef.current;
     if (!group) return;
     return mountTabCanvas(group, positionRef ?? localPosition);
-  }, [children, positionRef]);
+  }, [positionRef]);
 
   return (
     <div {...props} ref={groupRef}>

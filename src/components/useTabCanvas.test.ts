@@ -18,7 +18,7 @@ it.each([false, true])(
     let hasSelection = true;
     const tasks = new Map<number, FrameRequestCallback>();
     let serial = 0;
-    const observers: { callback: () => void; disconnect: ReturnType<typeof vi.fn> }[] = [];
+    const observers: Observer[] = [];
     const frame = (delay = 300) => {
       const entries = [...tasks];
       tasks.clear();
@@ -34,7 +34,7 @@ it.each([false, true])(
       getContext: () => ({ clearRect: vi.fn() }),
     };
     const colors = { className: '', remove: vi.fn() };
-    const selected = {
+    let selected = {
       offsetWidth: 50,
       offsetHeight: 30,
       getBoundingClientRect: () => ({ left: selectedX, top: 1, width: 50, height: 30 }),
@@ -98,12 +98,14 @@ it.each([false, true])(
     });
     vi.stubGlobal('cancelAnimationFrame', (id: number) => tasks.delete(id));
     class Observer {
-      callback: () => void;
       disconnect = vi.fn();
       observe = vi.fn();
-      constructor(callback: () => void) {
-        this.callback = callback;
+      unobserve = vi.fn();
+      constructor(private readonly update: (records: Pick<MutationRecord, 'type'>[]) => void) {
         observers.push(this);
+      }
+      callback(records: Pick<MutationRecord, 'type'>[] = []) {
+        this.update(records);
       }
     }
     vi.stubGlobal('ResizeObserver', Observer);
@@ -126,6 +128,10 @@ it.each([false, true])(
       });
     selectedX = independent ? 60 : 1;
     observers[1].callback();
+    if (!independent) {
+      frame(-1_000);
+      expect(vi.mocked(paintTabCanvas).mock.calls.slice(-1)[0][4]).toMatchObject({ x: 60 });
+    }
     frame(0);
     if (!independent) {
       const moving = vi.mocked(paintTabCanvas).mock.calls.slice(-1)[0][4];
@@ -168,6 +174,11 @@ it.each([false, true])(
       hasSelection = true;
       observers[1].callback();
       expect(tasks.size).toBe(1);
+      const previousTab = selected;
+      selected = { ...previousTab };
+      observers[1].callback([{ type: 'childList' }]);
+      expect(observers[0].unobserve).toHaveBeenCalledWith(previousTab);
+      expect(observers[0].observe).toHaveBeenCalledWith(selected);
     }
     if (independent) {
       selectedX = -1;

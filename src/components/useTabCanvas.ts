@@ -61,16 +61,15 @@ export function mountTabCanvas(
   const paint = (now: number) => {
     frame = 0;
     if (disposed || !visible()) return;
-    const progress = motion.matches ? 1 : Math.min(1, (now - started) / 220);
+    // A shared frame can have a timestamp just before this control's transition started.
+    const progress = motion.matches ? 1 : Math.max(0, Math.min(1, (now - started) / 220));
     const ease = 1 - (1 - progress) ** 3;
     if (target) current = { ...target };
     if (!independent && from && current && target && progress < 1) {
       for (const key of ['x', 'y', 'width', 'height'] as const)
         current[key] = from[key] + (target[key] - from[key]) * ease;
     }
-    // Remember where the key really is on screen. A parent re-render can
-    // replace this canvas several times before a frame is painted; each new
-    // canvas then slides on from here, never from the end of the slide.
+    // Preserve the painted position for controls that share it across remounts.
     if (remembered && current && !independent) remembered.current = { ...current };
     paintTabCanvas(
       canvas,
@@ -160,11 +159,25 @@ export function mountTabCanvas(
   };
   const resize = new ResizeObserver(update);
   resize.observe(group);
-  group.querySelectorAll(selector).forEach((tab) => resize.observe(tab));
-  const attributes = new MutationObserver(update);
+  let observedTabs = new Set<HTMLElement>();
+  const observeTabs = () => {
+    const tabs = new Set(group.querySelectorAll<HTMLElement>(selector));
+    observedTabs.forEach((tab) => {
+      if (!tabs.has(tab)) resize.unobserve(tab);
+    });
+    tabs.forEach((tab) => {
+      if (!observedTabs.has(tab)) resize.observe(tab);
+    });
+    observedTabs = tabs;
+  };
+  observeTabs();
+  const attributes = new MutationObserver((records) => {
+    if (records.some((record) => record.type === 'childList')) observeTabs();
+    update();
+  });
   attributes.observe(group, {
     subtree: true,
-    childList: independent,
+    childList: true,
     attributes: true,
     attributeFilter: ['aria-pressed', 'aria-selected'],
   });
@@ -187,10 +200,6 @@ export function mountTabCanvas(
   return () => {
     disposed = true;
     if (frame) cancelFlowFrame(frame);
-    // A parent re-render can replace this canvas mid-slide. Hand the key's
-    // position as last painted to the next canvas, so it carries on from
-    // there instead of appearing at the end.
-    if (remembered && current && !independent) remembered.current = { ...current };
     resize.disconnect();
     attributes.disconnect();
     theme.disconnect();

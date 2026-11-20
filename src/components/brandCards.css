@@ -747,36 +747,13 @@ button.brand-deck-card:disabled:hover {
   background: rgb(0 0 0 / 0.28);
 }
 
-/* Accounts keep their dark (or light) pill. The chosen one has no outline:
-   a soft light shows through from its top edge, over the pill's own colour. */
+/* A soft light shows through at the top edge of selected rows. */
 .account-pill.is-selected {
   border-color: transparent;
-  background-origin: border-box;
-  /* The light from the top, over a pill lifted a touch overall so its lower
-     edge stays clear of the panel too. */
-  background-image:
-    radial-gradient(120% 90% at 50% 0%, rgb(255 255 255 / 0.24), transparent 70%),
-    linear-gradient(rgb(255 255 255 / 0.08), rgb(255 255 255 / 0.08));
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.2),
-    inset 0 -1px 0 rgb(255 255 255 / 0.08),
-    0 6px 14px -8px rgb(0 0 0 / 0.8);
 }
-[data-theme='light'] .account-pill.is-selected {
-  /* On a light pill the light alone barely shows: the chosen one also sits a
-     clear step darker, with the light kept along its top. */
-  background-image:
-    radial-gradient(120% 70% at 50% 0%, rgb(255 255 255 / 0.6), transparent 70%),
-    linear-gradient(rgb(0 0 0 / 0.11), rgb(0 0 0 / 0.11));
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.8),
-    inset 0 -1px 0 rgb(0 0 0 / 0.08),
-    0 6px 14px -10px rgb(0 0 0 / 0.3);
-}
-
-/* The sign-in or snapshot button lights the same way when hovered. */
+.account-pill.is-selected,
+.chat-row.is-active,
 .account-pill:not([role='radio']):not(:disabled):hover {
-  opacity: 1;
   background-origin: border-box;
   /* The light from the top, over a pill lifted a touch overall so its lower
      edge stays clear of the panel too. */
@@ -788,6 +765,8 @@ button.brand-deck-card:disabled:hover {
     inset 0 -1px 0 rgb(255 255 255 / 0.08),
     0 6px 14px -8px rgb(0 0 0 / 0.8);
 }
+[data-theme='light'] .account-pill.is-selected,
+[data-theme='light'] .chat-row.is-active,
 [data-theme='light'] .account-pill:not([role='radio']):not(:disabled):hover {
   /* On a light pill the light alone barely shows: the chosen one also sits a
      clear step darker, with the light kept along its top. */
@@ -800,30 +779,15 @@ button.brand-deck-card:disabled:hover {
     0 6px 14px -10px rgb(0 0 0 / 0.3);
 }
 
-/* AI assistant lists (conversations, servers): neutral rows; the open one is
-   the same cream card as "New conversation" and the tab keys. */
+.account-pill:not([role='radio']):not(:disabled):hover {
+  opacity: 1;
+}
+
+/* AI assistant lists (conversations, servers). */
 .chat-row {
-  background: rgb(var(--bg-surface-rgb));
+  background-color: rgb(var(--bg-surface-rgb));
   transition: background-color 0.15s ease;
 }
 .chat-row:not(.is-active):hover {
   background: color-mix(in srgb, rgb(var(--text-primary-rgb)) 6%, rgb(var(--bg-surface-rgb)));
-}
-.chat-row.is-active {
-  background: linear-gradient(180deg, #fbf7f1, #ece4d8);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.6),
-    0 2px 8px rgb(0 0 0 / 0.25);
-}
-:root[data-theme='light'] .chat-row.is-active {
-  box-shadow:
-    inset 0 0 0 1px rgb(0 0 0 / 0.08),
-    0 2px 8px rgb(0 0 0 / 0.1);
-}
-.chat-row.is-active .text-cyber-text {
-  color: #3b2c22;
-}
-.chat-row.is-active .text-cyber-text-secondary,
-.chat-row.is-active .text-cyber-text-muted {
-  color: rgb(59 44 34 / 0.65);
 }
