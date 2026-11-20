@@ -1,12 +1,9 @@
-import type { CSSProperties } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useI18n } from '../../hooks/useI18n';
 import { useUsageClock } from '../../hooks/useUsageClock';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { useMotherAgent } from './context';
 import '../../components/brandCards.css';
-
-const accent = { '--brand': 'rgb(var(--accent-rgb))' } as CSSProperties;
 
 export function ConversationList() {
   const { t, locale } = useI18n();
@@ -59,8 +56,7 @@ export function ConversationList() {
           return (
             <div
               key={conversation.id}
-              style={accent}
-              className={`brand-row is-quiet relative flex w-full h-14 shrink-0 items-center gap-3 px-[11px] py-1 pr-10 rounded-card border-2 text-left ${active ? 'is-selected' : 'border-transparent'} ${isProcessing ? 'opacity-40' : ''}`}
+              className={`chat-row relative flex w-full h-14 shrink-0 items-center gap-3 px-[11px] py-1 pr-10 rounded-card text-left ${active ? 'is-active' : ''} ${isProcessing ? 'opacity-40' : ''}`}
             >
               <button
                 type="button"

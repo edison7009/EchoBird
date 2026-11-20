@@ -799,3 +799,31 @@ button.brand-deck-card:disabled:hover {
     inset 0 -1px 0 rgb(0 0 0 / 0.08),
     0 6px 14px -10px rgb(0 0 0 / 0.3);
 }
+
+/* AI assistant lists (conversations, servers): neutral rows; the open one is
+   the same cream card as "New conversation" and the tab keys. */
+.chat-row {
+  background: rgb(var(--bg-surface-rgb));
+  transition: background-color 0.15s ease;
+}
+.chat-row:not(.is-active):hover {
+  background: color-mix(in srgb, rgb(var(--text-primary-rgb)) 6%, rgb(var(--bg-surface-rgb)));
+}
+.chat-row.is-active {
+  background: linear-gradient(180deg, #fbf7f1, #ece4d8);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.6),
+    0 2px 8px rgb(0 0 0 / 0.25);
+}
+:root[data-theme='light'] .chat-row.is-active {
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.08),
+    0 2px 8px rgb(0 0 0 / 0.1);
+}
+.chat-row.is-active .text-cyber-text {
+  color: #3b2c22;
+}
+.chat-row.is-active .text-cyber-text-secondary,
+.chat-row.is-active .text-cyber-text-muted {
+  color: rgb(59 44 34 / 0.65);
+}
