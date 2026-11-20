@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ModelConfig } from '../../api/types';
-import { groupSavedModels, savedSiblings } from './savedModelGroups';
+import { groupSavedModels, sameKeyModels, savedSiblings } from './savedModelGroups';
 
 const model = (internalId: string, extra: Partial<ModelConfig> = {}): ModelConfig => ({
   internalId,
@@ -48,5 +48,12 @@ describe('saved model groups', () => {
     expect(savedSiblings(models, 'a').map((entry) => entry.internalId)).toEqual(['c']);
     expect(savedSiblings(models, 'b')).toEqual([]);
     expect(savedSiblings(models, 'missing')).toEqual([]);
+  });
+
+  it('finds the saved models of a route copy by its endpoint and key', () => {
+    const models = [model('a'), model('b', { apiKey: 'sk-two' }), model('c')];
+    const copy = { internalId: 'copy', baseUrl: 'https://relay.example/v1', apiKey: 'sk-one' };
+    expect(sameKeyModels(models, copy).map((entry) => entry.internalId)).toEqual(['a', 'c']);
+    expect(sameKeyModels(models, { ...copy, apiKey: '' })).toEqual([]);
   });
 });

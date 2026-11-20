@@ -1,7 +1,7 @@
 import { BrandEmpty } from '../../components/BrandEmpty';
 import { BrandDeckCard } from '../../components/BrandDeckCard';
 import { useBrandColour } from '../../utils/brandColour';
-import { groupSavedModels, savedSiblings } from './savedModelGroups';
+import { groupSavedModels, sameKeyModels, savedSiblings } from './savedModelGroups';
 import { ModelQuotaSummary } from '../../components/ModelQuotaSummary';
 import type { ModelConfig } from '../../api/types';
 import type { ModelUsageData } from '../../api/models';
@@ -1103,8 +1103,16 @@ function FreeModelsContent({
     const options = catalog
       ? catalog.models.map((entry) => entry.id)
       : freeModels.filter((entry) => entry.baseUrl === model.baseUrl).map((entry) => entry.modelId);
+    // A smart-router copy of a saved key also offers that key's saved model IDs.
+    const keyIds = userModels.some((entry) => entry.internalId === model.id)
+      ? []
+      : sameKeyModels(userModels, model).map((entry) => entry.modelId ?? '');
     return [
-      ...new Set([...(options.includes(model.modelId) ? [] : [model.modelId]), ...options]),
+      ...new Set([
+        ...(options.includes(model.modelId) ? [] : [model.modelId]),
+        ...keyIds,
+        ...options,
+      ]),
     ].filter(Boolean);
   };
   const switchModel = async (id: string, modelId: string) => {
@@ -1766,15 +1774,9 @@ function FreeModelProviderRow({
   );
 }
 
-/**
- * A saved key as a deck card: its name and the model ID the next click adds.
- * A key with several model IDs is added one ID per click, its card counting
- * how many are on the route; the check shows once all of them are.
- */
+/** A saved key as a deck card: one more card on the route for each click. */
 function SavedKeyCard({
   model,
-  routed,
-  total,
   adding,
   disabled,
   label,
@@ -1783,8 +1785,6 @@ function SavedKeyCard({
   t,
 }: {
   model: ModelConfig;
-  routed: number;
-  total: number;
   adding: boolean;
   disabled: boolean;
   label: string;
@@ -1792,31 +1792,19 @@ function SavedKeyCard({
   onAdd: () => void;
   t: (key: TKey) => string;
 }) {
-  const full = routed >= total;
   return (
     <BrandDeckCard
       name={model.name}
-      detail={model.modelId}
       iconSrc={getModelIcon('', model.modelId || '') || getModelIcon(model.name, '')}
       label={label}
       onClick={onAdd}
-      disabled={full || disabled}
+      disabled={disabled}
       busy={adding}
-      picked={full}
       extra={
-        (usage || (total > 1 && routed > 0)) && (
-          <>
-            {usage && (
-              <span className="brand-deck-note">
-                <ModelQuotaSummary usage={usage} t={t} />
-              </span>
-            )}
-            {total > 1 && routed > 0 && (
-              <span className="brand-deck-note tabular-nums">
-                {t('freeModels.saved.added')} {routed}/{total}
-              </span>
-            )}
-          </>
+        usage && (
+          <span className="brand-deck-note">
+            <ModelQuotaSummary usage={usage} t={t} />
+          </span>
         )
       }
     />
@@ -1892,6 +1880,48 @@ export function FreeModelsPanel() {
     },
     [setEditingModelId, setModelModalDestination, setNewModelForm, setShowAddModelModal]
   );
+
+  // Every click puts one more card on the route: the key's next saved model ID
+  // while one is left, then a smart-router copy of the key (as free and account
+  // models are added), whose model ID is switched on its route card.
+  const addSavedKey = async (models: (typeof userModels)[number][]) => {
+    const next = models.find((model) => !selectedIds.has(model.internalId));
+    if (next) return addSavedModel(next);
+    const base = models[0];
+    if (addingId || !base) return;
+    setAddingId(base.internalId);
+    try {
+      const copy = await modelApi.addModel({
+        name: base.name,
+        baseUrl: base.baseUrl,
+        anthropicUrl: base.anthropicUrl || undefined,
+        apiKey: base.apiKey,
+        modelId: base.modelId,
+        scope: 'smartRouter',
+      });
+      try {
+        await addSelectedModel({
+          internalId: copy.internalId,
+          name: copy.name,
+          baseUrl: copy.baseUrl,
+          anthropicUrl: copy.anthropicUrl,
+          apiKey: copy.apiKey,
+          modelId: copy.modelId ?? base.modelId ?? '',
+          scope: copy.scope,
+        });
+      } catch (error) {
+        await modelApi.deleteModel(copy.internalId).catch((rollbackError) => {
+          console.error('Rollback smart router model failed:', rollbackError);
+        });
+        throw error;
+      }
+    } catch (error) {
+      console.error('Add saved key to smart router failed:', error);
+      showToast('error', t('freeModels.saved.addFailed'));
+    } finally {
+      setAddingId(null);
+    }
+  };
 
   const addSavedModel = async (model: (typeof userModels)[number]) => {
     if (addingId || selectedIds.has(model.internalId)) return;
@@ -1995,23 +2025,17 @@ export function FreeModelsPanel() {
               // and the route card picks among them.
               <div className="brand-deck">
                 {savedGroups.map((group) => {
-                  // Each click adds the key's next model ID not yet on the route.
-                  const routed = group.models.filter((model) =>
-                    selectedIds.has(model.internalId)
-                  ).length;
-                  const next = group.models.find((model) => !selectedIds.has(model.internalId));
-                  const shown = next ?? group.models[0];
+                  // Every click adds one more card; its model ID is chosen on the route.
+                  const shown = group.models[0];
                   return (
                     <SavedKeyCard
                       key={group.key}
                       model={shown}
-                      routed={routed}
-                      total={group.models.length}
                       adding={group.models.some((model) => addingId === model.internalId)}
                       disabled={Boolean(addingId)}
-                      label={`${t(next ? 'freeModels.addToRouter' : 'freeModels.saved.added')}: ${shown.name} — ${shown.modelId ?? ''}`}
+                      label={`${t('freeModels.addToRouter')}: ${shown.name}`}
                       usage={modelUsageData[shown.internalId]}
-                      onAdd={() => next && void addSavedModel(next)}
+                      onAdd={() => void addSavedKey(group.models)}
                       t={t}
                     />
                   );

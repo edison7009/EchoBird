@@ -10,10 +10,26 @@ export interface SavedKeyGroup {
   models: ModelConfig[];
 }
 
+type KeyFields = Pick<ModelConfig, 'internalId' | 'baseUrl' | 'anthropicUrl'> & {
+  apiKey?: string;
+  accountSource?: ModelConfig['accountSource'];
+};
+
 /** Account models and key-less entries stand alone; the rest group by endpoint and key. */
-export function savedKeyOf(model: ModelConfig): string {
+export function savedKeyOf(model: KeyFields): string {
   if (model.accountSource || !model.apiKey) return `model:${model.internalId}`;
   return ['key', model.baseUrl, model.anthropicUrl ?? '', model.apiKey].join('\n');
+}
+
+/**
+ * The saved models sharing a route card's key, including itself when it is
+ * one: a smart-router copy of a saved key finds its originals this way.
+ */
+export function sameKeyModels(models: readonly ModelConfig[], model: KeyFields): ModelConfig[] {
+  const key = savedKeyOf(model);
+  return models.filter(
+    (entry) => entry.internalId === model.internalId || savedKeyOf(entry) === key
+  );
 }
 
 /** Groups in first-seen order; each group keeps its models in their saved order. */
