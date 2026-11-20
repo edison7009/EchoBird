@@ -1382,17 +1382,17 @@ img[src$='/icons/tools/opendesign.png'] {
 /* Sweep across the wait label, then pause with the highlight outside the text. */
 @keyframes spinnerShimmer {
   0% {
-    background-position: 128% center;
+    background-position: 130% center;
   }
-  60%,
+  56.5%,
   100% {
-    background-position: -28% center;
+    background-position: -30% center;
   }
 }
 
 .spinner-shimmer {
   background-image: linear-gradient(
-    90deg,
+    70deg,
     rgb(var(--accent-rgb) / 0.88) 0%,
     rgb(var(--accent-rgb) / 0.88) 38%,
     rgb(var(--text-primary-rgb) / 1) 50%,
@@ -1404,7 +1404,7 @@ img[src$='/icons/tools/opendesign.png'] {
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
-  animation: spinnerShimmer 5s linear infinite;
+  animation: spinnerShimmer 4.6s linear infinite;
 }
 
 /* Three-dot working mark: a 110-frame sheet stepped inside a fixed box, so the
