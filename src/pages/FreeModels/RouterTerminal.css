@@ -32,8 +32,16 @@
   height: 44px;
   border-radius: 8px 8px 0 0;
   padding: 0 12px;
-  color: rgb(var(--text-secondary-rgb));
+  /* Retro tabs: phosphor green in a monospace face, like the screen below. */
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  color: rgb(129 213 166 / 0.55);
   white-space: nowrap;
+  transition:
+    color 0.2s ease,
+    text-shadow 0.2s ease;
+}
+.router-terminal-groups > .view-mode-tab:hover:enabled {
+  color: rgb(159 240 192 / 0.85);
 }
 
 .router-terminal-groups > .view-mode-tab > span {
@@ -43,9 +51,12 @@
 }
 
 .router-terminal .router-terminal-groups > .view-mode-tab[aria-pressed='true'] {
-  /* Sits on the terminal's fixed black surface in every theme. */
-  color: #e8e2d5;
-  background: #020504;
+  /* Part of the screen in every theme: its glass colour, a lit phosphor
+     label and a thin green rim along the top. */
+  color: #a6f2c4;
+  background: #051a10;
+  box-shadow: inset 0 1px 0 rgb(129 213 166 / 0.45);
+  text-shadow: 0 0 6px rgb(129 213 166 / 0.55);
   animation: none;
 }
 
@@ -72,12 +83,26 @@
 }
 
 .router-terminal-screen {
+  position: relative;
   display: flex;
   flex: 1;
   min-height: 0;
   padding: 24px;
-  background: #020504;
+  /* A green phosphor screen: brightest in the middle, dark at the edges. */
+  background: radial-gradient(120% 90% at 50% 45%, #062014, #020805 75%);
+  box-shadow:
+    inset 0 0 70px rgb(0 0 0 / 0.55),
+    inset 0 0 0 1px rgb(129 213 166 / 0.08);
   border-radius: 0 0 6px 6px;
+}
+/* Fine scanlines over the whole screen, text included. */
+.router-terminal-screen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: repeating-linear-gradient(180deg, rgb(0 0 0 / 0.22) 0 1px, transparent 1px 3px);
 }
 
 .router-terminal-screen > canvas {
@@ -89,4 +114,6 @@
   min-height: 0;
   -webkit-mask-image: linear-gradient(to bottom, transparent, #000 60px);
   mask-image: linear-gradient(to bottom, transparent, #000 60px);
+  /* The text glows a little, as phosphor does. */
+  filter: drop-shadow(0 0 3px rgb(129 213 166 / 0.35));
 }

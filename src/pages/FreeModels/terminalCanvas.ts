@@ -134,8 +134,13 @@ export function animateTerminal(
       rows.push(queued.shift() ?? null);
       if (rows.length > Math.ceil(height / LINE_HEIGHT) + 4) rows.shift();
     }
-    ctx.fillStyle = '#020504';
+    // Repaint the frame as transparent: the screen behind the canvas carries
+    // the CRT glass (glow, vignette, scanlines) in CSS.
+    ctx.save();
+    ctx.globalCompositeOperation = 'copy';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0)';
     ctx.fillRect(0, 0, width, height);
+    ctx.restore();
     const scroll = Math.min(1, (elapsed - (next - INTERVAL)) / INTERVAL) * LINE_HEIGHT;
     rows.forEach((row, index) => {
       if (!row) return;
