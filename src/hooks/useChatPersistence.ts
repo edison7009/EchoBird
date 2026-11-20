@@ -1,11 +1,14 @@
 // Local conversation history. Model context is persisted separately by the backend.
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { BubbleChip } from '../components/chat/ChatBubble';
+import type { AssistantReplySummary } from '../api/types';
 
 export interface DiskMsg {
   role: string;
   content: string;
   chips?: BubbleChip[];
+  replySummary?: AssistantReplySummary;
+  incomplete?: boolean;
 }
 
 export interface ChatConversation<T> {

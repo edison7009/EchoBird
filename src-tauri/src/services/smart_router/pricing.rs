@@ -1,4 +1,4 @@
-//! Public reference prices; networking is an explicit UI action, never a routing action.
+//! Shared public reference prices. Route traffic only reads the cached catalog.
 use std::collections::BTreeMap;
 use std::io::Read;
 use std::sync::{Mutex, OnceLock};
@@ -50,6 +50,16 @@ fn cache() -> &'static Mutex<Cache> {
     static CACHE: OnceLock<Mutex<Cache>> = OnceLock::new();
     CACHE.get_or_init(|| Mutex::new(Cache::default()))
 }
+
+#[cfg(test)]
+pub(super) fn set_test_price(provider: &str, model: &str, price: Price) {
+    cache()
+        .lock()
+        .unwrap()
+        .prices
+        .insert(format!("{provider}/{model}"), price);
+}
+
 fn path() -> std::path::PathBuf {
     crate::utils::platform::echobird_dir().join("config/smart-router-prices.json")
 }
@@ -246,6 +256,31 @@ pub async fn refresh() -> Result<Status, String> {
     .await
     .map_err(|_| "Unable to save reference prices")??;
     Ok(status)
+}
+
+pub(crate) async fn warm_for_assistant() {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static NEXT_CHECK: AtomicU64 = AtomicU64::new(0);
+    let now = chrono::Utc::now().timestamp_millis().max(0) as u64;
+    let next = NEXT_CHECK.load(Ordering::Relaxed);
+    if now < next
+        || NEXT_CHECK
+            .compare_exchange(
+                next,
+                now.saturating_add(300_000),
+                Ordering::Relaxed,
+                Ordering::Relaxed,
+            )
+            .is_err()
+    {
+        return;
+    }
+    let Ok(current) = tauri::async_runtime::spawn_blocking(status).await else {
+        return;
+    };
+    if current.models == 0 || now.saturating_sub(current.fetched_at) >= 86_400_000 {
+        let _ = refresh().await;
+    }
 }
 pub fn lookup(base_url: &str, source: Option<&AccountSource>, model: &str) -> Option<Price> {
     let host = url::Url::parse(base_url)

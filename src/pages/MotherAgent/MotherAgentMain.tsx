@@ -26,6 +26,7 @@ export function MotherAgentMain() {
     setChatInput,
     chatOutput,
     isProcessing,
+    turnStartedAt,
     isResetting,
     agentModelData: _agentModelData,
     reasoningLevels,
@@ -253,6 +254,7 @@ export function MotherAgentMain() {
   }, [chatEndRef]);
 
   const showWelcome = visibleChatOutput.length === 0 && !isProcessing;
+  const lastVisibleOutput = visibleChatOutput[visibleChatOutput.length - 1];
 
   return (
     <div className="flex flex-col h-full">
@@ -288,20 +290,10 @@ export function MotherAgentMain() {
             <div className="pt-2 pb-2">
               {/* Skeleton placeholders — shown briefly when lazy-loading older messages */}
               {showSkeleton &&
-                [0, 1, 2].map((i) => (
-                  <ChatBubble key={`sk-${i}`} role="skeleton" content="" variant="mother" />
-                ))}
+                [0, 1, 2].map((i) => <ChatBubble key={`sk-${i}`} role="skeleton" content="" />)}
               {visibleChatOutput.slice(-displayCount).map((msg, i, arr) => {
                 if (msg.type === 'user') {
-                  return (
-                    <ChatBubble
-                      key={i}
-                      role="user"
-                      content={msg.text}
-                      variant="mother"
-                      chips={msg.chips}
-                    />
-                  );
+                  return <ChatBubble key={i} role="user" content={msg.text} chips={msg.chips} />;
                 }
                 if (msg.type === 'tool_call') {
                   return (
@@ -315,16 +307,18 @@ export function MotherAgentMain() {
                   );
                 }
                 if (msg.type === 'assistant') {
-                  const isLast = arr.slice(i + 1).every((m) => m.type !== 'assistant');
-                  const lastOutput = visibleChatOutput[visibleChatOutput.length - 1];
-                  const isCurrentResponse = isLast && lastOutput?.type === 'assistant';
+                  const isCurrentResponse = msg === lastVisibleOutput;
+                  const nextMessage = arr[i + 1];
+                  const legacyReply =
+                    !msg.incomplete && (!nextMessage || nextMessage.type === 'user');
                   return (
                     <ChatBubble
-                      key={i}
+                      key={msg.messageId}
                       role="assistant"
                       content={msg.text}
-                      variant="mother"
                       isStreaming={isProcessing && isCurrentResponse}
+                      workingStartedAt={isCurrentResponse ? turnStartedAt : undefined}
+                      replySummary={msg.replySummary ?? (legacyReply ? null : undefined)}
                     />
                   );
                 }
@@ -342,16 +336,13 @@ export function MotherAgentMain() {
                   const text = msg.i18nKey
                     ? t(msg.i18nKey as import('../../i18n/types').TKey)
                     : msg.text;
-                  return <ChatBubble key={i} role="error" content={text} variant="mother" />;
+                  return <ChatBubble key={i} role="error" content={text} />;
                 }
                 return null;
               })}
-              {/* Typing indicator — show when processing and no new assistant response has started */}
-              {isProcessing &&
-                (visibleChatOutput.length === 0 ||
-                  visibleChatOutput[visibleChatOutput.length - 1]?.type !== 'assistant') && (
-                  <ChatBubble role="assistant" content="" variant="mother" isStreaming={true} />
-                )}
+              {turnStartedAt !== undefined && lastVisibleOutput?.type !== 'assistant' && (
+                <ChatBubble role="working" content="" workingStartedAt={turnStartedAt} />
+              )}
               <div ref={chatEndRef} />
             </div>
           )}

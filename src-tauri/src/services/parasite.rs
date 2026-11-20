@@ -36,7 +36,10 @@ pub enum ParasiteEvent {
     #[serde(rename = "text_delta")]
     TextDelta { text: String },
     #[serde(rename = "done")]
-    Done {},
+    Done {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        summary: Option<super::agent_loop::ReplySummary>,
+    },
     #[serde(rename = "error")]
     Error { message: String },
     #[serde(rename = "state")]
@@ -294,6 +297,7 @@ pub async fn send_message(
     conversation_id: Option<String>,
     request_id: Option<String>,
 ) -> Result<(), String> {
+    let started = std::time::Instant::now();
     let agent =
         lookup_agent(&agent_id).ok_or_else(|| format!("Unknown parasite agent: {}", agent_id))?;
     let key = session_key(&agent_id, conversation_id.as_deref());
@@ -323,7 +327,7 @@ pub async fn send_message(
             &app,
             conversation_id.as_deref(),
             request_id.as_deref(),
-            ParasiteEvent::Done {},
+            ParasiteEvent::Done { summary: None },
         );
         return Ok(());
     }
@@ -370,7 +374,7 @@ pub async fn send_message(
                 &app,
                 conversation_id.as_deref(),
                 request_id.as_deref(),
-                ParasiteEvent::Done {},
+                ParasiteEvent::Done { summary: None },
             );
             return Ok(());
         }
@@ -378,6 +382,7 @@ pub async fn send_message(
 
     let outcome = run_child(child, &message, &cancel_token).await;
 
+    let mut summary = None;
     match outcome {
         ParasiteOutcome::Cancelled => {
             finish_session(&sessions, &key, effective_session_id).await;
@@ -444,6 +449,13 @@ pub async fn send_message(
                         ParasiteEvent::Error { message },
                     );
                 } else if !parsed.text.is_empty() {
+                    summary = Some(super::agent_loop::ReplySummary {
+                        duration_ms: parsed
+                            .duration_ms
+                            .unwrap_or_else(|| super::agent_loop::elapsed_ms(started)),
+                        total_tokens: parsed.total_tokens,
+                        estimated_cost_micros: None,
+                    });
                     emit_event(
                         &app,
                         conversation_id.as_deref(),
@@ -459,7 +471,7 @@ pub async fn send_message(
         &app,
         conversation_id.as_deref(),
         request_id.as_deref(),
-        ParasiteEvent::Done {},
+        ParasiteEvent::Done { summary },
     );
     emit_event(
         &app,
@@ -599,6 +611,8 @@ struct ParsedOutput {
     text: String,
     session_id: Option<String>,
     is_error: bool,
+    duration_ms: Option<u64>,
+    total_tokens: Option<u64>,
 }
 
 /// Claude Code with `--output-format json` emits a single JSON object on
@@ -621,16 +635,24 @@ fn parse_claude_json(stdout: &str) -> ParsedOutput {
             .and_then(|x| x.as_str())
             .map(|s| s.to_string());
         let is_error = v.get("is_error").and_then(|x| x.as_bool()).unwrap_or(false);
+        let mut usage = super::smart_router::usage::UsageAccumulator::default();
+        usage.observe(&v);
         return ParsedOutput {
             text,
             session_id,
             is_error,
+            duration_ms: v["duration_ms"].as_u64(),
+            total_tokens: usage
+                .total_known()
+                .then(|| usage.report().usage.total_tokens),
         };
     }
     ParsedOutput {
         text: trimmed.to_string(),
         session_id: None,
         is_error: false,
+        duration_ms: None,
+        total_tokens: None,
     }
 }
 
@@ -989,7 +1011,7 @@ $inputText = [Console]::In.ReadToEnd()
         assert_eq!(scoped["request_id"], "request-a");
         assert_eq!(scoped["text"], "reply");
         let legacy = serde_json::to_value(ScopedParasiteEvent {
-            event: ParasiteEvent::Done {},
+            event: ParasiteEvent::Done { summary: None },
             conversation_id: None,
             request_id: None,
         })

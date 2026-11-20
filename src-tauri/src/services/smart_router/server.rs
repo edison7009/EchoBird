@@ -190,6 +190,7 @@ pub(crate) fn public_activity() -> PublicActivity {
 #[derive(Clone)]
 struct AppState {
     request_statistics: Option<Arc<super::statistics::Request>>,
+    assistant_usage: Option<super::assistant_usage::Receipt>,
     statistics_collector: Option<Arc<super::statistics::Collector>>,
     config_path: PathBuf,
     protection_settings_path: PathBuf,
@@ -235,6 +236,7 @@ impl AppState {
         standby::register(&config_path, &standby);
         Ok(Self {
             request_statistics: None,
+            assistant_usage: None,
             statistics_collector: None,
             config_path,
             protection_settings_path: crate::utils::platform::echobird_dir().join("settings.json"),
@@ -265,6 +267,7 @@ impl AppState {
             .map_err(|e| format!("reqwest client build failed: {e}"))?;
         Ok(Self {
             request_statistics: None,
+            assistant_usage: None,
             statistics_collector: None,
             config_path: super::config_path(),
             protection_settings_path: std::env::temp_dir()
@@ -709,6 +712,7 @@ async fn protected_route(
     let terminal_session = super::terminal::ticket(group);
     let mut state = state.clone();
     state.request_statistics = statistics.clone();
+    state.assistant_usage = super::assistant_usage::claim(headers);
     let protection = match prepare_protection(&state, &mut body).await {
         Ok(protection) => protection,
         Err(error) => {
@@ -1403,27 +1407,8 @@ async fn responses_from_chat(
     )
 }
 
-fn optional_usage_rejected(status: StatusCode, bytes: &[u8]) -> bool {
-    if !matches!(status.as_u16(), 400 | 422) {
-        return false;
-    }
-    let Ok(value) = serde_json::from_slice::<Value>(bytes) else {
-        return false;
-    };
-    let error = value.get("error").unwrap_or(&value);
-    let parameter = error["param"]
-        .as_str()
-        .or_else(|| error["parameter"].as_str());
-    matches!(
-        parameter,
-        Some("stream_options" | "stream_options.include_usage")
-    ) && [
-        "unsupported_parameter",
-        "unknown_parameter",
-        "unrecognized_parameter",
-    ]
-    .iter()
-    .any(|code| error["code"].as_str() == Some(code))
+fn optional_usage_rejected(status: StatusCode, bytes: &[u8], assistant: bool) -> bool {
+    matches!(status.as_u16(), 400 | 422) && super::usage::usage_parameter_rejected(bytes, assistant)
 }
 
 fn short_retry_delay(
@@ -1511,7 +1496,7 @@ async fn send_api_request(
                 .get(&candidate.fingerprint)
                 .is_some_and(|until| *until > now_ms())
         });
-        if state.request_statistics.is_some() && !unsupported {
+        if (state.request_statistics.is_some() || state.assistant_usage.is_some()) && !unsupported {
             request_stream_usage(&mut body);
         }
     } else {
@@ -1895,9 +1880,12 @@ async fn route_with_policy(
                 copy_response_headers(&mut response, &response_headers);
                 return response;
             }
-            if protocol == RouteProtocol::Chat
+            let assistant_bridged_chat = state.assistant_usage.is_some()
+                && protocol == RouteProtocol::Messages
+                && !uses_native_messages(&candidate);
+            if (protocol == RouteProtocol::Chat || assistant_bridged_chat)
                 && candidate.account_source.is_none()
-                && state.request_statistics.is_some()
+                && (state.request_statistics.is_some() || state.assistant_usage.is_some())
                 && body["stream"] == true
                 && body.get("stream_options").is_none_or(|options| {
                     options.is_null()
@@ -1905,7 +1893,7 @@ async fn route_with_policy(
                             .as_object()
                             .is_some_and(|options| options.is_empty())
                 })
-                && optional_usage_rejected(status, &response_body)
+                && optional_usage_rejected(status, &response_body, state.assistant_usage.is_some())
                 && !state.route_memory.lock().ok().is_some_and(|memory| {
                     memory
                         .unsupported_stream_usage
@@ -2031,6 +2019,13 @@ async fn route_with_policy(
             let mut completion = StreamCompletion {
                 headers: response.headers().clone(),
                 protocol,
+                assistant_usage: state.assistant_usage.as_ref().map(|_| {
+                    super::assistant_usage::RoutedUsage::new(
+                        &candidate.base_url,
+                        candidate.account_source.as_ref(),
+                        &candidate.model_id,
+                    )
+                }),
                 ..StreamCompletion::default()
             };
             let mut upstream_stream = response.into_body().into_data_stream();
@@ -2091,6 +2086,10 @@ async fn route_with_policy(
             };
             match first {
                 Ok(buffered) => {
+                    if let Some(receipt) = &state.assistant_usage {
+                        *receipt.lock().unwrap_or_else(|e| e.into_inner()) =
+                            completion.assistant_usage.clone();
+                    }
                     if let Some(standby_epoch) = standby_epoch.filter(|_| completion.meaningful) {
                         state.standby.used(
                             state,
@@ -2586,6 +2585,7 @@ use health_selection::{
 #[derive(Default)]
 struct StreamCompletion {
     parser: crate::services::account_proxy::SseParser,
+    assistant_usage: Option<super::assistant_usage::RoutedUsage>,
     headers: HeaderMap,
     protocol: RouteProtocol,
     response_id: Option<String>,
@@ -2618,6 +2618,9 @@ impl StreamCompletion {
             }
             let value: Value = serde_json::from_str(&data)
                 .map_err(|_| std::io::Error::other("Invalid upstream event stream"))?;
+            if let Some(usage) = &self.assistant_usage {
+                usage.observe(&value);
+            }
             if let Some(error) =
                 crate::services::account_proxy::stream_error(&event, &data, &self.headers)
             {

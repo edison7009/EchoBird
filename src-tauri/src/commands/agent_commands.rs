@@ -57,7 +57,7 @@ pub async fn agent_send_message(
                 &app_clone,
                 conversation_id.as_deref(),
                 request_id.as_deref(),
-                AgentEvent::Done {},
+                AgentEvent::Done { summary: None },
             );
         }
     });

@@ -1,4 +1,4 @@
-import type { ModelConfig, ReasoningEffort } from '../../api/types';
+import type { AssistantReplySummary, ModelConfig, ReasoningEffort } from '../../api/types';
 import type { BubbleChip } from '../../components/chat/ChatBubble';
 import type { ChatConversation } from '../../hooks/useChatPersistence';
 
@@ -6,7 +6,13 @@ import type { ChatConversation } from '../../hooks/useChatPersistence';
 
 export type ChatMessage =
   | { type: 'user'; text: string; chips?: BubbleChip[] }
-  | { type: 'assistant'; text: string }
+  | {
+      type: 'assistant';
+      messageId: string;
+      text: string;
+      replySummary?: AssistantReplySummary;
+      incomplete?: boolean;
+    }
   | {
       type: 'tool_call';
       id: string;
@@ -47,6 +53,7 @@ export interface MotherAgentCtx {
   deleteConversation: (id: string) => Promise<void>;
   agentState: string;
   isProcessing: boolean;
+  turnStartedAt?: number;
   isResetting: boolean;
   agentModelData: ModelConfig | undefined;
   reasoningLevels: ReasoningEffort[];

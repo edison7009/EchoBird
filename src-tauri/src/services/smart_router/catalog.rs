@@ -94,9 +94,10 @@ pub(super) fn description(model_id: &str, base_url: &str) -> String {
 }
 
 pub(crate) fn profile_id_for_url(base_url: &str) -> Option<String> {
+    let endpoint_port = loopback_port(base_url)?;
     profiles::ids()
         .into_iter()
-        .find(|id| profiles::with(id, || is_loopback_url_on_port(base_url, port())))
+        .find(|id| profiles::with(id, port) == endpoint_port)
 }
 
 pub(crate) fn models_for_url(base_url: &str) -> Result<Vec<SwitchModel>, String> {

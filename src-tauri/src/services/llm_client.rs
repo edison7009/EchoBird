@@ -22,6 +22,12 @@ use sha2::{Digest, Sha256};
 use std::time::Duration;
 use tokio::sync::mpsc;
 
+use super::smart_router::{
+    self,
+    assistant_usage::{self, AssistantUsage, RoutedPricing, RoutedUsage},
+    usage::{self, UsageAccumulator, UsageReport},
+};
+
 /// Maximum quiet time between SSE chunks before we declare the upstream
 /// stalled. Generous (5 minutes) to accommodate thinking-model warmups
 /// where DeepSeek-R1 / o1-preview can think silently for several minutes
@@ -166,8 +172,55 @@ pub enum LlmEvent {
     },
     Done {
         stop_reason: String,
+        usage: Option<CompletionUsage>,
     },
     Error(String),
+}
+
+#[derive(Debug, Clone)]
+pub struct CompletionUsage {
+    pub report: UsageReport,
+    pub total_known: bool,
+    pub model: Option<String>,
+    pub(super) routed: Option<RoutedPricing>,
+}
+
+#[derive(Default)]
+struct CompletionMeter {
+    usage: UsageAccumulator,
+    model: Option<String>,
+}
+
+impl CompletionMeter {
+    fn observe(&mut self, value: &Value) {
+        self.usage.observe(value);
+        if let Some(model) = value["model"]
+            .as_str()
+            .or_else(|| value["message"]["model"].as_str())
+            .filter(|model| !model.is_empty())
+        {
+            self.model = Some(model.to_owned());
+        }
+    }
+
+    fn billable(&self, routed: Option<&RoutedUsage>) -> bool {
+        routed
+            .map_or_else(|| self.usage.report(), |routed| routed.report().0)
+            .billable
+    }
+
+    fn finish(self, routed: Option<RoutedUsage>) -> Option<CompletionUsage> {
+        let (report, total_known) = routed.as_ref().map_or_else(
+            || (self.usage.report(), self.usage.total_known()),
+            RoutedUsage::report,
+        );
+        (report.usage.reported_responses > 0).then(|| CompletionUsage {
+            report,
+            total_known,
+            model: self.model,
+            routed: routed.map(|usage| usage.pricing),
+        })
+    }
 }
 
 // ── Client ──
@@ -206,13 +259,32 @@ impl LlmClient {
         tools: &[ToolDef],
         system_prompt: &str,
     ) -> Result<mpsc::Receiver<LlmEvent>, String> {
+        self.stream(messages, tools, system_prompt, false).await
+    }
+
+    pub async fn chat_stream_with_usage(
+        &self,
+        messages: &[Message],
+        tools: &[ToolDef],
+        system_prompt: &str,
+    ) -> Result<mpsc::Receiver<LlmEvent>, String> {
+        self.stream(messages, tools, system_prompt, true).await
+    }
+
+    async fn stream(
+        &self,
+        messages: &[Message],
+        tools: &[ToolDef],
+        system_prompt: &str,
+        include_usage: bool,
+    ) -> Result<mpsc::Receiver<LlmEvent>, String> {
         match self.config.provider {
             LlmProvider::OpenAI => {
-                self.chat_stream_openai(messages, tools, system_prompt)
+                self.chat_stream_openai(messages, tools, system_prompt, include_usage)
                     .await
             }
             LlmProvider::Anthropic => {
-                self.chat_stream_anthropic(messages, tools, system_prompt)
+                self.chat_stream_anthropic(messages, tools, system_prompt, include_usage)
                     .await
             }
         }
@@ -225,6 +297,7 @@ impl LlmClient {
         messages: &[Message],
         tools: &[ToolDef],
         system_prompt: &str,
+        include_usage: bool,
     ) -> Result<mpsc::Receiver<LlmEvent>, String> {
         let url = format!(
             "{}/chat/completions",
@@ -269,8 +342,10 @@ impl LlmClient {
         // attempt (RequestBuilder is consumed by EventSource::new).
         let http = self.http.clone();
         let url_owned = url.clone();
-        let body_owned = body.clone();
-        let make_request = move || -> Result<reqwest::RequestBuilder, String> {
+        let via_router = include_usage && smart_router::is_router_url(&url_owned);
+        let request_usage = include_usage && !via_router;
+        let mut routed = None;
+        let mut make_request = |body: &Value| -> Result<reqwest::RequestBuilder, String> {
             let mut headers = HeaderMap::new();
             headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
             headers.insert(AUTHORIZATION, auth_value.clone());
@@ -288,17 +363,39 @@ impl LlmClient {
             );
             headers.insert("X-Title", HeaderValue::from_static("EchoBird"));
             headers.insert("X-OpenRouter-Title", HeaderValue::from_static("EchoBird"));
-            Ok(http.post(&url_owned).headers(headers).json(&body_owned))
+            let mut request = http.post(&url_owned).headers(headers).json(body);
+            if via_router {
+                let receipt = AssistantUsage::register();
+                request = request.header(assistant_usage::HEADER, receipt.id.to_string());
+                routed = Some(receipt);
+            }
+            Ok(request)
         };
 
         // OpenAI is the workhorse path: full retry budget on transient
         // 429 / 5xx / transport blips.
-        let OpenedStream { mut es, pending } =
-            open_with_retry(make_request, MAX_RETRY_ATTEMPTS).await?;
+        if request_usage {
+            body["stream_options"] = json!({"include_usage": true});
+        }
+        let opened = match open_with_retry(|| make_request(&body), MAX_RETRY_ATTEMPTS).await {
+            Err(error) if request_usage && error.usage_rejected => {
+                body.as_object_mut()
+                    .expect("completion request")
+                    .remove("stream_options");
+                open_with_retry(|| make_request(&body), MAX_RETRY_ATTEMPTS).await
+            }
+            result => result,
+        };
+        let OpenedStream { mut es, pending } = opened.map_err(|error| error.message)?;
+        let routed = routed.and_then(|receipt| receipt.selected());
+        let measure_direct = include_usage && routed.is_none();
 
         let (tx, rx) = mpsc::channel(128);
 
         tokio::spawn(async move {
+            let mut meter = CompletionMeter::default();
+            let mut stop_reason = None;
+            let mut wait_for_usage = false;
             // Track tool calls being assembled
             let mut current_tool_calls: std::collections::HashMap<i64, (String, String, String)> =
                 std::collections::HashMap::new(); // index -> (id, name, args)
@@ -343,14 +440,13 @@ impl LlmClient {
                 match event {
                     Ok(Event::Message(msg)) => {
                         if msg.data == "[DONE]" {
-                            let _ = tx
-                                .send(LlmEvent::Done {
-                                    stop_reason: "stop".into(),
-                                })
-                                .await;
+                            stop_reason = Some("stop".into());
                             break;
                         }
                         if let Ok(chunk) = serde_json::from_str::<Value>(&msg.data) {
+                            if measure_direct {
+                                meter.observe(&chunk);
+                            }
                             if let Some(delta) = chunk["choices"][0]["delta"].as_object() {
                                 // Text content
                                 if let Some(content) = delta.get("content").and_then(|c| c.as_str())
@@ -423,12 +519,9 @@ impl LlmClient {
                                 for (_, (id, _, _)) in current_tool_calls.drain() {
                                     let _ = tx.send(LlmEvent::ToolCallEnd { id }).await;
                                 }
-                                let _ = tx
-                                    .send(LlmEvent::Done {
-                                        stop_reason: reason.to_string(),
-                                    })
-                                    .await;
-                                break; // Always break on finish_reason — some APIs don't send [DONE]
+                                stop_reason = Some(reason.to_owned());
+                                wait_for_usage = include_usage && !meter.billable(routed.as_ref());
+                                break;
                             }
                         }
                     }
@@ -453,6 +546,36 @@ impl LlmClient {
                     }
                 }
             }
+            if let Some(stop_reason) = stop_reason {
+                // Some compatible servers omit the usage trailer or keep the socket open.
+                if wait_for_usage {
+                    let trailer = async {
+                        while let Some(Ok(Event::Message(msg))) = es.next().await {
+                            if msg.data == "[DONE]" {
+                                break;
+                            }
+                            if measure_direct {
+                                if let Ok(chunk) = serde_json::from_str::<Value>(&msg.data) {
+                                    meter.observe(&chunk);
+                                }
+                            }
+                            if meter.billable(routed.as_ref()) {
+                                break;
+                            }
+                        }
+                    };
+                    tokio::select! {
+                        _ = tx.closed() => return,
+                        _ = tokio::time::timeout(Duration::from_millis(500), trailer) => {}
+                    }
+                }
+                let _ = tx
+                    .send(LlmEvent::Done {
+                        stop_reason,
+                        usage: meter.finish(routed),
+                    })
+                    .await;
+            }
         });
 
         Ok(rx)
@@ -465,6 +588,7 @@ impl LlmClient {
         messages: &[Message],
         tools: &[ToolDef],
         system_prompt: &str,
+        include_usage: bool,
     ) -> Result<mpsc::Receiver<LlmEvent>, String> {
         let base = self.config.base_url.trim_end_matches('/');
         // URL resolution — handle every shape users (and our model
@@ -537,7 +661,9 @@ impl LlmClient {
         let http = self.http.clone();
         let url_owned = url.clone();
         let body_owned = body.clone();
-        let make_request = move || -> Result<reqwest::RequestBuilder, String> {
+        let via_router = include_usage && smart_router::is_router_url(&url_owned);
+        let mut routed = None;
+        let make_request = || -> Result<reqwest::RequestBuilder, String> {
             let mut headers = HeaderMap::new();
             headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
             headers.insert("x-api-key", api_key_value.clone());
@@ -548,7 +674,13 @@ impl LlmClient {
                 HeaderValue::from_static("https://echobird.ai"),
             );
             headers.insert("X-Title", HeaderValue::from_static("EchoBird"));
-            Ok(http.post(&url_owned).headers(headers).json(&body_owned))
+            let mut request = http.post(&url_owned).headers(headers).json(&body_owned);
+            if via_router {
+                let receipt = AssistantUsage::register();
+                request = request.header(assistant_usage::HEADER, receipt.id.to_string());
+                routed = Some(receipt);
+            }
+            Ok(request)
         };
 
         // Anthropic path is a "probe before falling back to OpenAI":
@@ -559,14 +691,18 @@ impl LlmClient {
         // can even fire (observed: mimo's /anthropic returns transport
         // error then 404). Single attempt = fail fast = the user sees
         // their first response in seconds instead of a minute.
-        let OpenedStream { mut es, pending } = open_with_retry(make_request, 1).await?;
+        let OpenedStream { mut es, pending } = open_with_retry(make_request, 1)
+            .await
+            .map_err(|error| error.message)?;
+        let routed = routed.and_then(|receipt| receipt.selected());
+        let measure_direct = include_usage && routed.is_none();
 
         let (tx, rx) = mpsc::channel(128);
 
         tokio::spawn(async move {
             let mut current_tool_id = String::new();
             let mut current_tool_name = String::new();
-            let mut done_sent = false;
+            let mut meter = CompletionMeter::default();
 
             // Mirror the OpenAI path: drain buffered events first, then
             // pull from the live stream with a per-chunk timeout.
@@ -603,6 +739,9 @@ impl LlmClient {
                     Ok(Event::Message(msg)) => {
                         let event_type = &msg.event;
                         if let Ok(data) = serde_json::from_str::<Value>(&msg.data) {
+                            if measure_direct {
+                                meter.observe(&data);
+                            }
                             match event_type.as_str() {
                                 "content_block_start" => {
                                     if let Some(block) = data.get("content_block") {
@@ -707,22 +846,20 @@ impl LlmClient {
                                             let _ = tx
                                                 .send(LlmEvent::Done {
                                                     stop_reason: reason.to_string(),
+                                                    usage: meter.finish(routed),
                                                 })
                                                 .await;
-                                            done_sent = true;
+                                            break;
                                         }
                                     }
                                 }
                                 "message_stop" => {
-                                    // Safety net: emit Done if message_delta didn't already send it
-                                    // (some Anthropic-compatible endpoints skip message_delta)
-                                    if !done_sent {
-                                        let _ = tx
-                                            .send(LlmEvent::Done {
-                                                stop_reason: "end_turn".into(),
-                                            })
-                                            .await;
-                                    }
+                                    let _ = tx
+                                        .send(LlmEvent::Done {
+                                            stop_reason: "end_turn".into(),
+                                            usage: meter.finish(routed),
+                                        })
+                                        .await;
                                     break; // Stream complete — exit cleanly without SSE error
                                 }
                                 "error" => {
@@ -1096,16 +1233,33 @@ struct OpenedStream {
 /// endpoint is just a "first try before falling back" — retrying a
 /// non-existent /anthropic/messages route 3 times wastes ~30-60s per
 /// connect_timeout before the agent loop downgrades to OpenAI.
-async fn open_with_retry<F>(make_request: F, max_attempts: u32) -> Result<OpenedStream, String>
+struct OpenStreamError {
+    message: String,
+    usage_rejected: bool,
+}
+
+impl From<String> for OpenStreamError {
+    fn from(message: String) -> Self {
+        Self {
+            message,
+            usage_rejected: false,
+        }
+    }
+}
+
+async fn open_with_retry<F>(
+    mut make_request: F,
+    max_attempts: u32,
+) -> Result<OpenedStream, OpenStreamError>
 where
-    F: Fn() -> Result<reqwest::RequestBuilder, String>,
+    F: FnMut() -> Result<reqwest::RequestBuilder, String>,
 {
     let mut last_err = String::from("All retry attempts failed");
     for attempt in 0..max_attempts {
         let request = make_request()?;
         let mut es = match EventSource::new(request) {
             Ok(es) => es,
-            Err(e) => return Err(format!("Could not build request: {e}")),
+            Err(e) => return Err(format!("Could not build request: {e}").into()),
         };
 
         // Pull events until we either confirm the connection (Open or
@@ -1143,7 +1297,14 @@ where
                     last_err = message;
                     continue;
                 }
-                return Err(message);
+                return Err(OpenStreamError {
+                    usage_rejected: matches!(status.as_u16(), 400 | 422)
+                        && (usage::usage_parameter_rejected(body.as_bytes(), true)
+                            || ["stream_options", "include_usage"]
+                                .iter()
+                                .any(|field| message.contains(field))),
+                    message,
+                });
             }
             Some(Err(reqwest_eventsource::Error::Transport(e))) => {
                 if attempt + 1 < max_attempts {
@@ -1159,20 +1320,20 @@ where
                     last_err = format!("Connection error: {e}");
                     continue;
                 }
-                return Err(format!("Connection error: {e}"));
+                return Err(format!("Connection error: {e}").into());
             }
-            Some(Err(e)) => return Err(format!("SSE setup error: {e}")),
+            Some(Err(e)) => return Err(format!("SSE setup error: {e}").into()),
             None => {
                 if attempt + 1 < max_attempts {
                     tokio::time::sleep(backoff_for_attempt(attempt)).await;
                     last_err = "Upstream closed connection immediately".to_string();
                     continue;
                 }
-                return Err("Upstream closed connection immediately".to_string());
+                return Err("Upstream closed connection immediately".to_string().into());
             }
         }
     }
-    Err(last_err)
+    Err(last_err.into())
 }
 
 /// Merge consecutive `user` or `tool` messages whose content is *only* `tool_result`
@@ -1491,6 +1652,102 @@ mod tests {
         assert_eq!(summary.thinking_origin(), client.thinking_origin());
         assert!(summary.config.reasoning_effort.is_none());
         assert_eq!(client.config.reasoning_effort.as_deref(), Some("high"));
+    }
+
+    #[tokio::test]
+    async fn usage_survives_openai_trailers_and_anthropic_message_boundaries() {
+        use axum::{body::Body, response::Response, routing::post, Json, Router};
+
+        async fn completion(Json(body): Json<Value>) -> Response {
+            let data = if body.get("system").is_some() {
+                concat!(
+                    "event: message_start\ndata: {\"message\":{\"model\":\"actual-model\",\"usage\":{\"input_tokens\":30,\"cache_read_input_tokens\":70}}}\n\n",
+                    "event: content_block_delta\ndata: {\"delta\":{\"type\":\"text_delta\",\"text\":\"hello\"}}\n\n",
+                    "event: message_delta\ndata: {\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":5}}\n\n",
+                    "event: message_stop\ndata: {}\n\n",
+                )
+            } else {
+                assert_eq!(body["stream_options"]["include_usage"], true);
+                concat!(
+                    "data: {\"model\":\"actual-model\",\"choices\":[{\"delta\":{\"content\":\"hello\"}}]}\n\n",
+                    "data: {\"choices\":[{\"finish_reason\":\"stop\"}]}\n\n",
+                    "data: {\"choices\":[],\"usage\":{\"prompt_tokens\":100,\"completion_tokens\":5,\"prompt_tokens_details\":{\"cached_tokens\":70}}}\n\n",
+                    "data: [DONE]\n\n"
+                )
+            };
+            Response::builder()
+                .header("content-type", "text/event-stream")
+                .body(Body::from(data))
+                .unwrap()
+        }
+
+        let router = Router::new()
+            .route("/v1/chat/completions", post(completion))
+            .route("/v1/messages", post(completion));
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base_url = format!("http://{}/v1", listener.local_addr().unwrap());
+        let server = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+        for provider in [LlmProvider::OpenAI, LlmProvider::Anthropic] {
+            let mut config = protocol_config(provider);
+            config.base_url.clone_from(&base_url);
+            let client = LlmClient::new(config).unwrap();
+            let mut events = client
+                .chat_stream_with_usage(&[], &[], "system")
+                .await
+                .unwrap();
+            assert!(
+                matches!(events.recv().await, Some(LlmEvent::TextDelta(text)) if text == "hello")
+            );
+            let Some(LlmEvent::Done {
+                usage: Some(usage), ..
+            }) = events.recv().await
+            else {
+                panic!("missing completion usage");
+            };
+            assert!(usage.total_known);
+            assert!(usage.report.billable);
+            assert_eq!(usage.model.as_deref(), Some("actual-model"));
+            assert_eq!(usage.report.usage.total_tokens, 105);
+            assert_eq!(usage.report.cache_read, 70);
+        }
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn a_usage_option_rejection_does_not_block_openai_compatible_replies() {
+        use axum::{body::Body, http::StatusCode, response::Response, routing::post, Json, Router};
+
+        async fn completion(Json(body): Json<Value>) -> Response {
+            if body.get("stream_options").is_some() {
+                return Response::builder()
+                    .status(StatusCode::BAD_REQUEST)
+                    .body(Body::from(
+                        r#"{"error":{"message":"Invalid request parameter","param":"stream_options"}}"#,
+                    ))
+                    .unwrap();
+            }
+            Response::builder()
+                .header("content-type", "text/event-stream")
+                .body(Body::from(
+                    "data: {\"choices\":[{\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n",
+                ))
+                .unwrap()
+        }
+
+        let router = Router::new().route("/v1/chat/completions", post(completion));
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let mut config = protocol_config(LlmProvider::OpenAI);
+        config.base_url = format!("http://{}/v1", listener.local_addr().unwrap());
+        let server = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+        let mut events = LlmClient::new(config)
+            .unwrap()
+            .chat_stream_with_usage(&[], &[], "system")
+            .await
+            .unwrap();
+        assert!(
+            matches!(events.recv().await, Some(LlmEvent::Done { stop_reason, usage: None }) if stop_reason == "stop")
+        );
+        server.abort();
     }
 
     #[tokio::test]

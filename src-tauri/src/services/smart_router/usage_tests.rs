@@ -94,14 +94,16 @@ fn telemetry_ignores_role_heartbeats_and_keeps_cache_categories_and_tiers_billab
     assert!(parser.first_output_ms.unwrap() >= 100);
     parser.push(b"data: {\"usage\":{\"prompt_tokens\":20,\"completion_tokens\":10,\"prompt_tokens_details\":{\"cached_tokens\":12}}}\n\n");
     parser.finish();
-    assert_eq!(parser.cache_read, 12);
-    assert_eq!(parser.usage.input_tokens, 20);
-    assert!(parser.input_seen && parser.output_seen);
+    let report = parser.usage.report();
+    assert_eq!(report.cache_read, 12);
+    assert_eq!(report.usage.input_tokens, 20);
+    assert!(report.billable);
     let mut anthropic = Parser::new(false);
     anthropic.push(br#"{"usage":{"input_tokens":5,"cache_read_input_tokens":10,"cache_creation_input_tokens":3,"cache_creation":{"ephemeral_1h_input_tokens":2},"output_tokens":4}}"#);
     anthropic.finish();
-    assert_eq!(anthropic.usage.input_tokens, 18);
-    assert_eq!(anthropic.cache_write_1h, 2);
+    let report = anthropic.usage.report();
+    assert_eq!(report.usage.input_tokens, 18);
+    assert_eq!(report.cache_write_1h, 2);
     assert!(anthropic.first_output_ms.is_none());
 }
 

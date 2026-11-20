@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod account_cleanup_tests;
+pub(crate) mod assistant_usage;
 pub(crate) mod catalog;
 mod market;
 pub(crate) mod pricing;
@@ -8,7 +9,7 @@ mod runtime;
 mod server;
 pub(crate) mod statistics;
 pub(crate) mod terminal;
-mod usage;
+pub(crate) mod usage;
 
 pub(crate) use server::{cancel_probe, probe_candidate, ProbeResult};
 
@@ -50,17 +51,17 @@ pub fn port() -> u16 {
 }
 
 pub(crate) fn is_router_url(raw: &str) -> bool {
-    is_loopback_url_on_port(raw, SMART_ROUTER_PORT)
-        || profiles::all_ports()
-            .iter()
-            .any(|port| is_loopback_url_on_port(raw, *port))
+    loopback_port(raw)
+        .is_some_and(|port| port == SMART_ROUTER_PORT || profiles::all_ports().contains(&port))
 }
 
-fn is_loopback_url_on_port(raw: &str, port: u16) -> bool {
-    url::Url::parse(raw.trim()).ok().is_some_and(|url| {
-        matches!(url.host_str(), Some("127.0.0.1" | "localhost" | "[::1]"))
-            && url.port_or_known_default() == Some(port)
-    })
+fn loopback_port(raw: &str) -> Option<u16> {
+    let url = url::Url::parse(raw.trim()).ok()?;
+    if matches!(url.host_str(), Some("127.0.0.1" | "localhost" | "[::1]")) {
+        url.port_or_known_default()
+    } else {
+        None
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -916,16 +917,12 @@ mod tests {
     #[test]
     fn loopback_detection_uses_the_actual_port() {
         for host in ["127.0.0.1", "localhost", "[::1]"] {
-            assert!(is_loopback_url_on_port(
-                &format!("http://{host}:41234/v1"),
-                41234
-            ));
+            assert_eq!(
+                loopback_port(&format!("http://{host}:41234/v1")),
+                Some(41234)
+            );
         }
-        assert!(!is_loopback_url_on_port("http://127.0.0.1:41235/v1", 41234));
-        assert!(!is_loopback_url_on_port(
-            "https://example.com:41234/v1",
-            41234
-        ));
+        assert_eq!(loopback_port("https://example.com:41234/v1"), None);
         assert!(is_router_url(&format!("http://127.0.0.1:{}/v1", port())));
     }
 

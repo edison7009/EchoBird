@@ -104,7 +104,8 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
       .catch(() => setParasiteAvailable([]));
   }, []);
 
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [turnStartedAt, setTurnStartedAt] = useState<number>();
+  const isProcessing = turnStartedAt !== undefined;
   const [reasoningPreferences, setReasoningPreferences] = useState(loadReasoningPreferences);
   const reasoningModel = models.find((m) => m.internalId === agentModel);
   const reasoningLevels = parasiteAgent ? [] : getReasoningLevels(reasoningModel);
@@ -140,13 +141,6 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
   // tear it down before it fires, dropping the input focus.
   const prefillFocusRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const finishRun = useCallback(() => {
-    if (abortTimeoutRef.current) clearTimeout(abortTimeoutRef.current);
-    abortTimeoutRef.current = null;
-    runningRef.current = null;
-    setIsProcessing(false);
-    setAgentState('idle');
-  }, []);
   useEffect(
     () => () => {
       if (prefillFocusRef.current) clearTimeout(prefillFocusRef.current);
@@ -281,7 +275,12 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
     if (m.type === 'assistant') {
       // Skip transient status messages — they're not real chat history
       if (m.text.includes('__CONN_RETRY__') || m.text.includes('__CONN_FAILED__')) return null;
-      return { role: 'assistant', content: m.text };
+      return {
+        role: 'assistant',
+        content: m.text,
+        replySummary: m.replySummary,
+        incomplete: m.incomplete,
+      };
     }
     if (m.type === 'tool_call') {
       // Persist tool invocations so the rebuilt timeline matches what the user saw.
@@ -291,7 +290,13 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
       const status = m.status === 'running' ? 'failed' : m.status;
       return {
         role: 'tool',
-        content: JSON.stringify({ id: m.id, name: m.name, args: m.args, status, output: m.output }),
+        content: JSON.stringify({
+          id: m.id,
+          name: m.name,
+          args: m.args,
+          status,
+          output: m.output,
+        }),
       };
     }
     if (m.type === 'error')
@@ -330,11 +335,14 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
     if (m.role === 'system') {
       return { type: 'cancelled', text: m.content };
     }
+    if (m.role === 'user') return { type: 'user', text: m.content, chips: m.chips };
     return {
-      type: m.role === 'user' ? 'user' : 'assistant',
+      type: 'assistant',
+      messageId: crypto.randomUUID(),
       text: m.content,
-      ...(m.role === 'user' ? { chips: m.chips } : {}),
-    } as ChatMessage;
+      replySummary: m.replySummary,
+      incomplete: m.incomplete,
+    };
   }, []);
 
   const persistence = useChatPersistence<ChatMessage>({
@@ -354,6 +362,34 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
     deleteConversation: deleteStoredConversation,
     conversations,
   } = persistence;
+  const finishRun = useCallback(
+    (completion?: Extract<AgentEvent, { type: 'done' }>) => {
+      if (abortTimeoutRef.current) clearTimeout(abortTimeoutRef.current);
+      abortTimeoutRef.current = null;
+      runningRef.current = null;
+      setTurnStartedAt(undefined);
+      setAgentState('idle');
+      setChatOutput((prev) => {
+        const lastIndex = prev.length - 1;
+        const last = prev[lastIndex];
+        const completed =
+          completion && completion.summary !== null && last?.type === 'assistant'
+            ? { ...last, replySummary: completion.summary, incomplete: undefined }
+            : last;
+        if (
+          completed === last &&
+          !prev.some((m) => m.type === 'tool_call' && m.status === 'running')
+        ) {
+          return prev;
+        }
+        return prev.map((m, index) => {
+          if (m.type === 'tool_call' && m.status === 'running') return { ...m, status: 'failed' };
+          return index === lastIndex ? completed : m;
+        });
+      });
+    },
+    [setChatOutput]
+  );
   const selectedServerId = activeConversation.serverId;
   const sessionKey = activeConversation.sessionKey;
   const contextSize = activeConversation.contextSize;
@@ -439,7 +475,10 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
         if (last?.type === 'assistant') {
           return [...prev.slice(0, -1), { ...last, text: last.text + text }];
         }
-        return [...prev, { type: 'assistant', text }];
+        return [
+          ...prev,
+          { type: 'assistant', messageId: crypto.randomUUID(), text, incomplete: true },
+        ];
       });
     },
     [setChatOutput]
@@ -463,7 +502,7 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
             appendAssistantText(event.text);
             break;
           case 'done':
-            finishRun();
+            finishRun(event);
             break;
           case 'error': {
             const key = errorToKey(event.message);
@@ -546,7 +585,7 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
             );
             break;
           case 'done':
-            finishRun();
+            finishRun(event);
             break;
           case 'error': {
             const key = errorToKey(event.message);
@@ -597,7 +636,7 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
         reasoningEffort,
       };
       runningRef.current = run;
-      setIsProcessing(true);
+      setTurnStartedAt(performance.now());
       // Use display text + chips if provided (chip-send path), else full message text
       setChatOutput((prev) => [
         ...prev,
@@ -782,6 +821,7 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
         selectConversation,
         deleteConversation,
         isProcessing: isProcessing || isResetting,
+        turnStartedAt,
         isResetting,
         agentModelData,
         reasoningLevels,

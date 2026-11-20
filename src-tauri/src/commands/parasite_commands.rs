@@ -77,7 +77,7 @@ pub async fn parasite_send_message(
                 &app_clone,
                 conversation_id.as_deref(),
                 request_id.as_deref(),
-                ParasiteEvent::Done {},
+                ParasiteEvent::Done { summary: None },
             );
         }
     });

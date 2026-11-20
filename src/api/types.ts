@@ -263,13 +263,19 @@ export interface AgentRequest {
   context_size?: number;
 }
 
+export interface AssistantReplySummary {
+  durationMs: number;
+  totalTokens?: number;
+  estimatedCostMicros?: number;
+}
+
 export type AgentEvent = { conversation_id?: string; request_id?: string } & (
   | { type: 'text_delta'; text: string }
   | { type: 'thinking'; text: string }
   | { type: 'tool_call_start'; id: string; name: string }
   | { type: 'tool_call_args'; id: string; args: string }
   | { type: 'tool_result'; id: string; output: string; success: boolean }
-  | { type: 'done' }
+  | { type: 'done'; summary?: AssistantReplySummary | null }
   | { type: 'error'; message: string }
   | { type: 'state'; state: string }
 );
@@ -288,7 +294,7 @@ export interface ParasiteSendRequest {
 
 export type ParasiteEvent = { conversation_id?: string; request_id?: string } & (
   | { type: 'text_delta'; text: string }
-  | { type: 'done' }
+  | { type: 'done'; summary?: AssistantReplySummary | null }
   | { type: 'error'; message: string }
   | { type: 'state'; state: string }
 );

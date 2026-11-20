@@ -65,7 +65,7 @@ beforeEach(() => {
         sessionKey: 'first',
         messages: [
           { type: 'user', text: 'Check it' },
-          { type: 'assistant', text: 'Done' },
+          { type: 'assistant', messageId: 'conversation-done', text: 'Done' },
           { type: 'tool_call', id: 'tool', name: 'check', args: '{}', status: 'done' },
           { type: 'error', text: 'An earlier failure' },
         ],
@@ -316,7 +316,7 @@ it('keeps automatic memory operations out of the visible conversation', () => {
         output: 'verified',
         status: 'done',
       },
-      { type: 'assistant', text: 'Task completed' },
+      { type: 'assistant', messageId: 'completed', text: 'Task completed' },
     ],
   };
   act(() => {
@@ -376,14 +376,36 @@ describe('Mother Agent visible history pagination', () => {
     expect(scrollArea.props.className).toBe('absolute inset-0 overflow-y-auto slim-scroll p-4');
   });
 
+  it('keeps the same reply row when expanding a window of identical answers', async () => {
+    const messages = Array.from({ length: 40 }, (_, index) => ({
+      type: 'assistant' as const,
+      messageId: `reply-${index}`,
+      text: 'Same answer',
+    }));
+    state = { ...state, chatOutput: messages, maDiskTotal: messages.length };
+    const scrollArea = await mountScrollable();
+    const replyRows = () =>
+      renderer!.root
+        .findAllByType(ChatBubble)
+        .filter((bubble) => bubble.props.role === 'assistant');
+    const originalLastReply = replyRows()[29];
+    expect(replyRows()).toHaveLength(30);
+    act(() => void scrollArea.props.onScroll());
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    expect(replyRows()).toHaveLength(40);
+    expect(replyRows()[39]).toBe(originalLastReply);
+  });
+
   it('loads through hidden-only older chunks to reach visible history using raw disk progress', async () => {
     const recent = [
       { type: 'user' as const, text: 'Recent request' },
-      { type: 'assistant' as const, text: 'Recent answer' },
+      { type: 'assistant' as const, messageId: 'recent-answer', text: 'Recent answer' },
     ];
     const earlier = [
       { type: 'user' as const, text: 'Earlier request' },
-      { type: 'assistant' as const, text: 'Earlier answer' },
+      { type: 'assistant' as const, messageId: 'earlier-answer', text: 'Earlier answer' },
     ];
     const chunks = [hidden(35), hidden(20), earlier];
     const load = vi.fn(async () => {

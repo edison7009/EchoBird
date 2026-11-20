@@ -365,8 +365,18 @@ describe('Mother Agent reasoning workflow', () => {
     });
     act(() => state.setReasoningEffort('low'));
     emitAgent({ type: 'text_delta', text: 'Finished', conversation_id });
-    expect(state.chatOutput).toContainEqual({ type: 'assistant', text: 'Still working' });
-    expect(state.chatOutput).toContainEqual({ type: 'assistant', text: 'Finished' });
+    expect(state.chatOutput).toContainEqual({
+      type: 'assistant',
+      messageId: expect.any(String),
+      text: 'Still working',
+      incomplete: true,
+    });
+    expect(state.chatOutput).toContainEqual({
+      type: 'assistant',
+      messageId: expect.any(String),
+      text: 'Finished',
+      incomplete: true,
+    });
     expect(state.chatOutput).toContainEqual({
       type: 'tool_call',
       id: 'tool',
@@ -860,7 +870,7 @@ describe('Mother Agent saved conversation workflow', () => {
     expect(state.activeConversationId).toBe(current);
     expect(state.chatOutput.slice(0, 2)).toEqual([
       { type: 'user', text: 'Keep Connect context', chips: undefined },
-      { type: 'assistant', text: 'Connect reply' },
+      { type: 'assistant', messageId: expect.any(String), text: 'Connect reply' },
     ]);
     expect(api.resetConversationContext).toHaveBeenCalledExactlyOnceWith(session, true, session);
     expect(api.resetAgent).not.toHaveBeenCalled();
@@ -955,7 +965,7 @@ describe('Mother Agent saved conversation workflow', () => {
     ]);
     expect(state.conversations.find((c) => c.sessionKey === secondKey)?.messages).toEqual([
       { type: 'user', text: 'Second prompt', chips: undefined },
-      { type: 'assistant', text: 'Second reply' },
+      { type: 'assistant', messageId: expect.any(String), text: 'Second reply' },
     ]);
     await act(async () => {
       await state.deleteConversation(firstId);
@@ -964,7 +974,7 @@ describe('Mother Agent saved conversation workflow', () => {
     expect(state.conversations.some((c) => c.id === firstId)).toBe(false);
     expect(state.chatOutput).toEqual([
       { type: 'user', text: 'Second prompt', chips: undefined },
-      { type: 'assistant', text: 'Second reply' },
+      { type: 'assistant', messageId: expect.any(String), text: 'Second reply' },
     ]);
     expect(state.conversations.find((c) => c.sessionKey === secondKey)?.messages).toHaveLength(2);
   });
@@ -1062,10 +1072,105 @@ describe('Mother Agent saved conversation workflow', () => {
     emitAgent({ type: 'text_delta', text: 'Current reply', conversation_id: currentKey });
     expect(state.chatOutput[state.chatOutput.length - 1]).toEqual({
       type: 'assistant',
+      messageId: expect.any(String),
       text: 'Current reply',
+      incomplete: true,
     });
     emitAgent({ type: 'done', conversation_id: currentKey });
     expect(state.isProcessing).toBe(false);
+  });
+
+  it('persists one completed reply summary across a reload and leaves partial replies unmeasured', async () => {
+    await mount();
+    const session = activeSession();
+    await send('Run a tool');
+    emitAgent({ type: 'text_delta', text: 'Working', conversation_id: session });
+    emitAgent({
+      type: 'tool_call_start',
+      id: 'fixture-tool',
+      name: 'fixture',
+      conversation_id: session,
+    });
+    emitAgent({
+      type: 'tool_result',
+      id: 'fixture-tool',
+      output: 'ok',
+      success: true,
+      conversation_id: session,
+    });
+    emitAgent({ type: 'text_delta', text: 'Final answer', conversation_id: session });
+    const summary = { durationMs: 4000, totalTokens: 52400, estimatedCostMicros: 400 };
+    emitAgent({ type: 'done', conversation_id: session, summary });
+    await send('Interrupt this');
+    emitAgent({ type: 'text_delta', text: 'Partial answer', conversation_id: session });
+    emitAgent({ type: 'done', conversation_id: session, summary: null });
+    await act(async () => {
+      vi.runOnlyPendingTimers();
+      renderer?.unmount();
+    });
+    await mount();
+    expect(state.chatOutput.filter((message) => message.type === 'assistant')).toEqual([
+      { type: 'assistant', messageId: expect.any(String), text: 'Working', incomplete: true },
+      {
+        type: 'assistant',
+        messageId: expect.any(String),
+        text: 'Final answer',
+        replySummary: summary,
+      },
+      {
+        type: 'assistant',
+        messageId: expect.any(String),
+        text: 'Partial answer',
+        incomplete: true,
+      },
+    ]);
+  });
+
+  it('keeps one clock across commands and resets it on the next turn', async () => {
+    await mount();
+    const session = activeSession();
+    await send('Run shell fixtures');
+    const startedAt = state.turnStartedAt;
+    expect(startedAt).toEqual(expect.any(Number));
+    act(() => {
+      vi.advanceTimersByTime(1420);
+    });
+    for (const id of ['executed', 'queued']) {
+      emitAgent({ type: 'tool_call_start', id, name: 'shell_exec', conversation_id: session });
+      emitAgent({
+        type: 'tool_call_args',
+        id,
+        args: '{"command":"echo fixture"}',
+        conversation_id: session,
+      });
+    }
+    emitAgent({
+      type: 'tool_result',
+      id: 'executed',
+      output: 'fixture',
+      success: true,
+      conversation_id: session,
+    });
+    expect(state.turnStartedAt).toBe(startedAt);
+    emitAgent({ type: 'done', conversation_id: session, summary: null });
+    expect(state.turnStartedAt).toBeUndefined();
+    expect(state.chatOutput.find((m) => m.type === 'tool_call' && m.id === 'queued')).toMatchObject(
+      {
+        status: 'failed',
+      }
+    );
+    await act(async () => {
+      vi.runOnlyPendingTimers();
+      renderer?.unmount();
+    });
+    await mount();
+    const tools = state.chatOutput.filter((m) => m.type === 'tool_call');
+    expect(tools.map(({ id, status }) => [id, status])).toEqual([
+      ['executed', 'done'],
+      ['queued', 'failed'],
+    ]);
+    await send('Next turn');
+    expect(state.turnStartedAt).not.toBe(startedAt);
   });
 
   it('keeps late events and invocation rejection from an aborted run out of a later conversation', async () => {
@@ -1095,7 +1200,9 @@ describe('Mother Agent saved conversation workflow', () => {
     emitAgent({ type: 'text_delta', text: 'Accepted reply', conversation_id: currentKey });
     expect(state.chatOutput[state.chatOutput.length - 1]).toEqual({
       type: 'assistant',
+      messageId: expect.any(String),
       text: 'Accepted reply',
+      incomplete: true,
     });
   });
 
@@ -1175,7 +1282,7 @@ describe('Mother Agent saved conversation workflow', () => {
     expect(state.activeConversationId).toBe(current);
     expect(state.chatOutput).toEqual([
       { type: 'user', text: 'Keep this prompt', chips: undefined },
-      { type: 'assistant', text: 'Keep this reply' },
+      { type: 'assistant', messageId: expect.any(String), text: 'Keep this reply' },
     ]);
     expect(state.chatInput).toBe('Keep this draft');
     expect(showToast).toHaveBeenCalledExactlyOnceWith(
@@ -1222,7 +1329,9 @@ describe('Mother Agent saved conversation workflow', () => {
       emit({ type: 'text_delta', text: 'New turn reply', conversation_id: session });
       expect(state.chatOutput[state.chatOutput.length - 1]).toEqual({
         type: 'assistant',
+        messageId: expect.any(String),
         text: 'New turn reply',
+        incomplete: true,
       });
       emit({ type: 'done', conversation_id: session });
       expect(state.isProcessing).toBe(false);
@@ -1289,7 +1398,9 @@ describe('Mother Agent saved conversation workflow', () => {
     emitParasite({ type: 'text_delta', text: 'Native reply' });
     expect(state.chatOutput[state.chatOutput.length - 1]).toEqual({
       type: 'assistant',
+      messageId: expect.any(String),
       text: 'Native reply',
+      incomplete: true,
     });
     act(() => state.abortAgent());
     expect(api.parasiteAbort).toHaveBeenCalledExactlyOnceWith('claudecode', undefined);
@@ -1313,7 +1424,9 @@ describe('Mother Agent saved conversation workflow', () => {
     emitParasite({ type: 'text_delta', text: 'Scoped reply', conversation_id: scopedKey });
     expect(state.chatOutput[state.chatOutput.length - 1]).toEqual({
       type: 'assistant',
+      messageId: expect.any(String),
       text: 'Scoped reply',
+      incomplete: true,
     });
   });
 });

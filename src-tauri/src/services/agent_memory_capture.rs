@@ -524,7 +524,7 @@ async fn extract(client: &LlmClient, payload: String) -> Result<CaptureResponse,
                     return Err("Memory extraction exceeded its response limit".into());
                 }
             }
-            LlmEvent::Done { stop_reason } => {
+            LlmEvent::Done { stop_reason, .. } => {
                 if !matches!(stop_reason.as_str(), "stop" | "end_turn") || text.trim().is_empty() {
                     return Err("Memory extraction did not complete".into());
                 }

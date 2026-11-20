@@ -8,6 +8,24 @@ use std::time::Instant;
 const MAX_EVENT_BYTES: usize = 256 * 1024;
 const MAX_JSON_BYTES: usize = 4 * 1024 * 1024;
 
+pub(crate) fn usage_parameter_rejected(body: &[u8], allow_unspecified_code: bool) -> bool {
+    let Ok(value) = serde_json::from_slice::<Value>(body) else {
+        return false;
+    };
+    let error = value.get("error").unwrap_or(&value);
+    let parameter = error["param"]
+        .as_str()
+        .or_else(|| error["parameter"].as_str());
+    matches!(
+        parameter,
+        Some("stream_options" | "stream_options.include_usage" | "include_usage")
+    ) && (allow_unspecified_code
+        || matches!(
+            error["code"].as_str(),
+            Some("unsupported_parameter" | "unknown_parameter" | "unrecognized_parameter")
+        ))
+}
+
 #[derive(Clone, Default, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct TokenUsage {
@@ -43,75 +61,19 @@ pub struct UsageReport {
     pub elapsed_ms: u64,
 }
 
-struct Parser {
-    sse: bool,
-    bytes: Vec<u8>,
-    overflow: bool,
-    blank_line: bool,
+#[derive(Default)]
+pub(crate) struct UsageAccumulator {
     usage: TokenUsage,
-    started: Instant,
-    first_output_ms: Option<u64>,
-    last_output_ms: Option<u64>,
     cache_read: u64,
     cache_write: u64,
     cache_write_1h: u64,
     input_seen: bool,
     output_seen: bool,
-    finished: bool,
+    total_seen: bool,
 }
-impl Parser {
-    fn new(sse: bool) -> Self {
-        Self {
-            sse,
-            bytes: Vec::new(),
-            overflow: false,
-            blank_line: true,
-            usage: TokenUsage::default(),
-            started: Instant::now(),
-            first_output_ms: None,
-            last_output_ms: None,
-            cache_read: 0,
-            cache_write: 0,
-            cache_write_1h: 0,
-            input_seen: false,
-            output_seen: false,
-            finished: false,
-        }
-    }
-    fn value(&mut self, value: &Value) {
-        let nonempty = |v: &Value| v.as_str().is_some_and(|s| !s.is_empty());
-        let output = value["choices"].as_array().is_some_and(|choices| {
-            choices.iter().any(|c| {
-                nonempty(&c["delta"]["content"])
-                    || nonempty(&c["delta"]["reasoning_content"])
-                    || c["delta"]["tool_calls"].as_array().is_some_and(|calls| {
-                        calls.iter().any(|c| nonempty(&c["function"]["arguments"]))
-                    })
-            })
-        }) || matches!(
-            value["type"].as_str(),
-            Some(
-                "response.output_text.delta"
-                    | "response.function_call_arguments.delta"
-                    | "response.reasoning_summary_text.delta"
-            )
-        ) && nonempty(&value["delta"])
-            || nonempty(&value["delta"]["text"])
-            || nonempty(&value["delta"]["thinking"])
-            || nonempty(&value["delta"]["partial_json"])
-            || value["candidates"].as_array().is_some_and(|cs| {
-                cs.iter().any(|c| {
-                    c["content"]["parts"].as_array().is_some_and(|ps| {
-                        ps.iter()
-                            .any(|p| nonempty(&p["text"]) || p.get("functionCall").is_some())
-                    })
-                })
-            });
-        if self.sse && output {
-            let elapsed = self.started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
-            self.first_output_ms.get_or_insert(elapsed);
-            self.last_output_ms = Some(elapsed);
-        }
+
+impl UsageAccumulator {
+    pub(crate) fn observe(&mut self, value: &Value) {
         let usage = value
             .get("usage")
             .or_else(|| value.get("response").and_then(|value| value.get("usage")))
@@ -137,6 +99,7 @@ impl Parser {
             .and_then(Value::as_u64);
         self.input_seen |= input.is_some();
         self.output_seen |= output.is_some();
+        self.total_seen |= total.is_some();
         self.cache_read = self.cache_read.max(
             usage["cache_read_input_tokens"]
                 .as_u64()
@@ -185,6 +148,84 @@ impl Parser {
         );
         self.usage.reported_responses = 1;
     }
+
+    pub(crate) fn report(&self) -> UsageReport {
+        UsageReport {
+            usage: self.usage.clone(),
+            cache_read: self.cache_read,
+            cache_write: self.cache_write,
+            cache_write_1h: self.cache_write_1h,
+            billable: self.input_seen && self.output_seen,
+            ..UsageReport::default()
+        }
+    }
+
+    pub(crate) fn total_known(&self) -> bool {
+        self.total_seen || (self.input_seen && self.output_seen)
+    }
+}
+
+struct Parser {
+    sse: bool,
+    bytes: Vec<u8>,
+    overflow: bool,
+    blank_line: bool,
+    usage: UsageAccumulator,
+    started: Instant,
+    first_output_ms: Option<u64>,
+    last_output_ms: Option<u64>,
+    finished: bool,
+}
+impl Parser {
+    fn new(sse: bool) -> Self {
+        Self {
+            sse,
+            bytes: Vec::new(),
+            overflow: false,
+            blank_line: true,
+            usage: UsageAccumulator::default(),
+            started: Instant::now(),
+            first_output_ms: None,
+            last_output_ms: None,
+            finished: false,
+        }
+    }
+    fn value(&mut self, value: &Value) {
+        let nonempty = |v: &Value| v.as_str().is_some_and(|s| !s.is_empty());
+        let output = value["choices"].as_array().is_some_and(|choices| {
+            choices.iter().any(|c| {
+                nonempty(&c["delta"]["content"])
+                    || nonempty(&c["delta"]["reasoning_content"])
+                    || c["delta"]["tool_calls"].as_array().is_some_and(|calls| {
+                        calls.iter().any(|c| nonempty(&c["function"]["arguments"]))
+                    })
+            })
+        }) || matches!(
+            value["type"].as_str(),
+            Some(
+                "response.output_text.delta"
+                    | "response.function_call_arguments.delta"
+                    | "response.reasoning_summary_text.delta"
+            )
+        ) && nonempty(&value["delta"])
+            || nonempty(&value["delta"]["text"])
+            || nonempty(&value["delta"]["thinking"])
+            || nonempty(&value["delta"]["partial_json"])
+            || value["candidates"].as_array().is_some_and(|cs| {
+                cs.iter().any(|c| {
+                    c["content"]["parts"].as_array().is_some_and(|ps| {
+                        ps.iter()
+                            .any(|p| nonempty(&p["text"]) || p.get("functionCall").is_some())
+                    })
+                })
+            });
+        if self.sse && output {
+            let elapsed = self.started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
+            self.first_output_ms.get_or_insert(elapsed);
+            self.last_output_ms = Some(elapsed);
+        }
+        self.usage.observe(value);
+    }
     fn event(&mut self) {
         if !self.overflow {
             if let Ok(text) = std::str::from_utf8(&self.bytes) {
@@ -232,7 +273,7 @@ impl Parser {
     }
     fn finish(&mut self) -> Option<TokenUsage> {
         if self.finished {
-            return (self.usage.reported_responses > 0).then(|| self.usage.clone());
+            return (self.usage.usage.reported_responses > 0).then(|| self.usage.usage.clone());
         }
         self.finished = true;
         if self.sse {
@@ -242,7 +283,7 @@ impl Parser {
                 self.value(&value);
             }
         }
-        (self.usage.reported_responses > 0).then(|| self.usage.clone())
+        (self.usage.usage.reported_responses > 0).then(|| self.usage.usage.clone())
     }
 }
 
@@ -260,13 +301,8 @@ impl<F: FnOnce(UsageReport)> Drop for Meter<F> {
                 .last_output_ms
                 .zip(first)
                 .map(|(last, first)| last.saturating_sub(first))
-                .filter(|ms| *ms >= 20 && self.parser.usage.output_tokens > 1);
+                .filter(|ms| *ms >= 20 && self.parser.usage.usage.output_tokens > 1);
             record(UsageReport {
-                usage: self.parser.usage.clone(),
-                cache_read: self.parser.cache_read,
-                cache_write: self.parser.cache_write,
-                cache_write_1h: self.parser.cache_write_1h,
-                billable: self.parser.input_seen && self.parser.output_seen,
                 first_output_ms: first,
                 generation_ms: generation,
                 elapsed_ms: self
@@ -275,6 +311,7 @@ impl<F: FnOnce(UsageReport)> Drop for Meter<F> {
                     .elapsed()
                     .as_millis()
                     .min(u128::from(u64::MAX)) as u64,
+                ..self.parser.usage.report()
             });
         }
     }

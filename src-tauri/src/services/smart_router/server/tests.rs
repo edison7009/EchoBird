@@ -3203,23 +3203,120 @@ async fn streamed_api_turns_request_usage_so_pet_credits_accrue() {
     fs::remove_dir_all(root).unwrap();
 }
 
+#[tokio::test]
+async fn assistant_receives_selected_upstream_usage_with_statistics_off() {
+    use super::super::{assistant_usage, pricing};
+
+    let addr = spawn_mock(Router::new().route(
+        "/v1/chat/completions",
+        post(|headers: HeaderMap, Json(body): Json<Value>| async move {
+            assert!(!headers.contains_key(assistant_usage::HEADER));
+            if body["model"] == "assistant-primary-model" {
+                return openai_error(StatusCode::SERVICE_UNAVAILABLE, "fixture unavailable");
+            }
+            assert_eq!(body["stream_options"]["include_usage"], true);
+            let events = stream::once(async {
+                Ok::<_, Infallible>(Bytes::from_static(concat!(
+                    "data: {\"model\":\"upstream-alias\",\"choices\":[{\"delta\":{\"content\":\"hi\"}}]}\n\n",
+                    "data: {\"choices\":[{\"finish_reason\":\"stop\"}]}\n\n",
+                ).as_bytes()))
+            })
+            .chain(stream::once(async {
+                tokio::time::sleep(Duration::from_millis(15)).await;
+                Ok(Bytes::from_static(concat!(
+                    "data: {\"choices\":[],\"usage\":{\"prompt_tokens\":100,\"completion_tokens\":20,\"prompt_tokens_details\":{\"cached_tokens\":40}}}\n\n",
+                    "data: [DONE]\n\n",
+                ).as_bytes()))
+            }));
+            Response::builder()
+                .header(header::CONTENT_TYPE, "text/event-stream")
+                .body(Body::from_stream(events))
+                .unwrap()
+        }),
+    ))
+    .await;
+    let root = tempfile::tempdir().unwrap();
+    let mut state = AppState::for_tests().unwrap();
+    state.http_client = reqwest::Client::builder()
+        .no_proxy()
+        .resolve("api.openai.com", addr)
+        .build()
+        .unwrap();
+    state.config_path = root.path().join("assistant-route.json");
+    state.protection_settings_path = root.path().join("settings.json");
+    state.statistics_collector =
+        Some(super::super::statistics::Collector::open(root.path().join("counts.json")).unwrap());
+    let mut backup = candidate(addr, "assistant-backup");
+    backup.base_url = format!("http://api.openai.com:{}/v1", addr.port());
+    pricing::set_test_price(
+        "openai",
+        &backup.model_id,
+        pricing::Price {
+            input: 2.0,
+            output: 4.0,
+            cache_read: Some(0.5),
+            ..Default::default()
+        },
+    );
+
+    let unrelated = assistant_usage::AssistantUsage::register();
+    for protocol in [ClientProtocol::Chat, ClientProtocol::Messages] {
+        let ticket = assistant_usage::AssistantUsage::register();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            assistant_usage::HEADER,
+            ticket.id.to_string().parse().unwrap(),
+        );
+        let response = protected_route(
+            &state,
+            &headers,
+            json!({"model":"auto","stream":true,"max_tokens":64,
+                "messages":[{"role":"user","content":"hello"}]}),
+            vec![candidate(addr, "assistant-primary"), backup.clone()],
+            protocol,
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let selected = ticket
+            .selected()
+            .expect("successful route selected a usage meter");
+        let _ = response.into_body().collect().await.unwrap();
+        let (report, total_known) = selected.report();
+        assert!(total_known);
+        assert_eq!(report.usage.total_tokens, 120);
+        assert_eq!(report.cache_read, 40);
+        assert_eq!(selected.pricing.estimate(&report), Some(220));
+        assert!(assistant_usage::claim(&headers).is_none());
+    }
+    assert!(unrelated.selected().is_none());
+}
+
 #[test]
 fn reliability_optional_usage_and_short_backoff_are_strictly_bounded() {
     assert!(optional_usage_rejected(
         StatusCode::BAD_REQUEST,
-        br#"{"error":{"code":"unsupported_parameter","param":"stream_options"}}"#
+        br#"{"error":{"code":"unsupported_parameter","param":"stream_options"}}"#,
+        false,
     ));
     assert!(!optional_usage_rejected(
         StatusCode::BAD_REQUEST,
-        br#"{"error":{"code":"unsupported_parameter","param":"tools"}}"#
+        br#"{"error":{"code":"unsupported_parameter","param":"tools"}}"#,
+        false,
     ));
     assert!(!optional_usage_rejected(
         StatusCode::BAD_REQUEST,
-        br#"{"error":{"message":"stream_options secret echo"}}"#
+        br#"{"error":{"message":"stream_options secret echo"}}"#,
+        true,
     ));
     assert!(!optional_usage_rejected(
         StatusCode::FORBIDDEN,
-        br#"{"error":{"code":"unsupported_parameter","param":"stream_options"}}"#
+        br#"{"error":{"code":"unsupported_parameter","param":"stream_options"}}"#,
+        false,
+    ));
+    assert!(optional_usage_rejected(
+        StatusCode::UNPROCESSABLE_ENTITY,
+        br#"{"error":{"param":"stream_options","message":"Invalid request parameter"}}"#,
+        true,
     ));
     let now = Instant::now();
     assert_eq!(

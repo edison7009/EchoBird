@@ -198,7 +198,11 @@ describe('Mother Agent protocol switching', () => {
   it('uses one saved conversation and context for OpenAI → Anthropic → OpenAI explicit sends', async () => {
     await mount();
     const initial = state.chatOutput;
-    expect(initial).toContainEqual({ type: 'assistant', text: 'Earlier assistant result' });
+    expect(initial).toContainEqual({
+      type: 'assistant',
+      messageId: expect.any(String),
+      text: 'Earlier assistant result',
+    });
     expect(state.activeConversationId).toBe('saved-conversation');
     const first = await send('Continue with OpenAI');
     expect(first).toMatchObject({
@@ -243,11 +247,11 @@ describe('Mother Agent protocol switching', () => {
     expect(state.chatOutput).toEqual([
       ...initial,
       { type: 'user', text: 'Continue with OpenAI', chips: undefined },
-      { type: 'assistant', text: 'OpenAI answer' },
+      { type: 'assistant', messageId: expect.any(String), text: 'OpenAI answer' },
       { type: 'user', text: 'Continue with Anthropic', chips: undefined },
-      { type: 'assistant', text: 'Anthropic answer' },
+      { type: 'assistant', messageId: expect.any(String), text: 'Anthropic answer' },
       { type: 'user', text: 'Continue with OpenAI again', chips: undefined },
-      { type: 'assistant', text: 'OpenAI resumed' },
+      { type: 'assistant', messageId: expect.any(String), text: 'OpenAI resumed' },
     ]);
     act(() => {
       vi.advanceTimersByTime(800);
@@ -316,7 +320,12 @@ describe('Mother Agent protocol switching', () => {
       output: 'Original run evidence',
       success: true,
     });
-    expect(state.chatOutput).toContainEqual({ type: 'assistant', text: 'Still the original run' });
+    expect(state.chatOutput).toContainEqual({
+      type: 'assistant',
+      messageId: expect.any(String),
+      text: 'Still the original run',
+      incomplete: true,
+    });
     expect(state.chatOutput).toContainEqual({
       type: 'tool_call',
       id: 'live-tool',

@@ -1,15 +1,16 @@
 // ChatBubble — modern AI conversation style.
 // Assistant: full-width markdown, no bubble (plain text on the page bg).
 // User: subtle right-aligned card. Streaming caret while the agent types.
-import { memo, useEffect, useState, useMemo } from 'react';
-import { Paperclip, KeyRound, Image as ImageIcon } from 'lucide-react';
+import { memo, useEffect, useState } from 'react';
+import { Check, CircleAlert, Copy, Paperclip, KeyRound, Image as ImageIcon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { getModelIcon } from '../cards/ModelCard';
 import { useI18n } from '../../hooks/useI18n';
-import { getSpinnerVerbs, formatSpinnerVerb } from '../../i18n/spinnerVerbs';
 import { mdComponents } from '../../pages/MotherAgent/mdComponents';
 import { IS_LINUX } from '../../utils/platform';
+import { copyText } from '../../utils/copyText';
+import type { AssistantReplySummary } from '../../api/types';
 import workingMark from '../../assets/working-mark.webp';
 
 export type BubbleRole = 'user' | 'assistant' | 'system' | 'error' | 'working' | 'skeleton';
@@ -26,11 +27,11 @@ export interface BubbleChip {
 export interface ChatBubbleProps {
   role: BubbleRole;
   content: string;
-  /** Kept for API compatibility — only Mother Agent renders here now. */
-  variant?: 'mother';
   chips?: BubbleChip[];
   isStreaming?: boolean;
   subContent?: string;
+  replySummary?: AssistantReplySummary | null;
+  workingStartedAt?: number;
 }
 
 // ── Icon-only readonly chips below user message ───────────────────────────────
@@ -39,7 +40,6 @@ const CHIP_MODEL = `${BASE_CHIP} bg-cyber-text/10 border-cyber-border/40`;
 const CHIP_FILE = `${BASE_CHIP} bg-cyber-bg/60 border-cyber-text-muted/30`;
 
 function ReadonlyChips({ chips }: { chips: BubbleChip[] }) {
-  if (!chips.length) return null;
   return (
     <div className="flex flex-wrap gap-1 mt-1.5">
       {chips.map((c, i) => {
@@ -76,112 +76,56 @@ function ReadonlyChips({ chips }: { chips: BubbleChip[] }) {
   );
 }
 
-// ── Six-dot "thinking" indicator, matching Coffee-CLI ─────────────────────────
-// Per-locale verb arrays + format wrapper live in src/i18n/spinnerVerbs.ts
-// — moved out so non-en/zh locales (zh-Hant, ja) get native flavor verbs
-// instead of falling through to the English list mid-conversation.
-
-// Keep Linux's static indicator to avoid WebKitGTK's animation CPU cost.
-// Pick a fresh verb each time the indicator mounts (each new agent turn).
-function InputDotsStatic() {
-  const { locale } = useI18n();
-  const verbs = getSpinnerVerbs(locale);
-  const formatVerb = (v: string) => formatSpinnerVerb(v, locale);
-
-  const staticVerb = useMemo(() => {
-    // eslint-disable-next-line react-hooks/purity
-    const pickRandom = () => formatVerb(verbs[Math.floor(Math.random() * verbs.length)]);
-    return pickRandom();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locale]);
-
+function TurnElapsed({ startedAt }: { startedAt: number }) {
+  const { t, locale } = useI18n();
+  const [seconds, setSeconds] = useState(() =>
+    Math.max(0, Math.floor((performance.now() - startedAt) / 1000))
+  );
+  useEffect(() => {
+    const timer = window.setInterval(
+      () => setSeconds(Math.max(0, Math.floor((performance.now() - startedAt) / 1000))),
+      250
+    );
+    return () => window.clearInterval(timer);
+  }, [startedAt]);
+  const format = (value: number, unit: 'minute' | 'second') =>
+    new Intl.NumberFormat(locale, { style: 'unit', unit, unitDisplay: 'short' }).format(value);
+  const remainder = format(seconds % 60, 'second');
+  const duration =
+    seconds < 60 ? remainder : `${format(Math.floor(seconds / 60), 'minute')} ${remainder}`;
   return (
-    <span className="inline-flex items-center gap-2">
-      <span
-        className="inline-block w-3 translate-y-[2px] text-center font-mono text-base leading-none text-cyber-accent"
-        aria-hidden="true"
-      >
-        ⠋
-      </span>
-      <span className="font-mono text-sm text-cyber-accent">{staticVerb}</span>
-    </span>
+    <>
+      {' '}
+      <span aria-hidden="true">·</span>{' '}
+      <time dateTime={`PT${seconds}S`}>
+        {t('mother.waitElapsed').replace('{duration}', duration)}
+      </time>{' '}
+      <span aria-hidden="true">···</span>
+    </>
   );
 }
 
-function InputDots() {
-  if (IS_LINUX) return <InputDotsStatic />;
-  return <InputDotsAnimated />;
-}
-
-function InputDotsAnimated() {
-  const { locale } = useI18n();
-  const verbs = getSpinnerVerbs(locale);
-  const formatVerb = (v: string) => formatSpinnerVerb(v, locale);
-  const pickRandom = () => formatVerb(verbs[Math.floor(Math.random() * verbs.length)]);
-
-  // Typewriter cycle: show → erase → type a new verb → repeat
-  const [target, setTarget] = useState<string>(pickRandom);
-  const [shown, setShown] = useState<string>(target);
-  const [phase, setPhase] = useState<'show' | 'erase' | 'type'>('show');
-
-  // When locale flips, immediately swap to a fresh verb in the new language.
-
-  useEffect(() => {
-    const next = pickRandom();
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTarget(next);
-    setShown(next);
-    setPhase('show');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locale]);
-
-  useEffect(() => {
-    if (phase === 'show') {
-      const id = setTimeout(() => setPhase('erase'), 2800);
-      return () => clearTimeout(id);
-    }
-    if (phase === 'erase') {
-      if (shown.length === 0) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setTarget(pickRandom());
-        setPhase('type');
-        return;
-      }
-      const id = setTimeout(() => setShown((s) => s.slice(0, -1)), 45);
-      return () => clearTimeout(id);
-    }
-    // phase === 'type'
-    if (shown.length >= target.length) {
-      setPhase('show');
-      return;
-    }
-    const id = setTimeout(() => setShown(target.slice(0, shown.length + 1)), 70);
-    return () => clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, shown, target]);
-
+function WorkingStatus({ startedAt }: { startedAt?: number }) {
+  const { t } = useI18n();
   return (
-    <span className="inline-flex h-5 items-center gap-2 overflow-hidden">
-      <span className="spinner-mark" aria-hidden="true">
-        <img src={workingMark} alt="" />
-      </span>
-      <span className="inline-flex items-baseline font-mono text-sm">
-        {/* Preserve the verb's height while the visible text is erased. */}
-        <span className="invisible w-0 shrink-0 whitespace-nowrap" aria-hidden="true">
-          {target}
+    <div className="my-4 flex min-w-0 items-center gap-2 text-sm">
+      {IS_LINUX ? (
+        <span
+          className="w-[18px] shrink-0 text-center font-mono text-cyber-accent"
+          aria-hidden="true"
+        >
+          ⠋
         </span>
-        <span className="spinner-shimmer">{shown}</span>
-        {/* Caret only appears while we're actively rewriting the verb
-                    (erase/type). During the steady "show" phase it's hidden so
-                    the line doesn't sit there with a blinking cursor on idle. */}
-        {phase !== 'show' && (
-          <span
-            className="inline-block w-[0.5em] h-[1em] ml-0.5 bg-cyber-accent self-center"
-            style={{ animation: 'caretBlink 1s steps(2) infinite' }}
-          />
-        )}
+      ) : (
+        <span className="spinner-mark" aria-hidden="true">
+          <img src={workingMark} alt="" />
+        </span>
+      )}
+      <span className="spinner-shimmer whitespace-nowrap tabular-nums">
+        {t('mother.waitThinking')}
+        {startedAt !== undefined && <TurnElapsed key={startedAt} startedAt={startedAt} />}
       </span>
-    </span>
+    </div>
   );
 }
 
@@ -201,6 +145,66 @@ function cleanAgentText(content: string): string {
     .trim();
 }
 
+function ReplyFooter({ text, summary }: { text: string; summary: AssistantReplySummary | null }) {
+  const { t, locale } = useI18n();
+  const [copyFeedback, setCopyFeedback] = useState<{ result: 'copied' | 'failed' }>();
+  useEffect(() => {
+    if (!copyFeedback) return;
+    const timer = window.setTimeout(() => setCopyFeedback(undefined), 2000);
+    return () => window.clearTimeout(timer);
+  }, [copyFeedback]);
+
+  const compactNumber = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
+  const metrics: string[] = [];
+  if (summary) {
+    const seconds = summary.durationMs / 1000;
+    metrics.push(
+      t('mother.replyDuration').replace(
+        '{seconds}',
+        compactNumber.format(seconds >= 1 ? Math.round(seconds) : seconds)
+      )
+    );
+    if (summary.totalTokens !== undefined) {
+      const tokens = summary.totalTokens;
+      const [scale, suffix]: [number, string] =
+        tokens >= 1e9
+          ? [1e9, 'b']
+          : tokens >= 1e6
+            ? [1e6, 'm']
+            : tokens >= 1e3
+              ? [1e3, 'k']
+              : [1, ''];
+      metrics.push(
+        t('mother.replyTokens').replace('{count}', compactNumber.format(tokens / scale) + suffix)
+      );
+    }
+    if (summary.estimatedCostMicros !== undefined) {
+      const cost = summary.estimatedCostMicros / 1_000_000;
+      metrics.push(`~$${cost.toFixed(cost === 0 || cost >= 0.01 ? 2 : cost < 0.0001 ? 6 : 4)}`);
+    }
+  }
+  const copyResult = copyFeedback?.result;
+  const Icon = copyResult === 'copied' ? Check : copyResult === 'failed' ? CircleAlert : Copy;
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-cyber-text-secondary">
+      <button
+        type="button"
+        aria-label={t('mother.replyCopy')}
+        className="inline-flex size-7 shrink-0 items-center justify-center rounded hover:bg-cyber-text/10 hover:text-cyber-text focus-visible:outline focus-visible:outline-1 focus-visible:outline-cyber-accent"
+        onClick={async () =>
+          setCopyFeedback({ result: (await copyText(text)) ? 'copied' : 'failed' })
+        }
+      >
+        <Icon size={14} aria-hidden="true" />
+      </button>
+      <span role="status" className="sr-only">
+        {copyResult && t(copyResult === 'copied' ? 'mother.replyCopied' : 'mother.replyCopyFailed')}
+      </span>
+      {metrics.length > 0 && <span className="tabular-nums">{metrics.join(' · ')}</span>}
+    </div>
+  );
+}
+
 // ── Main ChatBubble ───────────────────────────────────────────────────────────
 export const ChatBubble = memo(function ChatBubble({
   role,
@@ -208,9 +212,9 @@ export const ChatBubble = memo(function ChatBubble({
   chips = [],
   isStreaming = false,
   subContent,
+  replySummary,
+  workingStartedAt,
 }: ChatBubbleProps) {
-  const { t: _t } = useI18n();
-
   if (role === 'skeleton') {
     return (
       <div className="mb-6 space-y-2">
@@ -245,36 +249,32 @@ export const ChatBubble = memo(function ChatBubble({
   }
 
   if (role === 'working') {
-    return (
-      <div className="flex justify-start my-4">
-        <InputDots />
-      </div>
-    );
+    return <WorkingStatus startedAt={workingStartedAt} />;
   }
 
   // ── Assistant: full-width markdown, no bubble ─────────────────────────────
   if (role === 'assistant') {
     const cleaned = cleanAgentText(content);
 
-    // Empty + not streaming → don't render a ghost row
-    if (!cleaned && !isStreaming) return null;
+    if (!cleaned) {
+      return isStreaming ? <WorkingStatus startedAt={workingStartedAt} /> : null;
+    }
 
     return (
       <div className="mb-6 text-sm leading-relaxed text-cyber-text font-sans">
-        {cleaned ? (
-          <div className="markdown-body">
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
-              {truncate(cleaned)}
-            </ReactMarkdown>
-            {isStreaming && (
-              <span
-                className="inline-block w-1.5 h-4 ml-0.5 align-text-bottom bg-cyber-accent"
-                style={IS_LINUX ? undefined : { animation: 'caretBlink 1s steps(2) infinite' }}
-              />
-            )}
-          </div>
-        ) : (
-          <InputDots />
+        <div className="markdown-body">
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+            {truncate(cleaned)}
+          </ReactMarkdown>
+          {isStreaming && (
+            <span
+              className="inline-block w-1.5 h-4 ml-0.5 align-text-bottom bg-cyber-accent"
+              style={IS_LINUX ? undefined : { animation: 'caretBlink 1s steps(2) infinite' }}
+            />
+          )}
+        </div>
+        {!isStreaming && replySummary !== undefined && (
+          <ReplyFooter text={cleaned} summary={replySummary} />
         )}
       </div>
     );

@@ -1,7 +1,4 @@
-// ToolCallCard — collapsible row that shows what tool the agent is using,
-// its arguments, and the result. Modeled after Claude.ai / Cursor's
-// "Calling tool…" panels: a one-line preview while running, expandable
-// for full args + output.
+// Expand a tool row to inspect its full arguments and output.
 import { memo, useState } from 'react';
 import {
   Loader2,
@@ -17,6 +14,7 @@ import {
   Wrench,
   type LucideIcon,
 } from 'lucide-react';
+import { useI18n } from '../../hooks/useI18n';
 
 export interface ToolCallCardProps {
   name: string;
@@ -27,8 +25,8 @@ export interface ToolCallCardProps {
 
 // Map tool name → icon + a friendly label preview key
 const TOOL_META: Record<string, { icon: LucideIcon; label: string; previewKey?: string }> = {
-  shell_exec: { icon: Terminal, label: 'shell', previewKey: 'command' },
-  ssh_shell: { icon: Terminal, label: 'ssh', previewKey: 'command' },
+  shell_exec: { icon: Terminal, label: '', previewKey: 'command' },
+  ssh_shell: { icon: Terminal, label: '', previewKey: 'command' },
   file_read: { icon: FileText, label: 'read', previewKey: 'path' },
   tool_output_read: { icon: FileText, label: 'read output' },
   conversation_history_read: { icon: FileText, label: 'read history' },
@@ -62,10 +60,13 @@ export const ToolCallCard = memo(function ToolCallCard({
   output,
 }: ToolCallCardProps) {
   const [open, setOpen] = useState(false);
+  const { t } = useI18n();
 
   const meta = TOOL_META[name] || { icon: Wrench, label: name };
   const Icon = meta.icon;
   const preview = previewFor(name, args);
+  const isCommand = name === 'shell_exec' || name === 'ssh_shell';
+  const command = isCommand ? preview.trim() : '';
 
   const statusIcon =
     status === 'running' ? (
@@ -82,16 +83,48 @@ export const ToolCallCard = memo(function ToolCallCard({
       : output;
 
   return (
-    <div className="mb-3 rounded-md bg-cyber-surface/60 text-[12px] font-mono">
+    <div
+      className={
+        isCommand
+          ? 'mb-1 text-[13px] text-cyber-text-secondary'
+          : 'mb-3 rounded-md bg-cyber-surface/60 text-[12px] font-mono'
+      }
+    >
       <button
         type="button"
+        aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center gap-2 px-2.5 py-1.5 text-left hover:bg-cyber-elevated/70 transition-colors rounded-md"
+        className={
+          isCommand
+            ? 'flex min-h-7 w-full min-w-0 items-center gap-2 rounded px-1.5 text-left hover:bg-cyber-text/5 focus-visible:outline focus-visible:outline-1 focus-visible:outline-cyber-accent'
+            : 'w-full flex items-center gap-2 px-2.5 py-1.5 text-left hover:bg-cyber-elevated/70 transition-colors rounded-md'
+        }
       >
-        <Icon size={12} className="flex-shrink-0 text-cyber-text-muted" />
-        <span className="flex-shrink-0 text-cyber-text font-bold">{meta.label}</span>
-        {preview && <span className="flex-1 truncate text-cyber-text-muted/70">{preview}</span>}
-        <span className="flex-shrink-0">{statusIcon}</span>
+        <Icon
+          size={isCommand ? 13 : 12}
+          aria-hidden="true"
+          className="shrink-0 text-cyber-text-muted"
+        />
+        {isCommand ? (
+          <>
+            <span className="shrink-0">{t('mother.command')}</span>
+            {command && (
+              <>
+                <span className="shrink-0 text-cyber-text-muted" aria-hidden="true">
+                  ·
+                </span>
+                <span className="min-w-0 flex-1 truncate font-mono text-xs">{command}</span>
+              </>
+            )}
+            {status === 'failed' && <span className="shrink-0">{statusIcon}</span>}
+          </>
+        ) : (
+          <>
+            <span className="flex-shrink-0 text-cyber-text font-bold">{meta.label}</span>
+            {preview && <span className="flex-1 truncate text-cyber-text-muted/70">{preview}</span>}
+            <span className="flex-shrink-0">{statusIcon}</span>
+          </>
+        )}
       </button>
 
       {open && (
