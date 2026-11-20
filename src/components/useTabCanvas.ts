@@ -41,7 +41,7 @@ export function mountTabCanvas(
   let width = 0;
   let height = 0;
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
-  const palette = { surface: '', wave: '', border, radius };
+  const palette = { surface: '', wave: '', border, well: '', shadow: '', radius };
   const colors = document.createElement('span');
   colors.className = 'view-mode-canvas-colors';
   group.append(colors);
@@ -49,6 +49,8 @@ export function mountTabCanvas(
     const theme = getComputedStyle(colors);
     palette.surface = theme.backgroundColor;
     palette.wave = theme.color;
+    palette.well = theme.borderTopColor;
+    palette.shadow = theme.outlineColor;
     palette.border = bordered ? getComputedStyle(group).borderTopColor : 'transparent';
   };
   const visible = () =>
@@ -72,10 +74,10 @@ export function mountTabCanvas(
       height,
       devicePixelRatio || 1,
       independent ? regions : current!,
-      palette,
-      motion.matches ? 0 : (now % 3000) / 3000
+      palette
     );
-    if (!motion.matches) frame = requestFlowFrame(paint);
+    // The key is static; keep painting only while it slides to a new tab.
+    if (!motion.matches && progress < 1) frame = requestFlowFrame(paint);
   };
   const requestPaint = () => {
     if (!frame && !disposed && visible()) frame = requestFlowFrame(paint);
@@ -117,7 +119,7 @@ export function mountTabCanvas(
       // No selected tab still needs the segmented control's outline, without
       // keeping an animation alive or painting a selected background.
       readColors();
-      paintTabCanvas(canvas, width, height, devicePixelRatio || 1, [], palette, 0);
+      paintTabCanvas(canvas, width, height, devicePixelRatio || 1, [], palette);
       return;
     }
     const rect = selected.getBoundingClientRect();

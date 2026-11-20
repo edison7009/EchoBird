@@ -599,16 +599,29 @@ html.is-macos .usage-island.usage-island-theme-auto {
   background: transparent;
   animation: none;
 }
+/* Colours the tab canvas reads: a cream key (top, foot) in a sunken well,
+   with its shadow. Dark keys are cream; light keys are white. */
 .view-mode-canvas-colors {
   position: absolute;
   visibility: hidden;
   pointer-events: none;
-  background-color: color-mix(
-    in srgb,
-    rgb(var(--view-mode-accent-rgb)) 78%,
-    rgb(var(--bg-base-rgb))
-  );
-  color: rgb(var(--view-mode-wave-rgb));
+  background-color: #f7f2ea;
+  color: #e6dfd3;
+  border-top-color: rgb(var(--bg-surface-rgb));
+  outline-color: rgb(0 0 0 / 0.4);
+}
+:root[data-theme='light'] .view-mode-canvas-colors {
+  background-color: #ffffff;
+  color: #f6f6f6;
+  border-top-color: #ececec;
+  outline-color: rgb(0 0 0 / 0.16);
+}
+/* Labels on a cream key are dark in every theme. */
+[data-tab-renderer='canvas'] > .view-mode-tab[aria-pressed='true'],
+[data-tab-renderer='canvas'] > .view-mode-tab[aria-selected='true'],
+[data-tab-renderer='canvas'] > .capability-toggle[aria-pressed='true'] {
+  color: #2b2620 !important;
+  font-weight: 600;
 }
 
 @keyframes view-mode-gradient-flow {

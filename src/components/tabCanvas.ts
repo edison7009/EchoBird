@@ -1,11 +1,21 @@
 import type { ViewModeTabPosition } from './ViewModeTabGroup';
 
 export interface TabCanvasPalette {
+  /** Top of the chosen key (lighter). */
   surface: string;
+  /** Foot of the chosen key (deeper). */
   wave: string;
+  /** The group's border colour; a bordered group is drawn as a sunken well. */
   border: string;
+  /** The well behind the keys. */
+  well: string;
+  /** The key's drop shadow. */
+  shadow: string;
   radius: number;
 }
+
+/** The chosen key sits this far inside its tab, so the well shows round it. */
+const KEY_INSET = 3;
 
 function roundedRect(
   context: CanvasRenderingContext2D,
@@ -28,14 +38,19 @@ function roundedRect(
   context.closePath();
 }
 
+/**
+ * Paints a segmented control as keys in a well: a bordered group becomes a
+ * sunken well, and each chosen tab a raised cream key (lighter at the top,
+ * a fine highlight along its top edge, a soft shadow beneath). Static: only a
+ * key sliding to a new tab needs more than one frame.
+ */
 export function paintTabCanvas(
   canvas: HTMLCanvasElement,
   width: number,
   height: number,
   scale: number,
   selection: ViewModeTabPosition | ViewModeTabPosition[],
-  palette: TabCanvasPalette,
-  phase: number
+  palette: TabCanvasPalette
 ) {
   const context = canvas.getContext('2d');
   if (!context || width <= 0 || height <= 0) return;
@@ -49,55 +64,40 @@ export function paintTabCanvas(
   context.beginPath();
   roundedRect(context, 0, 0, width, height, palette.radius);
   context.clip();
-  // The fill and outline share this bitmap and its pixel grid. There is no
-  // separately rounded inner height or composited CSS background to line up.
-  for (const region of Array.isArray(selection) ? selection : [selection]) {
-    context.save();
-    if (Array.isArray(selection)) {
-      context.beginPath();
-      roundedRect(context, region.x, region.y, region.width, region.height, region.height / 2);
-      context.clip();
-    }
-    context.fillStyle = palette.surface;
-    context.fillRect(region.x, region.y, region.width, region.height);
-    context.save();
-    context.beginPath();
-    context.rect(region.x, region.y, region.width, region.height);
-    context.clip();
-    for (const edge of [0, 1]) {
-      // Draw neighboring copies so the light leaving one edge is already
-      // entering the other. Wrapping its center alone causes a visible jump.
-      for (const tile of [-1, 0, 1]) {
-        const x = region.x + region.width * (((phase + edge * 0.5) % 1) + tile);
-        const y = region.y + region.height * edge;
-        context.save();
-        context.translate(x, y);
-        context.scale(Math.max(1, region.width), Math.max(1, region.height));
-        const wave = context.createRadialGradient(0, 0, 0, 0, 0, 1);
-        wave.addColorStop(0, palette.wave);
-        wave.addColorStop(1, 'transparent');
-        context.globalAlpha = 0.55;
-        context.fillStyle = wave;
-        context.fillRect(-2, -2, 4, 4);
-        context.restore();
-      }
-    }
-    context.restore();
-    context.restore();
-  }
   if (palette.border !== 'transparent') {
-    context.beginPath();
-    roundedRect(
-      context,
-      0.5,
-      0.5,
-      Math.max(0, width - 1),
-      Math.max(0, height - 1),
-      Math.max(0, palette.radius - 0.5)
+    // The well, with a faint shade along its top edge.
+    context.fillStyle = palette.well;
+    context.fillRect(0, 0, width, height);
+    context.fillStyle = 'rgb(0 0 0 / 0.22)';
+    context.fillRect(0, 0, width, 1);
+  }
+  for (const region of Array.isArray(selection) ? selection : [selection]) {
+    const inset = Math.min(KEY_INSET, region.width / 4, region.height / 4);
+    const x = region.x + inset;
+    const y = region.y + inset;
+    const keyWidth = Math.max(0, region.width - inset * 2);
+    const keyHeight = Math.max(0, region.height - inset * 2);
+    const keyRadius = Math.max(
+      2,
+      Math.min(Array.isArray(selection) ? keyHeight / 2 : palette.radius - inset + 1, keyHeight / 2)
     );
-    context.lineWidth = 1;
-    context.strokeStyle = palette.border;
-    context.stroke();
+    const fill = context.createLinearGradient?.(0, y, 0, y + keyHeight);
+    if (fill) {
+      fill.addColorStop(0, palette.surface);
+      fill.addColorStop(1, palette.wave);
+    }
+    context.save();
+    context.shadowColor = palette.shadow;
+    context.shadowBlur = 6;
+    context.shadowOffsetY = 2;
+    context.beginPath();
+    roundedRect(context, x, y, keyWidth, keyHeight, keyRadius);
+    context.fillStyle = fill ?? palette.surface;
+    context.fill?.();
+    context.restore();
+    // A fine highlight along the key's top edge.
+    context.fillStyle = 'rgb(255 255 255 / 0.55)';
+    context.fillRect(x + keyRadius, y, Math.max(0, keyWidth - keyRadius * 2), 1);
   }
   context.restore();
 }
