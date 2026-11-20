@@ -1766,11 +1766,15 @@ function FreeModelProviderRow({
   );
 }
 
-/** A saved key as a deck card: its name, its model ID (+N more of the same key). */
+/**
+ * A saved key as a deck card: its name and the model ID the next click adds.
+ * A key with several model IDs is added one ID per click, its card counting
+ * how many are on the route; the check shows once all of them are.
+ */
 function SavedKeyCard({
   model,
-  extraModels,
-  added,
+  routed,
+  total,
   adding,
   disabled,
   label,
@@ -1779,8 +1783,8 @@ function SavedKeyCard({
   t,
 }: {
   model: ModelConfig;
-  extraModels: number;
-  added: boolean;
+  routed: number;
+  total: number;
   adding: boolean;
   disabled: boolean;
   label: string;
@@ -1788,6 +1792,7 @@ function SavedKeyCard({
   onAdd: () => void;
   t: (key: TKey) => string;
 }) {
+  const full = routed >= total;
   return (
     <BrandDeckCard
       name={model.name}
@@ -1795,18 +1800,22 @@ function SavedKeyCard({
       iconSrc={getModelIcon('', model.modelId || '') || getModelIcon(model.name, '')}
       label={label}
       onClick={onAdd}
-      disabled={added || disabled}
+      disabled={full || disabled}
       busy={adding}
-      picked={added}
+      picked={full}
       extra={
-        (usage || extraModels > 0) && (
+        (usage || (total > 1 && routed > 0)) && (
           <>
             {usage && (
               <span className="brand-deck-note">
                 <ModelQuotaSummary usage={usage} t={t} />
               </span>
             )}
-            {extraModels > 0 && <span className="brand-deck-note">+{extraModels}</span>}
+            {total > 1 && routed > 0 && (
+              <span className="brand-deck-note tabular-nums">
+                {t('freeModels.saved.added')} {routed}/{total}
+              </span>
+            )}
           </>
         )
       }
@@ -1986,19 +1995,23 @@ export function FreeModelsPanel() {
               // and the route card picks among them.
               <div className="brand-deck">
                 {savedGroups.map((group) => {
-                  const routed = group.models.find((model) => selectedIds.has(model.internalId));
-                  const shown = routed ?? group.models[0];
+                  // Each click adds the key's next model ID not yet on the route.
+                  const routed = group.models.filter((model) =>
+                    selectedIds.has(model.internalId)
+                  ).length;
+                  const next = group.models.find((model) => !selectedIds.has(model.internalId));
+                  const shown = next ?? group.models[0];
                   return (
                     <SavedKeyCard
                       key={group.key}
                       model={shown}
-                      extraModels={group.models.length - 1}
-                      added={!!routed}
+                      routed={routed}
+                      total={group.models.length}
                       adding={group.models.some((model) => addingId === model.internalId)}
                       disabled={Boolean(addingId)}
-                      label={`${t(routed ? 'freeModels.saved.added' : 'freeModels.addToRouter')}: ${shown.name} — ${shown.modelId ?? ''}`}
+                      label={`${t(next ? 'freeModels.addToRouter' : 'freeModels.saved.added')}: ${shown.name} — ${shown.modelId ?? ''}`}
                       usage={modelUsageData[shown.internalId]}
-                      onAdd={() => void addSavedModel(shown)}
+                      onAdd={() => next && void addSavedModel(next)}
                       t={t}
                     />
                   );
