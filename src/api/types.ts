@@ -266,6 +266,7 @@ export interface AgentRequest {
 export interface AssistantReplySummary {
   durationMs: number;
   totalTokens?: number;
+  outputTokens?: number;
   estimatedCostMicros?: number;
 }
 
@@ -274,6 +275,8 @@ export type AgentEvent = { conversation_id?: string; request_id?: string } & (
   | { type: 'thinking'; text: string }
   | { type: 'tool_call_start'; id: string; name: string }
   | { type: 'tool_call_args'; id: string; args: string }
+  | { type: 'tool_call_executing'; id: string; args: string }
+  | { type: 'tool_call_output'; id: string; preview: string }
   | { type: 'tool_result'; id: string; output: string; success: boolean }
   | { type: 'done'; summary?: AssistantReplySummary | null }
   | { type: 'error'; message: string }

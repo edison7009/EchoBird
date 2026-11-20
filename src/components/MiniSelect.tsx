@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { Check, ChevronDown } from 'lucide-react';
 
 interface MiniSelectProps {
   value: string;
@@ -8,8 +8,6 @@ interface MiniSelectProps {
   className?: string;
   disabled?: boolean;
   dropUp?: boolean;
-  opaqueMenu?: boolean;
-  accent?: 'green' | 'blue';
 }
 
 /** Compact custom select menu for small spaces */
@@ -20,15 +18,14 @@ export const MiniSelect: React.FC<MiniSelectProps> = ({
   className = '',
   disabled = false,
   dropUp = false,
-  opaqueMenu = false,
-  accent = 'green',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [menuMaxHeight, setMenuMaxHeight] = useState(360);
   const containerRef = useRef<HTMLDivElement>(null);
+  const menuOpen = isOpen && !disabled;
 
   useLayoutEffect(() => {
-    if (!isOpen || !dropUp) return;
+    if (!menuOpen || !dropUp) return;
     const resizeMenu = () => {
       const container = containerRef.current;
       if (!container) return;
@@ -46,7 +43,7 @@ export const MiniSelect: React.FC<MiniSelectProps> = ({
       window.removeEventListener('resize', resizeMenu);
       window.removeEventListener('scroll', resizeMenu, true);
     };
-  }, [isOpen, dropUp]);
+  }, [menuOpen, dropUp]);
 
   // Close on click outside
   useEffect(() => {
@@ -61,56 +58,41 @@ export const MiniSelect: React.FC<MiniSelectProps> = ({
 
   const selectedOption = options.find((opt) => opt.id === value);
 
-  // Accent color classes
-  const accentBorderHover =
-    accent === 'blue' ? 'hover:border-cyber-border-secondary/50' : 'hover:border-cyber-border/50';
-  const accentBorderOpen =
-    accent === 'blue' ? 'border-cyber-border-secondary' : 'border-cyber-border';
-  const accentChevron = accent === 'blue' ? 'text-cyber-text-secondary' : 'text-cyber-text';
-  const accentDropdownBorder =
-    accent === 'blue' ? 'border-cyber-border-secondary/60' : 'border-cyber-border/60';
-  const accentItemActive =
-    accent === 'blue'
-      ? 'bg-cyber-accent-secondary/15 text-cyber-text-secondary'
-      : 'bg-cyber-text/15 text-cyber-text';
-  const accentItemHover =
-    accent === 'blue'
-      ? 'hover:bg-cyber-accent-secondary/10 hover:text-cyber-text-secondary'
-      : 'hover:bg-cyber-text/10 hover:text-cyber-text';
-
   return (
     <div ref={containerRef} className={`relative cursor-default ${className}`}>
       <button
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
+        disabled={disabled}
+        aria-expanded={menuOpen}
         className={`w-full min-w-[90px] bg-cyber-surface/60 border border-cyber-border px-3 py-2 outline-none flex items-center justify-center transition-colors text-[14px] rounded-button ${
-          disabled ? 'opacity-40' : accentBorderHover
-        } ${isOpen ? accentBorderOpen : ''}`}
+          disabled ? 'opacity-40' : 'hover:border-cyber-border/50'
+        }`}
       >
         <span className="truncate text-cyber-text">{selectedOption?.label || '...'}</span>
         <ChevronDown
           size={14}
-          className={`flex-shrink-0 ml-1.5 ${accentChevron} transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          className={`flex-shrink-0 ml-1.5 text-cyber-text transition-transform ${menuOpen ? 'rotate-180' : ''}`}
         />
       </button>
 
-      {isOpen && (
+      {menuOpen && (
         <div
           style={dropUp ? { maxHeight: menuMaxHeight, overscrollBehavior: 'contain' } : undefined}
-          className={`absolute ${dropUp ? 'bottom-full mb-px' : 'top-full mt-px'} ${dropUp || opaqueMenu ? 'bg-cyber-surface' : 'bg-cyber-surface/90'} left-0 right-0 border ${accentDropdownBorder} max-h-80 overflow-y-auto z-50 rounded-button shadow-lg`}
+          className={`app-tooltip selection-popover model-selection-menu absolute ${dropUp ? 'bottom-full mb-px' : 'top-full mt-px'} inset-x-0 z-50 max-h-80 space-y-1 overflow-y-auto p-1.5`}
         >
           {options.map((option) => (
             <div
               key={option.id}
+              data-selected={option.id === value || undefined}
               onClick={() => {
                 onChange(option.id);
                 setIsOpen(false);
               }}
-              className={`px-2 py-2 transition-colors text-[14px] truncate text-center ${
-                option.id === value ? accentItemActive : `text-cyber-text ${accentItemHover}`
-              }`}
+              className="selection-menu-row flex items-center gap-2 px-2 py-2 text-xs transition-colors"
             >
-              {option.label}
+              <span className="min-w-0 flex-1 break-words">{option.label}</span>
+              {option.id === value && <Check size={12} className="shrink-0" aria-hidden="true" />}
             </div>
           ))}
         </div>

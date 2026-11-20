@@ -154,28 +154,24 @@ function ReplyFooter({ text, summary }: { text: string; summary: AssistantReplyS
     return () => window.clearTimeout(timer);
   }, [copyFeedback]);
 
-  const compactNumber = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
+  const formatNumber = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
   const metrics: string[] = [];
   if (summary) {
     const seconds = summary.durationMs / 1000;
     metrics.push(
       t('mother.replyDuration').replace(
         '{seconds}',
-        compactNumber.format(seconds >= 1 ? Math.round(seconds) : seconds)
+        formatNumber.format(seconds >= 1 ? Math.round(seconds) : seconds)
       )
     );
-    if (summary.totalTokens !== undefined) {
-      const tokens = summary.totalTokens;
-      const [scale, suffix]: [number, string] =
-        tokens >= 1e9
-          ? [1e9, 'b']
-          : tokens >= 1e6
-            ? [1e6, 'm']
-            : tokens >= 1e3
-              ? [1e3, 'k']
-              : [1, ''];
+    if (summary.outputTokens !== undefined) {
+      const output = summary.outputTokens;
+      const scaled = output >= 1000;
       metrics.push(
-        t('mother.replyTokens').replace('{count}', compactNumber.format(tokens / scale) + suffix)
+        t(scaled ? 'mother.replyOutputThousands' : 'mother.replyOutputTokens').replace(
+          '{count}',
+          formatNumber.format(scaled ? output / 1000 : output)
+        )
       );
     }
     if (summary.estimatedCostMicros !== undefined) {
@@ -262,7 +258,7 @@ export const ChatBubble = memo(function ChatBubble({
 
     return (
       <div className="mb-6 text-sm leading-relaxed text-cyber-text font-sans">
-        <div className="markdown-body">
+        <div className="markdown-body text-[15px] leading-[1.78]">
           <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
             {truncate(cleaned)}
           </ReactMarkdown>

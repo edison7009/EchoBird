@@ -11,9 +11,11 @@ import {
 export function ModelQuotaSummary({
   usage,
   t,
+  inheritColor = false,
 }: {
   usage: ModelUsageData;
   t: (key: TKey) => string;
+  inheritColor?: boolean;
 }) {
   const now = useUsageClock(
     usage.quotas.some((quota) => quota.balance == null && !!quota.period && quota.resetAt > 0)
@@ -40,7 +42,7 @@ export function ModelQuotaSummary({
   return summary ? (
     <span
       aria-label={label}
-      className="text-[10px] text-cyber-text-secondary shrink-0 whitespace-nowrap tabular-nums"
+      className={`text-[10px] shrink-0 whitespace-nowrap tabular-nums ${inheritColor ? 'text-inherit' : 'text-cyber-text-secondary'}`}
     >
       {summary}
     </span>

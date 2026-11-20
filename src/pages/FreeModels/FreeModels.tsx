@@ -1798,7 +1798,7 @@ function SavedKeyCard({
       extra={
         usage && (
           <span className="brand-deck-note">
-            <ModelQuotaSummary usage={usage} t={t} />
+            <ModelQuotaSummary usage={usage} t={t} inheritColor />
           </span>
         )
       }

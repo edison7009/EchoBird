@@ -161,7 +161,7 @@ fn clean_known_output(raw: &str) -> String {
     lines.join("\n")
 }
 
-fn strip_ansi(raw: &str) -> String {
+pub(super) fn strip_ansi(raw: &str) -> String {
     let mut chars = raw.chars().peekable();
     let mut clean = String::with_capacity(raw.len());
     while let Some(ch) = chars.next() {

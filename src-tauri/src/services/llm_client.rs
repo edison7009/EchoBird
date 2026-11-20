@@ -24,7 +24,7 @@ use tokio::sync::mpsc;
 
 use super::smart_router::{
     self,
-    assistant_usage::{self, AssistantUsage, RoutedPricing, RoutedUsage},
+    assistant_usage::{self, AssistantUsage, RoutedUsage},
     usage::{self, UsageAccumulator, UsageReport},
 };
 
@@ -182,7 +182,7 @@ pub struct CompletionUsage {
     pub report: UsageReport,
     pub total_known: bool,
     pub model: Option<String>,
-    pub(super) routed: Option<RoutedPricing>,
+    pub(super) routed_model: Option<String>,
 }
 
 #[derive(Default)]
@@ -218,7 +218,7 @@ impl CompletionMeter {
             report,
             total_known,
             model: self.model,
-            routed: routed.map(|usage| usage.pricing),
+            routed_model: routed.map(|usage| usage.model),
         })
     }
 }

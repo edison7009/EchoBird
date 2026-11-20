@@ -1,5 +1,6 @@
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { expect, it, vi } from 'vitest';
+import { Loader2, X } from 'lucide-react';
 import { ToolCallCard } from './ToolCallCard';
 
 vi.mock('../../hooks/useI18n', () => ({
@@ -22,7 +23,10 @@ it('shows a compact command row with expandable arguments and output', () => {
         .findAllByType('span')
         .map((span) => span.children[0])
     ).toContain('echo example');
+    expect(view!.root.findByType('button').props.className.split(' ')).toContain('bg-cyber-text/5');
     expect(view!.root.findByType('button').props['aria-busy']).toBe(true);
+    expect(view!.root.findAllByType(Loader2)).toHaveLength(0);
+    expect(view!.root.findAllByType(X)).toHaveLength(0);
     act(() => {
       view!.update(<ToolCallCard name="shell_exec" args={args} status="done" output="example" />);
     });
@@ -43,7 +47,7 @@ it('shows a compact command row with expandable arguments and output', () => {
 });
 
 it.each(['shell_exec', 'ssh_shell'])(
-  'waits for readable %s content and then updates the command and byte count on each chunk',
+  'waits for readable %s content and then updates the command text on each chunk',
   (name) => {
     const render = (args: string, status: 'running' | 'failed' = 'running') => (
       <ToolCallCard name={name} args={args} status={status} />
@@ -64,30 +68,30 @@ it.each(['shell_exec', 'ssh_shell'])(
       }
 
       const fragments = [
-        ['{"server_id":"remote","command":"echo 你', 'echo 你', 41],
-        ['{"server_id":"remote","command":"echo 你好 ' + '\\', 'echo 你好', 46],
-        [String.raw`{"server_id":"remote","command":"echo 你好 \"🌍`, 'echo 你好 "🌍', 51],
-        [String.raw`{"server_id":"remote","command":"echo 你好 \"🌍\uD83D`, 'echo 你好 "🌍', 57],
+        ['{"server_id":"remote","command":"echo 你', 'echo 你'],
+        ['{"server_id":"remote","command":"echo 你好 ' + '\\', 'echo 你好'],
+        [String.raw`{"server_id":"remote","command":"echo 你好 \"🌍`, 'echo 你好 "🌍'],
+        [String.raw`{"server_id":"remote","command":"echo 你好 \"🌍\uD83D`, 'echo 你好 "🌍'],
         [
           String.raw`{"server_id":"remote","command":"echo 你好 \"🌍\uD83D\uDE80`,
           'echo 你好 "🌍🚀',
-          63,
         ],
       ] as const;
-      for (const [args, preview, bytes] of fragments) {
+      for (const [args, preview] of fragments) {
         act(() => view.update(render(args)));
         const text = view.root
           .findByType('button')
           .findAllByType('span')
           .flatMap((span) => span.children.filter((child) => typeof child === 'string'));
         expect(text.slice(0, 3)).toEqual(['执行命令', '·', preview]);
-        expect(text.join('')).toContain(`${bytes} B`);
+        expect(text.join('')).not.toMatch(/\d B\b/);
       }
 
       const [partial, lastPreview] = fragments[fragments.length - 1];
       act(() => view.update(render(partial, 'failed')));
       const row = view.root.findByType('button');
       expect(row.props['aria-busy']).toBeUndefined();
+      expect(row.findAllByType(X)).toHaveLength(1);
       expect(row.findAllByType('span').some((span) => span.children.includes(lastPreview))).toBe(
         true
       );
@@ -103,3 +107,33 @@ it.each(['shell_exec', 'ssh_shell'])(
     }
   }
 );
+
+it('follows new text on the right while running and returns to the command when done', () => {
+  const args = JSON.stringify({ command: 'echo fixture' });
+  const previewNode = { scrollLeft: 0, scrollWidth: 1000 };
+  let view: ReactTestRenderer | undefined;
+  try {
+    act(() => {
+      view = create(<ToolCallCard name="shell_exec" args={args} status="running" />, {
+        createNodeMock: (element) => (element.props.dir === 'ltr' ? previewNode : null),
+      });
+    });
+    expect(previewNode.scrollLeft).toBe(1000);
+    for (const preview of ['Checking files', 'Reading results']) {
+      act(() => {
+        view!.update(
+          <ToolCallCard name="shell_exec" args={args} status="running" liveOutput={preview} />
+        );
+      });
+      expect(view!.root.findByProps({ dir: 'ltr' }).children).toEqual([preview]);
+      expect(view!.root.findAllByType('time')).toHaveLength(0);
+    }
+    act(() => {
+      view!.update(<ToolCallCard name="shell_exec" args={args} status="done" output="Complete" />);
+    });
+    expect(previewNode.scrollLeft).toBe(0);
+    expect(view!.root.findByProps({ dir: 'ltr' }).children).toEqual(['echo fixture']);
+  } finally {
+    act(() => view?.unmount());
+  }
+});

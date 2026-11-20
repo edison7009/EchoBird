@@ -29,8 +29,7 @@ export function selectAgentProtocol(baseUrl: string, anthropicUrl?: string) {
 
 // ===== Provider =====
 
-const countConversationMessage = (message: ChatMessage) =>
-  message.type === 'user' || message.type === 'assistant';
+const isUserMessage = (message: ChatMessage) => message.type === 'user';
 
 export function MotherAgentProvider({ children }: { children: React.ReactNode }) {
   // From stores (replaces drilled props)
@@ -348,7 +347,7 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
   const persistence = useChatPersistence<ChatMessage>({
     toDisk,
     fromDisk,
-    countMessage: countConversationMessage,
+    countUserMessage: isUserMessage,
   });
   const {
     messages: chatOutput,
@@ -383,7 +382,9 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
           return prev;
         }
         return prev.map((m, index) => {
-          if (m.type === 'tool_call' && m.status === 'running') return { ...m, status: 'failed' };
+          if (m.type === 'tool_call' && m.status === 'running') {
+            return { ...m, status: 'failed', liveOutput: undefined };
+          }
           return index === lastIndex ? completed : m;
         });
       });
@@ -569,8 +570,32 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
           case 'tool_call_args':
             setChatOutput((prev) =>
               prev.map((m) =>
-                m.type === 'tool_call' && m.id === event.id
+                m.type === 'tool_call' &&
+                m.id === event.id &&
+                m.status === 'running' &&
+                !m.executing
                   ? { ...m, args: m.args + event.args }
+                  : m
+              )
+            );
+            break;
+          case 'tool_call_executing':
+            setChatOutput((prev) =>
+              prev.map((m) =>
+                m.type === 'tool_call' &&
+                m.id === event.id &&
+                m.status === 'running' &&
+                !m.executing
+                  ? { ...m, args: event.args, executing: true }
+                  : m
+              )
+            );
+            break;
+          case 'tool_call_output':
+            setChatOutput((prev) =>
+              prev.map((m) =>
+                m.type === 'tool_call' && m.id === event.id && m.status === 'running' && m.executing
+                  ? { ...m, liveOutput: event.preview }
                   : m
               )
             );
@@ -579,7 +604,12 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
             setChatOutput((prev) =>
               prev.map((m) =>
                 m.type === 'tool_call' && m.id === event.id
-                  ? { ...m, status: event.success ? 'done' : 'failed', output: event.output }
+                  ? {
+                      ...m,
+                      status: event.success ? 'done' : 'failed',
+                      output: event.output,
+                      liveOutput: undefined,
+                    }
                   : m
               )
             );

@@ -247,9 +247,20 @@ it('fills six numbered slots in order and removes a source from its card', async
   expect(refreshModel).not.toHaveBeenCalled();
 });
 
-it('does not query quota on entry, tab switches or when a source is added', async () => {
+it('uses only a highlight for source selection and leaves quota queries to refresh actions', async () => {
   await render();
-  await act(async () => button('Claude — me@example.com').props.onClick());
+  const source = () => button('Claude — me@example.com');
+  const hasMarker = () =>
+    source()
+      .parent!.findAllByType('svg')
+      .some((icon) => /lucide-(check|plus)\b/.test(icon.props.className));
+  expect(source().props['aria-pressed']).toBe(false);
+  expect(source().parent!.props.className).not.toContain('is-selected');
+  expect(hasMarker()).toBe(false);
+  await act(async () => source().props.onClick());
+  expect(source().props['aria-pressed']).toBe(true);
+  expect(source().parent!.props.className).toContain('is-selected');
+  expect(hasMarker()).toBe(false);
   await act(async () => navigation.getState().setDeveloperTab('statistics'));
   await act(async () => navigation.getState().setDeveloperTab('usageIsland'));
   await act(async () => {

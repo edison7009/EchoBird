@@ -28,6 +28,8 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 
+use super::agent_loop::reported_output_tokens;
+
 // ── Frontend Events ──
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -454,6 +456,7 @@ pub async fn send_message(
                             .duration_ms
                             .unwrap_or_else(|| super::agent_loop::elapsed_ms(started)),
                         total_tokens: parsed.total_tokens,
+                        output_tokens: parsed.output_tokens,
                         estimated_cost_micros: None,
                     });
                     emit_event(
@@ -613,6 +616,7 @@ struct ParsedOutput {
     is_error: bool,
     duration_ms: Option<u64>,
     total_tokens: Option<u64>,
+    output_tokens: Option<u64>,
 }
 
 /// Claude Code with `--output-format json` emits a single JSON object on
@@ -637,14 +641,15 @@ fn parse_claude_json(stdout: &str) -> ParsedOutput {
         let is_error = v.get("is_error").and_then(|x| x.as_bool()).unwrap_or(false);
         let mut usage = super::smart_router::usage::UsageAccumulator::default();
         usage.observe(&v);
+        let report = usage.report();
         return ParsedOutput {
             text,
             session_id,
             is_error,
             duration_ms: v["duration_ms"].as_u64(),
-            total_tokens: usage
-                .total_known()
-                .then(|| usage.report().usage.total_tokens),
+            total_tokens: usage.total_known().then_some(report.usage.total_tokens),
+            // The wrapper exposes one output count for the completed turn.
+            output_tokens: reported_output_tokens(&report),
         };
     }
     ParsedOutput {
@@ -653,6 +658,7 @@ fn parse_claude_json(stdout: &str) -> ParsedOutput {
         is_error: false,
         duration_ms: None,
         total_tokens: None,
+        output_tokens: None,
     }
 }
 

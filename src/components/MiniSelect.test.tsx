@@ -10,16 +10,10 @@ const options = Array.from({ length: 9 }, (_, index) => ({
   id: String(index),
   label: `Language ${index}`,
 }));
-const open = (dropUp = true, opaqueMenu = false) => {
+const open = (dropUp = true) => {
   act(() => {
     renderer = create(
-      <MiniSelect
-        value="0"
-        options={options}
-        onChange={onChange}
-        dropUp={dropUp}
-        opaqueMenu={opaqueMenu}
-      />,
+      <MiniSelect value="0" options={options} onChange={onChange} dropUp={dropUp} />,
       {
         createNodeMock: () => ({
           getBoundingClientRect: () => ({ top: anchorTop }),
@@ -58,7 +52,7 @@ it.each([
     open();
     expect(menu().props.className).toContain('bottom-full');
     expect(menu().props.className).toContain('overflow-y-auto');
-    expect(menu().props.className).toContain('bg-cyber-surface ');
+    expect(menu().props.className).toContain('app-tooltip selection-popover model-selection-menu');
     expect(menu().props.style).toEqual({ maxHeight: height, overscrollBehavior: 'contain' });
     expect(menu().children).toHaveLength(9);
     expect(onChange).not.toHaveBeenCalled();
@@ -79,7 +73,11 @@ it('updates available height on resize and page scroll, then cleans up after sel
   act(() =>
     renderer.root
       .findAllByType('div')
-      .find((node) => node.children.includes('Language 8'))!
+      .find(
+        (node) =>
+          node.props.onClick &&
+          node.findAllByType('span').some((label) => label.children.includes('Language 8'))
+      )!
       .props.onClick()
   );
   expect(onChange).toHaveBeenCalledExactlyOnceWith('8');
@@ -88,12 +86,15 @@ it('updates available height on resize and page scroll, then cleans up after sel
   expect(window.removeEventListener).toHaveBeenCalledWith('scroll', scroll, true);
 });
 
-it.each([false, true])('uses the correct downward menu background with opaqueMenu=%s', (opaque) => {
-  open(false, opaque);
+it('uses the shared popover and marks the selected row in a downward menu', () => {
+  open(false);
   const classes = menu().props.className.split(' ');
   expect(classes).toContain('top-full');
-  expect(classes).toContain(opaque ? 'bg-cyber-surface' : 'bg-cyber-surface/90');
-  expect(classes).not.toContain(opaque ? 'bg-cyber-surface/90' : 'bg-cyber-surface');
+  expect(classes).toContain('selection-popover');
+  expect(classes).toContain('app-tooltip');
+  expect(menu().findByProps({ 'data-selected': true }).findByType('span').children).toEqual([
+    'Language 0',
+  ]);
   expect(menu().props.style).toBeUndefined();
   expect(window.addEventListener).not.toHaveBeenCalled();
 });

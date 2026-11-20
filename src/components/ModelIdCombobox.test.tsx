@@ -114,8 +114,7 @@ function update(extra: Partial<Props>) {
 const input = () => renderer.root.findByType('input');
 const menus = () => renderer.root.findAll((node) => node.props.style?.position === 'fixed');
 const options = () => menus()[0].findAll((node) => typeof node.props.onMouseDown === 'function');
-const optionTexts = () =>
-  options().map((node) => node.findAllByType('span')[0]?.children[0] ?? node.children[0]);
+const optionTexts = () => options().map((node) => node.findAllByType('span')[0].children[0]);
 const button = (label: string) => renderer.root.findByProps({ 'aria-label': label });
 const key = (name: string) => {
   const preventDefault = vi.fn();
@@ -165,6 +164,10 @@ it('preserves API browse, search, keyboard selection and the positioned body por
   expect(portal.mock.calls[portal.mock.calls.length - 1]?.[1]).toBe(body);
   expect(menus()[0].props.style).toMatchObject({ left: 12, width: 240, top: 131, maxHeight: 240 });
   expect(menus()[0].props.className).toContain('z-[9999]');
+  expect(menus()[0].props.className).toContain(
+    'app-tooltip selection-popover model-selection-menu'
+  );
+  expect(options()[0].props['data-selected']).toBe(true);
   expect(menus()[0].props.className).not.toContain('model-id-combobox-menu');
   expect(menus()[0].props.style.transformOrigin).toBeUndefined();
   act(() => input().props.onChange({ target: { value: 'gpt' } }));
@@ -332,7 +335,7 @@ it('shows reliable positive multipliers without rounding and prioritizes the fre
   expect(badges(2).map((node) => node.children)).toEqual([['Paid display name'], ['0.79×']]);
   expect(badges(2)[1].props.className).toContain('text-cyber-text-muted');
   expect(badges(3).map((node) => node.children)).toEqual([['precise-id'], ['1.23456789×']]);
-  for (let index = 4; index < options().length; index += 1) expect(badges(index)).toHaveLength(0);
+  for (let index = 4; index < options().length; index += 1) expect(badges(index)).toHaveLength(1);
   act(() => options()[2].props.onMouseDown({ button: 0, preventDefault: vi.fn() }));
   expect(props.onChange).toHaveBeenCalledExactlyOnceWith('paid-id');
   expect(input().props.value).toBe('Paid display name');
@@ -659,9 +662,12 @@ it('marks supplied free metadata while preserving plain option and selected labe
       .findAllByType('span')
       .map((node) => node.children)
   ).toEqual([['Hy3'], ['免费']]);
-  expect(options()[1].children).toEqual(['paid-model']);
-  expect(options()[2].children).toEqual(['unknown-model']);
-  expect(options()).toHaveLength(3);
+  expect(optionTexts()).toEqual(['Hy3', 'paid-model', 'unknown-model']);
+  expect(
+    options()
+      .slice(1)
+      .map((row) => row.findAllByType('span').length)
+  ).toEqual([1, 1]);
   expect(props.onChange).not.toHaveBeenCalled();
 });
 
@@ -742,7 +748,7 @@ it('lets explicit paid metadata override the free name and updates without selec
   expect(optionTexts()).toEqual(['model-free', 'paid-model']);
   update({ paidModelIds: ['model-free'] });
   expect(optionTexts()).toEqual(['paid-model', 'model-free']);
-  expect(options()[1].findAllByType('span')).toHaveLength(0);
+  expect(options()[1].findAllByType('span')).toHaveLength(1);
   expect(input().props.value).toBe('model-free');
   expect(props.onChange).not.toHaveBeenCalled();
 });
@@ -756,7 +762,7 @@ it('keeps non-model IDs in source order when name inference is disabled but hono
   });
   act(() => input().props.onFocus());
   expect(optionTexts()).toEqual(['paid-provider', 'free-account', 'free-provider']);
-  for (const row of options()) expect(row.findAllByType('span')).toHaveLength(0);
+  for (const row of options()) expect(row.findAllByType('span')).toHaveLength(1);
   update({
     freeModelIds: ['free-provider'],
     optionMultipliers: { 'paid-provider': 0 },
@@ -764,7 +770,7 @@ it('keeps non-model IDs in source order when name inference is disabled but hono
   expect(optionTexts()).toEqual(['paid-provider', 'free-provider', 'free-account']);
   expect(options()[0].findAllByType('span')[1].children).toEqual(['免费']);
   expect(options()[1].findAllByType('span')[1].children).toEqual(['免费']);
-  expect(options()[2].findAllByType('span')).toHaveLength(0);
+  expect(options()[2].findAllByType('span')).toHaveLength(1);
   expect(input().props.value).toBe('free-account');
   expect(props.onChange).not.toHaveBeenCalled();
 });

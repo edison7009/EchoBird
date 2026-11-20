@@ -331,6 +331,19 @@ it('opens saved API Edit through the shared handler, refreshes manually and writ
   expect(invoke).not.toHaveBeenCalled();
 });
 
+it('loads the upstream catalog on opening a saved API Edit without a cache', async () => {
+  await mount();
+  expect(catalogApi.fetchUpstreamModelCatalog).not.toHaveBeenCalled();
+  await act(async () => context.handleCardEdit(saved));
+  const input = { baseUrl: saved.baseUrl, anthropicUrl: '', apiKey: saved.apiKey };
+  expect(catalogApi.getCachedUpstreamModelCatalog).toHaveBeenCalledExactlyOnceWith(input);
+  expect(catalogApi.fetchUpstreamModelCatalog).toHaveBeenCalledExactlyOnceWith(input);
+  expect(field().props.options).toEqual(directory.models.map((model) => model.id));
+  expect(context.newModelForm.modelId).toBe(saved.modelId);
+  expectNoModelActions();
+  expect(showToast).not.toHaveBeenCalled();
+});
+
 it('automatically refreshes an explicitly opened provider Add and debounces changes from its API key input', async () => {
   await mount();
   await advance(2000);

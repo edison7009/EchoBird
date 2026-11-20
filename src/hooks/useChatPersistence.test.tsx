@@ -69,7 +69,7 @@ function conversation(id: string, serverId: string, updatedAt: number): ChatConv
     createdAt: updatedAt - 1000,
     updatedAt,
     messages: [{ role: 'user', content: id }],
-    messageCount: 1,
+    userMessageCount: 1,
   };
 }
 
@@ -442,6 +442,59 @@ describe('Mother Agent conversation persistence', () => {
 });
 
 describe('conversation body loading and migration cost', () => {
+  it('derives user-only counts for existing indexes with counts of both sides', () => {
+    const histories = [
+      {
+        id: 'local',
+        messages: [
+          { role: 'user', content: 'Check this' },
+          { role: 'assistant', content: 'Checking' },
+          { role: 'tool', content: 'Result' },
+          { role: 'assistant', content: 'Done' },
+        ],
+      },
+      { id: 'remote', messages: [{ role: 'assistant', content: 'Previous reply' }] },
+    ];
+    storage.set(
+      CONVERSATIONS_STORAGE_KEY,
+      JSON.stringify({
+        version: 2,
+        activeConversationId: 'local',
+        conversations: histories.map(({ id }) => ({
+          id,
+          serverId: 'local',
+          sessionKey: id,
+          title: id,
+          createdAt: 1,
+          updatedAt: 1,
+          messageCount: 3,
+        })),
+      })
+    );
+    for (const { id, messages } of histories) {
+      storage.set(conversationBodyKey(id), JSON.stringify(messages));
+    }
+
+    mount();
+    expect(state.conversations.map((row) => row.userMessageCount)).toEqual([1, 0]);
+    expect(setItem).not.toHaveBeenCalled();
+    act(() =>
+      state.setMessages((messages) => [...messages, { role: 'assistant', content: 'More detail' }])
+    );
+    expect(state.activeConversation.userMessageCount).toBe(1);
+    act(() =>
+      state.setMessages((messages) => [...messages, { role: 'user', content: 'One more request' }])
+    );
+    expect(state.activeConversation.userMessageCount).toBe(2);
+    act(() => {
+      vi.advanceTimersByTime(800);
+    });
+    expect(saved().conversations.map((row) => row.userMessageCount)).toEqual([2, 0]);
+    unmount();
+    mount();
+    expect(state.conversations.map((row) => row.userMessageCount)).toEqual([2, 0]);
+  });
+
   it('maps only the active history and rewrites only its body after migration', () => {
     const histories = Array.from({ length: 24 }, (_, index) => ({
       ...conversation(`history-${index}`, 'local', Date.now() - index),
@@ -467,9 +520,7 @@ describe('conversation body loading and migration cost', () => {
       return (
         <>
           {value.conversations.map((conversation) => (
-            <span key={conversation.id}>
-              {conversation.messageCount ?? conversation.messages.length}
-            </span>
+            <span key={conversation.id}>{conversation.userMessageCount}</span>
           ))}
         </>
       );

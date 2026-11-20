@@ -11,6 +11,8 @@ import { RemoteModelSelector } from '../../components/RemoteModelSelector';
 import { ViewModeTabs } from '../../components/ViewModeTabs';
 import type { MotherAgentCtx } from './types';
 
+const transcriptViewportClass = 'absolute inset-0 overflow-y-auto slim-scroll py-4';
+
 let state: Partial<MotherAgentCtx>;
 let locale = 'en';
 let activePage = 'mother';
@@ -333,6 +335,113 @@ it('keeps automatic memory operations out of the visible conversation', () => {
   expect(JSON.stringify(renderer!.toJSON())).not.toContain('internal note');
 });
 
+it('navigates only between user messages and expands an earlier turn before scrolling to it', () => {
+  state = {
+    ...state,
+    chatOutput: [
+      { type: 'user', text: 'Earlier request\nwith details' },
+      ...Array.from({ length: 34 }, (_, index) => ({
+        type: 'assistant' as const,
+        messageId: `reply-${index}`,
+        text: 'Answer',
+      })),
+      { type: 'user', text: 'Recent request' },
+    ],
+  };
+  const anchors = () =>
+    renderer!.root
+      .findAll((node) => typeof node.props['data-prompt-anchor'] === 'number')
+      .map((node) => ({
+        offsetTop: node.props['data-prompt-anchor'] === 0 ? 24 : 940,
+        dataset: { promptAnchor: String(node.props['data-prompt-anchor']) },
+      }));
+  const container = {
+    scrollTop: 0,
+    scrollHeight: 2400,
+    clientHeight: 300,
+    children: [],
+    querySelector: (selector: string) =>
+      anchors().find(
+        (anchor) => selector === `[data-prompt-anchor="${anchor.dataset.promptAnchor}"]`
+      ),
+    querySelectorAll: anchors,
+  };
+  act(() => {
+    renderer = create(<MotherAgentMain />, {
+      createNodeMock: (element) => {
+        if (element.props.className === transcriptViewportClass) return container;
+        if (element.props.className?.includes('overscroll-contain')) {
+          return { scrollTop: 0, querySelector: () => null };
+        }
+        return null;
+      },
+    });
+  });
+  const nav = renderer!.root.findByType('nav');
+  const buttons = nav.findAllByType('button');
+  expect(nav.props['aria-label']).toBe('Your messages');
+  expect(buttons.map((button) => button.props['aria-label'])).toEqual([
+    '1. Earlier request with details',
+    '2. Recent request',
+  ]);
+  expect(buttons[1].props['aria-current']).toBe('location');
+  expect(anchors()).toHaveLength(1);
+
+  act(() =>
+    buttons[0].props.onPointerEnter({
+      pointerType: 'mouse',
+      currentTarget: { offsetTop: 0, offsetHeight: 16 },
+    })
+  );
+  expect(buttons.map((button) => button.props['data-preview-distance'])).toEqual([0, 1]);
+  expect(nav.find((node) => node.props.style?.top === 8).children).toEqual([
+    'Earlier request with details',
+  ]);
+  act(() => nav.props.onPointerLeave());
+  expect(buttons.map((button) => button.props['data-preview-distance'])).toEqual([
+    undefined,
+    undefined,
+  ]);
+
+  act(() => buttons[0].props.onClick());
+  expect(anchors()).toHaveLength(2);
+  expect(container.scrollTop).toBe(8);
+  expect(buttons[0].props['aria-current']).toBe('location');
+
+  state = {
+    ...state,
+    chatOutput: [
+      ...state.chatOutput!,
+      { type: 'assistant', messageId: 'new-reply', text: 'New reply' },
+    ],
+  };
+  act(() => renderer!.update(<MotherAgentMain />));
+  expect(anchors()).toHaveLength(2);
+  expect(container.scrollTop).toBe(8);
+
+  const scrollArea = renderer!.root.findByProps({ className: transcriptViewportClass });
+  container.scrollTop = 930;
+  act(() => void scrollArea.props.onScroll());
+  expect(buttons[1].props['aria-current']).toBe('location');
+
+  state = {
+    ...state,
+    selectedServerId: 'remote',
+    activeConversationId: 'second',
+    chatOutput: [{ type: 'user', text: 'Different conversation' }],
+  };
+  act(() => renderer!.update(<MotherAgentMain />));
+  const currentConversationNav = renderer!.root.findByType('nav');
+  expect(currentConversationNav.findAllByType('button')).toHaveLength(1);
+  expect(currentConversationNav.findByType('button').props['aria-label']).toBe(
+    '1. Different conversation'
+  );
+  state = { ...state, chatOutput: [] };
+  act(() => renderer!.update(<MotherAgentMain />));
+  expect(renderer!.root.findAllByType('nav')).toHaveLength(0);
+  expect(state.loadOlderChat).not.toHaveBeenCalled();
+});
+
 describe('Mother Agent visible history pagination', () => {
   const hidden = (count: number) =>
     Array.from({ length: count }, (_, index) => ({
@@ -348,14 +457,21 @@ describe('Mother Agent visible history pagination', () => {
       .filter((bubble) => bubble.props.role !== 'skeleton')
       .map((bubble) => bubble.props.content);
   const mountScrollable = async () => {
-    const container = { scrollTop: 0, scrollHeight: 1000, clientHeight: 300, children: [] };
+    const container = {
+      scrollTop: 0,
+      scrollHeight: 1000,
+      clientHeight: 300,
+      children: [],
+      querySelectorAll: () => [],
+    };
     await act(async () => {
       renderer = create(<MotherAgentMain />, {
-        createNodeMock: (element) => (element.props.onScroll ? container : null),
+        createNodeMock: (element) =>
+          element.props.className === transcriptViewportClass ? container : null,
       });
     });
     container.scrollTop = 0;
-    return renderer!.root.find((node) => typeof node.props.onScroll === 'function');
+    return renderer!.root.findByProps({ className: transcriptViewportClass });
   };
 
   it('windows and expands visible history while preserving the raw message count', async () => {
@@ -373,7 +489,6 @@ describe('Mother Agent visible history pagination', () => {
     expect(contents()).toEqual(messages.map((message) => message.text));
     expect(state.chatOutput).toHaveLength(75);
     expect(state.loadOlderChat).not.toHaveBeenCalled();
-    expect(scrollArea.props.className).toBe('absolute inset-0 overflow-y-auto slim-scroll p-4');
   });
 
   it('keeps the same reply row when expanding a window of identical answers', async () => {
@@ -617,7 +732,7 @@ describe('Mother Agent conversation list', () => {
     const markup = JSON.stringify(renderer!.toJSON());
     expect(buttons[1].props['aria-current']).toBe('true');
     expect(markup).toContain('Fix my environment');
-    expect(markup).toContain('2 messages');
+    expect(markup).toContain('1 message');
     expect(markup).toContain('1 day ago');
     expect(markup).toContain('0 messages');
     expect(markup).toContain('Just now');
@@ -650,7 +765,7 @@ describe('Mother Agent conversation list', () => {
     act(() => {
       renderer = create(<ConversationList />);
     });
-    expect(JSON.stringify(renderer!.toJSON())).toContain('2 条消息');
+    expect(JSON.stringify(renderer!.toJSON())).toContain('1 条消息');
     expect(JSON.stringify(renderer!.toJSON())).toContain('1天前');
     act(() => {
       vi.advanceTimersByTime(60_000);
@@ -788,13 +903,15 @@ describe('Mother Agent welcome screen', () => {
       scrollHeight: 1000,
       clientHeight: 300,
       children: [],
+      querySelectorAll: () => [],
     };
     await act(async () => {
       renderer = create(<MotherAgentMain />, {
-        createNodeMock: (element) => (element.props.onScroll ? scrollContainer : null),
+        createNodeMock: (element) =>
+          element.props.className === transcriptViewportClass ? scrollContainer : null,
       });
     });
-    const scrollArea = renderer!.root.find((node) => typeof node.props.onScroll === 'function');
+    const scrollArea = renderer!.root.findByProps({ className: transcriptViewportClass });
     scrollContainer.scrollTop = 0;
     act(() => void scrollArea.props.onScroll());
     state = { ...state, activeConversationId: 'second' };

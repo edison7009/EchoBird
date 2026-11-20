@@ -6,8 +6,6 @@ import {
   ArrowRight,
   ArrowUp,
   Box,
-  Check,
-  Plus,
   RefreshCw,
   RotateCcw,
   RotateCw,
@@ -282,12 +280,7 @@ function UsageSourceRow({
         onClick={onToggle}
         className="absolute inset-0 rounded-card focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-cyber-accent"
       />
-      <div className="relative z-10 pointer-events-none flex items-center gap-3 shrink-0">
-        {selected ? (
-          <Check size={22} className="text-cyber-accent" />
-        ) : (
-          <Plus size={22} className={disabled ? 'opacity-40' : 'text-cyber-text-muted'} />
-        )}
+      <div className="relative z-10 pointer-events-none shrink-0">
         {missing ? (
           <TriangleAlert size={32} className="text-cyber-text-muted" />
         ) : icon ? (

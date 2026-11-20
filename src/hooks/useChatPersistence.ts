@@ -19,7 +19,7 @@ export interface ChatConversation<T> {
   createdAt: number;
   updatedAt: number;
   messages: T[];
-  messageCount?: number;
+  userMessageCount?: number;
   /** Token context window chosen before the first message; absent on legacy history. */
   contextSize?: number;
 }
@@ -43,7 +43,7 @@ function newConversation<T>(serverId: string): ChatConversation<T> {
     createdAt: Date.now(),
     updatedAt: Date.now(),
     messages: [],
-    messageCount: 0,
+    userMessageCount: 0,
     contextSize: 32768,
   };
 }
@@ -56,8 +56,8 @@ function readMessages(value: unknown): DiskMsg[] {
     : [];
 }
 
-const countDiskMessages = (messages: DiskMsg[]) =>
-  messages.filter((message) => message.role !== 'system' && message.role !== 'tool').length;
+const countDiskUserMessages = (messages: DiskMsg[]) =>
+  messages.reduce((count, message) => count + Number(message.role === 'user'), 0);
 
 function loadConversations<T>(
   fromDisk: (m: DiskMsg) => T,
@@ -74,9 +74,24 @@ function loadConversations<T>(
   };
   const lazy = (conversation: ChatConversation<T>, read: () => DiskMsg[]) => {
     let messages: T[] | undefined;
-    Object.defineProperty(conversation, 'messages', {
-      enumerable: true,
-      get: () => (messages ??= read().map(fromDisk)),
+    let userMessageCount = conversation.userMessageCount;
+    Object.defineProperties(conversation, {
+      messages: {
+        enumerable: true,
+        get: () => {
+          if (!messages) {
+            const body = read();
+            userMessageCount ??= countDiskUserMessages(body);
+            messages = body.map(fromDisk);
+          }
+          return messages;
+        },
+      },
+      userMessageCount: {
+        enumerable: true,
+        // Older indexes have a count of both sides. Read their body only when needed.
+        get: () => (userMessageCount ??= countDiskUserMessages(read())),
+      },
     });
     return conversation;
   };
@@ -101,7 +116,7 @@ function loadConversations<T>(
             const messages = readMessages(c.messages);
             pending.set(c.id, messages);
             conversations.push(
-              lazy({ ...c, messages: [], messageCount: countDiskMessages(messages) }, () =>
+              lazy({ ...c, messages: [], userMessageCount: countDiskUserMessages(messages) }, () =>
                 readBody(id)
               )
             );
@@ -112,10 +127,10 @@ function loadConversations<T>(
                 {
                   ...c,
                   messages: [],
-                  messageCount:
-                    Number.isInteger(c.messageCount) && c.messageCount >= 0
-                      ? c.messageCount
-                      : countDiskMessages(readBody(id)),
+                  userMessageCount:
+                    Number.isInteger(c.userMessageCount) && c.userMessageCount >= 0
+                      ? c.userMessageCount
+                      : undefined,
                 },
                 () => readBody(id)
               )
@@ -157,7 +172,7 @@ function loadConversations<T>(
               createdAt: Date.now(),
               updatedAt: Date.now(),
               messages: [],
-              messageCount: countDiskMessages(diskMessages),
+              userMessageCount: countDiskUserMessages(diskMessages),
             },
             () => readBody(`legacy-${serverId}`)
           )
@@ -181,12 +196,12 @@ export function useChatPersistence<T>({
   toDisk,
   fromDisk,
   debounceMs = 800,
-  countMessage,
+  countUserMessage,
 }: {
   toDisk: (msg: T) => DiskMsg | null;
   fromDisk: (msg: DiskMsg) => T;
   debounceMs?: number;
-  countMessage?: (message: T) => boolean;
+  countUserMessage?: (message: T) => boolean;
 }) {
   const [storageState] = useState(() => {
     const pending = new Map<string, DiskMsg[]>();
@@ -226,9 +241,9 @@ export function useChatPersistence<T>({
               createdAt: c.createdAt,
               updatedAt: c.updatedAt,
               ...(c.contextSize ? { contextSize: c.contextSize } : {}),
-              messageCount: bodies.has(c.id)
-                ? countDiskMessages(bodies.get(c.id)!)
-                : (c.messageCount ?? c.messages.length),
+              userMessageCount: bodies.has(c.id)
+                ? countDiskUserMessages(bodies.get(c.id)!)
+                : c.userMessageCount,
               // A partially migrated index retains every not-yet-written body.
               ...(!storageState.stored.has(c.id) && { messages: bodies.get(c.id) }),
             })),
@@ -299,11 +314,11 @@ export function useChatPersistence<T>({
       const active = prev.conversations.find((c) => c.id === prev.activeConversationId)!;
       const messages = typeof value === 'function' ? value(active.messages) : value;
       if (messages === active.messages) return;
-      const messageCount = messages.reduce((total, message) => {
-        if (countMessage) return total + Number(countMessage(message));
-        const disk = toDisk(message);
-        return total + Number(!!disk && disk.role !== 'system' && disk.role !== 'tool');
-      }, 0);
+      const userMessageCount = messages.reduce(
+        (total, message) =>
+          total + Number(countUserMessage?.(message) ?? toDisk(message)?.role === 'user'),
+        0
+      );
       let title = '';
       for (const message of messages) {
         const diskMessage = toDisk(message);
@@ -315,11 +330,13 @@ export function useChatPersistence<T>({
       update({
         ...prev,
         conversations: prev.conversations.map((c) =>
-          c.id === active.id ? { ...c, messages, messageCount, title, updatedAt: Date.now() } : c
+          c.id === active.id
+            ? { ...c, messages, userMessageCount, title, updatedAt: Date.now() }
+            : c
         ),
       });
     },
-    [toDisk, update, countMessage]
+    [toDisk, update, countUserMessage]
   );
 
   const updateActiveConversation = useCallback(

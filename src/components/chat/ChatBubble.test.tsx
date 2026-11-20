@@ -8,7 +8,8 @@ vi.mock('../../hooks/useI18n', () => ({
     t: (key: string) => {
       const labels: Record<string, string> = {
         'mother.replyDuration': 'Took {seconds}s',
-        'mother.replyTokens': '{count} tokens',
+        'mother.replyOutputTokens': '{count} output tokens',
+        'mother.replyOutputThousands': '{count} output tokens (in thousands)',
         'mother.waitThinking': 'Thinking',
         'mother.waitElapsed': 'Elapsed {duration}',
       };
@@ -35,7 +36,12 @@ it('copies the cleaned reply with its Markdown after streaming and displays know
   vi.stubGlobal('navigator', { clipboard: { writeText } });
   vi.stubGlobal('window', { setTimeout, clearTimeout });
   const content = '<think>private reasoning</think><chat>**Visible answer**</chat>';
-  const summary = { durationMs: 4000, totalTokens: 52400, estimatedCostMicros: 400 };
+  const summary = {
+    durationMs: 4000,
+    totalTokens: 443200,
+    outputTokens: 317,
+    estimatedCostMicros: 400,
+  };
   let view!: ReturnType<typeof create>;
   try {
     act(() => {
@@ -48,7 +54,7 @@ it('copies the cleaned reply with its Markdown after streaming and displays know
       view.update(<ChatBubble role="assistant" content={content} replySummary={summary} />)
     );
     expect(view.root.findByProps({ className: 'tabular-nums' }).children).toEqual([
-      'Took 4s · 52.4k tokens · ~$0.0004',
+      'Took 4s · 317 output tokens · ~$0.0004',
     ]);
     const button = view.root.findByType('button');
     const buttonClass = button.props.className;
@@ -77,10 +83,27 @@ it('copies the cleaned reply with its Markdown after streaming and displays know
 
     act(() =>
       view.update(
-        <ChatBubble role="assistant" content={content} replySummary={{ durationMs: 4000 }} />
+        <ChatBubble
+          role="assistant"
+          content={content}
+          replySummary={{ durationMs: 4000, totalTokens: 52400 }}
+        />
       )
     );
     expect(view.root.findByProps({ className: 'tabular-nums' }).children).toEqual(['Took 4s']);
+
+    act(() =>
+      view.update(
+        <ChatBubble
+          role="assistant"
+          content={content}
+          replySummary={{ durationMs: 4000, outputTokens: 20101 }}
+        />
+      )
+    );
+    expect(view.root.findByProps({ className: 'tabular-nums' }).children).toEqual([
+      'Took 4s · 20.1 output tokens (in thousands)',
+    ]);
   } finally {
     act(() => view?.unmount());
     vi.unstubAllGlobals();

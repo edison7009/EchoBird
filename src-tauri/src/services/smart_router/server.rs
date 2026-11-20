@@ -2019,13 +2019,10 @@ async fn route_with_policy(
             let mut completion = StreamCompletion {
                 headers: response.headers().clone(),
                 protocol,
-                assistant_usage: state.assistant_usage.as_ref().map(|_| {
-                    super::assistant_usage::RoutedUsage::new(
-                        &candidate.base_url,
-                        candidate.account_source.as_ref(),
-                        &candidate.model_id,
-                    )
-                }),
+                assistant_usage: state
+                    .assistant_usage
+                    .as_ref()
+                    .map(|_| super::assistant_usage::RoutedUsage::new(&candidate.model_id)),
                 ..StreamCompletion::default()
             };
             let mut upstream_stream = response.into_body().into_data_stream();

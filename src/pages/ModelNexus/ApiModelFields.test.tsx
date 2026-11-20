@@ -167,7 +167,7 @@ it('defaults an empty Add to the first free choice using name or directory metad
   expect(current.modelId).toBe('big-pickle');
 });
 
-it('opens Edit from its local cache and queries upstream only after explicit refresh', async () => {
+it('uses the cached Edit options until explicitly refreshed', async () => {
   vi.mocked(api.getCachedUpstreamModelCatalog).mockResolvedValue(directory);
   await open({}, { editing: true });
   await advance(5000);
@@ -182,6 +182,44 @@ it('opens Edit from its local cache and queries upstream only after explicit ref
   expect(api.updateModel).not.toHaveBeenCalled();
   expect(api.testModel).not.toHaveBeenCalled();
   expect(api.pingModel).not.toHaveBeenCalled();
+});
+
+it.each(['missing', 'unreadable'] as const)(
+  'loads the saved Edit catalog once when the cache is %s and keeps the saved ID',
+  async (state) => {
+    const cache = deferred<api.UpstreamModelCatalog | null>();
+    const request = deferred<api.UpstreamModelCatalog>();
+    vi.mocked(api.getCachedUpstreamModelCatalog).mockReturnValue(cache.promise);
+    vi.mocked(api.fetchUpstreamModelCatalog).mockReturnValue(request.promise);
+    await open({ modelIdOptions: ['fallback-fixture'] }, { editing: true });
+    expect(field().props.options).toEqual(['fallback-fixture']);
+    expect(api.fetchUpstreamModelCatalog).not.toHaveBeenCalled();
+
+    await act(async () => {
+      if (state === 'missing') cache.resolve(null);
+      else cache.reject('unreadable cache');
+    });
+    expect(field().props.refreshing).toBe(true);
+    await refresh();
+    expect(api.fetchUpstreamModelCatalog).toHaveBeenCalledExactlyOnceWith(source);
+    await act(async () => request.resolve(directory));
+    expect(field().props.refreshing).toBe(false);
+    expect(field().props.options).toEqual(directory.models.map((model) => model.id));
+    expect(current.modelId).toBe('manual-fixture');
+    expect(showToast).not.toHaveBeenCalled();
+    expect(api.updateModel).not.toHaveBeenCalled();
+    expect(api.queryModelUsage).not.toHaveBeenCalled();
+  }
+);
+
+it('does not start a saved Edit request if the source changes before the cache responds', async () => {
+  const cache = deferred<api.UpstreamModelCatalog | null>();
+  vi.mocked(api.getCachedUpstreamModelCatalog).mockReturnValueOnce(cache.promise);
+  await open({}, { editing: true });
+  await patchForm({ baseUrl: 'https://other.fixture.test/v1' });
+  await act(async () => cache.resolve(null));
+  expect(api.fetchUpstreamModelCatalog).not.toHaveBeenCalled();
+  expect(current.modelId).toBe('manual-fixture');
 });
 
 it('carries known free directory metadata only for its original endpoint and honors paid overrides', async () => {
@@ -296,8 +334,10 @@ it.each([
   async ({ editing, modelId, expected }) => {
     vi.mocked(api.fetchUpstreamModelCatalog).mockRejectedValue('UPSTREAM_MODELS_UNSUPPORTED');
     await open({ modelId, modelIdOptions: ['stable-preset', 'other-preset'] }, { editing });
-    if (editing) await refresh();
-    else await advance();
+    if (editing) {
+      expect(showToast).not.toHaveBeenCalled();
+      await refresh();
+    } else await advance();
     expect(current.modelId).toBe(expected);
     expect(field().props.options).toEqual(['stable-preset', 'other-preset']);
     if (editing)
@@ -321,6 +361,7 @@ it('does not restart automatic loading when only the display language changes', 
 });
 
 it('shows the latest translation for a pending failure without repeating the Edit cache or request', async () => {
+  vi.mocked(api.getCachedUpstreamModelCatalog).mockResolvedValue(directory);
   const request = deferred<api.UpstreamModelCatalog>();
   vi.mocked(api.fetchUpstreamModelCatalog).mockReturnValue(request.promise);
   await open({}, { editing: true });
@@ -450,27 +491,30 @@ it.each(['close', 'unmount'] as const)(
   }
 );
 
-it('closing before automatic loading cancels its timer and ignores a pending cache', async () => {
-  const cache = deferred<api.UpstreamModelCatalog | null>();
-  vi.mocked(api.getCachedUpstreamModelCatalog).mockReturnValue(cache.promise);
-  await open({ modelId: '' });
-  await advance(400);
-  await act(async () => renderer!.update(<Harness initial={initialForm()} active={false} />));
-  const before = edits.length;
-  await act(async () => cache.resolve(directory));
-  await advance(2000);
-  expect(api.fetchUpstreamModelCatalog).not.toHaveBeenCalled();
-  expect(current.modelId).toBe('');
-  expect(edits).toHaveLength(before);
-  expect(field().props.disabled).toBe(true);
-  expect(showToast).not.toHaveBeenCalled();
-});
+it.each([false, true])(
+  'cancels automatic loading and ignores pending cache after Close with Edit=%s',
+  async (editing) => {
+    const cache = deferred<api.UpstreamModelCatalog | null>();
+    vi.mocked(api.getCachedUpstreamModelCatalog).mockReturnValue(cache.promise);
+    await open({ modelId: '' }, { editing });
+    await advance(400);
+    await act(async () =>
+      renderer!.update(<Harness initial={initialForm()} editing={editing} active={false} />)
+    );
+    const before = edits.length;
+    await act(async () => cache.resolve(null));
+    await advance(2000);
+    expect(api.fetchUpstreamModelCatalog).not.toHaveBeenCalled();
+    expect(current.modelId).toBe('');
+    expect(edits).toHaveLength(before);
+    expect(field().props.disabled).toBe(true);
+    expect(showToast).not.toHaveBeenCalled();
+  }
+);
 
 it('passes an encrypted API key only to catalog commands without unlocking or changing the saved form', async () => {
   await open({ apiKey: 'enc:v1:opaque-fixture' }, { editing: true });
   await advance(5000);
-  expect(api.fetchUpstreamModelCatalog).not.toHaveBeenCalled();
-  await refresh();
   expect(api.fetchUpstreamModelCatalog).toHaveBeenCalledExactlyOnceWith({
     ...source,
     apiKey: 'enc:v1:opaque-fixture',
@@ -499,6 +543,7 @@ it('exposes refresh only for a valid HTTP endpoint and leaves manual IDs availab
 });
 
 it('pastes an exact model ID and ignores clipboard responses after the modal closes', async () => {
+  vi.mocked(api.getCachedUpstreamModelCatalog).mockResolvedValue(directory);
   vi.mocked(readText).mockResolvedValueOnce('  provider/My-Custom-ID  ');
   await open({}, { editing: true });
   await act(async () => field().props.onPaste());

@@ -1,5 +1,5 @@
 // Expand a tool row to inspect its full arguments and output.
-import { memo, useState } from 'react';
+import { memo, useLayoutEffect, useRef, useState } from 'react';
 import {
   Loader2,
   Check,
@@ -20,6 +20,7 @@ export interface ToolCallCardProps {
   name: string;
   args: string;
   status: 'running' | 'done' | 'failed';
+  liveOutput?: string;
   output?: string;
 }
 
@@ -69,17 +70,35 @@ function streamedCommand(args: string): string {
   return '';
 }
 
-const commandEncoder = new TextEncoder();
 const OUTPUT_PREVIEW_LIMIT = 4000;
+
+function CommandPreview({ text, following }: { text: string; following: boolean }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (element) element.scrollLeft = following ? element.scrollWidth : 0;
+  }, [text, following]);
+
+  return (
+    <span
+      ref={ref}
+      dir="ltr"
+      className={`min-w-0 flex-1 overflow-hidden whitespace-nowrap font-mono text-xs ${following ? '' : 'text-ellipsis'}`}
+    >
+      {text}
+    </span>
+  );
+}
 
 export const ToolCallCard = memo(function ToolCallCard({
   name,
   args,
   status,
+  liveOutput,
   output,
 }: ToolCallCardProps) {
   const [open, setOpen] = useState(false);
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
 
   const meta = TOOL_META[name] || { icon: Wrench, label: name };
   const Icon = meta.icon;
@@ -88,8 +107,6 @@ export const ToolCallCard = memo(function ToolCallCard({
   const runningCommand = isCommand && status === 'running';
   const command = isCommand ? (preview || streamedCommand(args)).trim() : '';
   if (runningCommand && !command) return null;
-
-  const argumentBytes = runningCommand ? commandEncoder.encode(args).byteLength : 0;
 
   const statusIcon =
     status === 'running' ? (
@@ -120,7 +137,7 @@ export const ToolCallCard = memo(function ToolCallCard({
         onClick={() => setOpen((o) => !o)}
         className={
           isCommand
-            ? 'flex min-h-7 w-full min-w-0 items-center gap-2 rounded px-1.5 text-left hover:bg-cyber-text/5 focus-visible:outline focus-visible:outline-1 focus-visible:outline-cyber-accent'
+            ? 'flex min-h-7 w-full min-w-0 items-center gap-2 rounded px-1.5 text-left bg-cyber-text/5 focus-visible:outline focus-visible:outline-1 focus-visible:outline-cyber-accent'
             : 'w-full flex items-center gap-2 px-2.5 py-1.5 text-left hover:bg-cyber-elevated/70 transition-colors rounded-md'
         }
       >
@@ -135,22 +152,15 @@ export const ToolCallCard = memo(function ToolCallCard({
             <span className="shrink-0 text-cyber-text-muted" aria-hidden="true">
               ·
             </span>
-            <span className="min-w-0 flex-1 truncate font-mono text-xs">
-              {command || t('mother.commandUnavailable')}
-            </span>
-            {runningCommand ? (
-              <span
-                className="ml-auto flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs text-cyber-text-muted"
-                aria-hidden="true"
-              >
-                <span className="w-16 text-right font-mono tabular-nums">
-                  {argumentBytes.toLocaleString(locale)} B
-                </span>
+            <CommandPreview
+              following={runningCommand}
+              text={(runningCommand && liveOutput) || command || t('mother.commandUnavailable')}
+            />
+            {status === 'failed' && (
+              <span className="shrink-0" aria-hidden="true">
                 {statusIcon}
               </span>
-            ) : status === 'failed' ? (
-              <span className="shrink-0">{statusIcon}</span>
-            ) : null}
+            )}
           </>
         ) : (
           <>

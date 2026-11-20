@@ -48,11 +48,13 @@ export function ConversationList() {
       <div className="mt-2 space-y-2">
         {conversations.map((conversation) => {
           const active = conversation.id === activeConversationId;
-          const messageCount =
-            conversation.messageCount ??
-            conversation.messages.filter(
-              (message) => message.type === 'user' || message.type === 'assistant'
-            ).length;
+          const userMessageCount =
+            conversation.userMessageCount ??
+            conversation.messages.filter((message) => message.type === 'user').length;
+          const countLabel =
+            locale === 'en' && userMessageCount === 1
+              ? 'mother.conversationSingleMessage'
+              : 'mother.conversationMessageCount';
           return (
             <div
               key={conversation.id}
@@ -71,7 +73,7 @@ export function ConversationList() {
                   {conversation.title || t('mother.newConversation')}
                 </div>
                 <div className="truncate text-[10px] leading-4 text-cyber-text-secondary">
-                  {t('mother.conversationMessageCount').replace('{count}', String(messageCount))}
+                  {t(countLabel).replace('{count}', String(userMessageCount))}
                   {' · '}
                   {formatUpdatedTime(conversation.updatedAt)}
                 </div>

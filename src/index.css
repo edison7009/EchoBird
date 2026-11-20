@@ -231,6 +231,7 @@
 }
 
 .selection-popover {
+  --light-theme-logo-filter: none;
   font-family: var(--font-sans);
   border-radius: 16px;
   box-shadow:
@@ -591,8 +592,29 @@ html.is-macos .usage-island.usage-island-theme-auto {
   pointer-events: none;
   z-index: 0;
 }
+.capability-toggle[aria-pressed='true'] {
+  color: rgb(var(--text-primary-rgb));
+}
+.capability-toggle[aria-pressed='false']::before {
+  content: '';
+  position: absolute;
+  inset: var(--capability-key-inset);
+  z-index: -1;
+  border: 1px dashed rgb(var(--text-primary-rgb) / 0.2);
+  border-radius: inherit;
+  pointer-events: none;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+.capability-toggle[aria-pressed='false']:enabled:hover {
+  color: rgb(var(--accent-rgb));
+}
+.capability-toggle[aria-pressed='false']:enabled:hover::before {
+  border-color: rgb(var(--accent-rgb) / 0.55);
+  background-color: rgb(var(--accent-rgb) / 0.06);
+}
 .capability-toggles[data-tab-renderer='canvas'] > .capability-toggle {
-  position: relative;
   z-index: 1;
 }
 .capability-toggles[data-tab-renderer='canvas'] > .capability-toggle[aria-pressed='true'] {
@@ -639,10 +661,12 @@ html.is-macos .usage-island.usage-island-theme-auto {
 }
 /* Labels on a cream key are dark in every theme. */
 [data-tab-renderer='canvas'] > .view-mode-tab[aria-pressed='true'],
-[data-tab-renderer='canvas'] > .view-mode-tab[aria-selected='true'],
-[data-tab-renderer='canvas'] > .capability-toggle[aria-pressed='true'] {
+[data-tab-renderer='canvas'] > .view-mode-tab[aria-selected='true'] {
   color: #2b2620 !important;
   font-weight: 600;
+}
+[data-tab-renderer='canvas'] > .capability-toggle[aria-pressed='true'] {
+  color: #2b2620 !important;
 }
 
 @keyframes view-mode-gradient-flow {
@@ -1133,23 +1157,52 @@ html.is-macos .scrollbar-stable {
 [data-theme='light'] img[src*='/icons/models/kimi.svg'],
 [data-theme='light'] img[src*='/icons/models/together.svg'],
 [data-theme='light'] img[src*='/icons/tools/codex.svg'] {
-  filter: invert(1) brightness(0.88);
+  filter: var(--light-theme-logo-filter, invert(1) brightness(0.88));
 }
 
 [data-theme='dark'] .model-switch-label {
   color: rgb(52 211 153);
 }
 
-/* Solid themed surfaces keep light account pills distinct from the page.
-   Keep the dark treatment and provider-specific colors below unchanged. */
-[data-theme='light'] .account-pill {
-  background-color: rgb(var(--bg-surface-rgb));
-  color: #000000;
+/* Shared by desktop account rows and assistant conversation and server rows. */
+.account-pill,
+.chat-row {
+  --selectable-card-surface: rgb(var(--bg-surface-rgb));
+  background-color: var(--selectable-card-surface);
+  transition: background-color 0.15s ease;
 }
 
-[data-theme='dark'] .account-pill {
-  background-color: rgb(0 0 0 / 0.8);
+.account-pill:not(.is-selected):not(:disabled):hover,
+.chat-row:not(.is-active):hover {
+  background-color: color-mix(
+    in srgb,
+    rgb(var(--text-primary-rgb)) 6%,
+    var(--selectable-card-surface)
+  );
+}
+
+.account-pill.is-selected,
+.chat-row.is-active {
+  background-color: color-mix(
+    in srgb,
+    rgb(var(--text-primary-rgb)) 12%,
+    var(--selectable-card-surface)
+  );
+  box-shadow:
+    inset 0 0 0 1px rgb(var(--text-primary-rgb) / 0.07),
+    0 2px 4px rgb(0 0 0 / 0.18);
+}
+
+.account-pill {
   color: #ffffff;
+}
+
+.account-pill.is-selected {
+  border-color: transparent;
+}
+
+[data-theme='light'] .account-pill {
+  color: #000000;
 }
 
 /* Daylight tips use a slightly lighter shade of the same dark theme surface. */
@@ -1202,12 +1255,12 @@ html.is-macos .scrollbar-stable {
 }
 
 [data-theme='light'] .workbuddy-account-pill {
-  background-color: rgb(183 232 217 / 0.85);
+  --selectable-card-surface: rgb(183 232 217 / 0.85);
   color: #145c49;
 }
 
 [data-theme='dark'] .workbuddy-account-pill {
-  background-color: rgb(23 106 85 / 0.85);
+  --selectable-card-surface: rgb(23 106 85 / 0.85);
   color: #ffffff;
 }
 
@@ -1216,12 +1269,12 @@ html.is-macos .scrollbar-stable {
 }
 
 [data-theme='light'] .deepseek-account-pill {
-  background-color: rgb(220 228 255 / 0.85);
+  --selectable-card-surface: rgb(220 228 255 / 0.85);
   color: #29458f;
 }
 
 [data-theme='dark'] .deepseek-account-pill {
-  background-color: rgb(48 74 155 / 0.85);
+  --selectable-card-surface: rgb(48 74 155 / 0.85);
   color: #ffffff;
 }
 
@@ -1459,13 +1512,90 @@ img[src$='/icons/tools/opendesign.png'] {
   }
 }
 
+.mother-transcript {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 56rem;
+  margin-inline: auto;
+  padding-inline: clamp(34px, 4vw, 48px);
+}
+
+.mother-transcript > *,
+.mother-transcript > [data-prompt-anchor] > * {
+  margin-block: 0;
+}
+
+.mother-message-nav {
+  position: absolute;
+  top: 50%;
+  left: max(0px, calc(50% - 28rem));
+  z-index: 2;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  max-height: min(64%, 24rem);
+  color: rgb(var(--text-secondary-rgb));
+}
+
+.mother-message-nav button {
+  display: flex;
+  align-items: center;
+  width: 30px;
+  height: 16px;
+  padding-inline-start: 3px;
+}
+
+.mother-message-nav button span {
+  width: 12px;
+  height: 1px;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: 0.72;
+  transition:
+    width 140ms ease-out,
+    opacity 140ms ease-out;
+}
+
+.mother-message-nav button[aria-current='location'] span {
+  width: 18px;
+  height: 2px;
+  color: rgb(var(--accent-rgb));
+  opacity: 1;
+}
+
+.mother-message-nav button[data-preview-distance='2'] span {
+  width: 15px;
+  opacity: 0.8;
+}
+
+.mother-message-nav button[data-preview-distance='1'] span {
+  width: 20px;
+  opacity: 0.9;
+}
+
+.mother-message-nav button[data-preview-distance='0'] span {
+  width: 26px;
+  height: 2px;
+  color: rgb(var(--text-primary-rgb));
+  opacity: 1;
+}
+
+.mother-message-preview {
+  left: calc(100% + 6px);
+  width: max-content;
+  max-width: min(18rem, 42vw);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mother-message-nav button span {
+    transition: none;
+  }
+}
+
 /* Markdown body — applied to streamed assistant responses */
 .markdown-body > * + * {
-  margin-top: 0.6em;
-}
-.markdown-body p {
-  margin: 0;
-  line-height: 1.55;
+  margin-top: 0.75em;
 }
 .markdown-body ul,
 .markdown-body ol {

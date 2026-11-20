@@ -1,6 +1,9 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef, type CSSProperties } from 'react';
+import { TAB_KEY_INSET } from '../../components/tabCanvas';
 import { mountTabCanvas } from '../../components/useTabCanvas';
 import { RoutingHint } from '../../components/RoutingToggle';
+
+const keyStyle = { '--capability-key-inset': `${TAB_KEY_INSET}px` } as CSSProperties;
 
 export interface CapabilityToggle {
   id?: string;
@@ -77,7 +80,8 @@ export function CapabilityToggleButton({
       aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`capability-toggle h-[24px] min-w-[44px] rounded-full px-[10px] text-xs font-medium whitespace-nowrap border outline-none transition-[color,background-color] focus-visible:ring-2 focus-visible:ring-cyber-accent ${checked ? 'border-transparent text-cyber-text' : 'border-cyber-border text-cyber-text-secondary enabled:hover:border-transparent enabled:hover:bg-cyber-elevated enabled:hover:text-cyber-text'}`}
+      className="capability-toggle relative isolate h-[24px] min-w-[44px] rounded-full px-[11px] text-xs font-semibold whitespace-nowrap text-cyber-text-secondary outline-none transition-colors focus-visible:ring-2 focus-visible:ring-cyber-accent"
+      style={keyStyle}
     >
       {label}
     </button>

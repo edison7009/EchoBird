@@ -624,9 +624,9 @@ it('renders an old Qoder native selection through cached labels without fetching
   expect(renderer.root.findByType('input').props.value).toBe('Cantus');
   act(() => renderer.root.findByType('input').props.onFocus());
   const selected = renderer.root.find(
-    (node) => node.type === 'div' && node.props.onMouseDown && node.children[0] === 'Cantus'
+    (node) => node.type === 'div' && node.props.onMouseDown && node.props['data-selected']
   );
-  expect(selected.props.className).toContain('bg-cyber-text/15');
+  expect(selected.findByType('span').children).toEqual(['Cantus']);
   await act(async () => selected.props.onMouseDown({ button: 0, preventDefault: vi.fn() }));
   expect(current.modelId).toBe('cmodel');
   expect(api.getCachedAccountProxyModels(source)).toEqual(['Cantus', 'Qwen3.8-Max']);

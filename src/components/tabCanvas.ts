@@ -15,7 +15,7 @@ export interface TabCanvasPalette {
 }
 
 /** The chosen key sits this far inside its tab, so the well shows round it. */
-const KEY_INSET = 3;
+export const TAB_KEY_INSET = 3;
 
 function roundedRect(
   context: CanvasRenderingContext2D,
@@ -70,7 +70,7 @@ export function paintTabCanvas(
     context.fillRect(0, 0, width, height);
   }
   for (const region of Array.isArray(selection) ? selection : [selection]) {
-    const inset = Math.min(KEY_INSET, region.width / 4, region.height / 4);
+    const inset = Math.min(TAB_KEY_INSET, region.width / 4, region.height / 4);
     const x = region.x + inset;
     const y = region.y + inset;
     const keyWidth = Math.max(0, region.width - inset * 2);

@@ -115,7 +115,7 @@ export const AccountSectionButton: React.FC<{
   if (secondary) {
     return (
       <div
-        className={`account-pill ${colorClassName} ${className} relative flex h-12 w-full items-center justify-center rounded-card px-3 transition-opacity hover:opacity-90`}
+        className={`account-pill ${colorClassName} ${className} relative flex h-12 w-full items-center justify-center rounded-card px-3`}
       >
         <button
           type="button"
@@ -149,7 +149,7 @@ export const AccountSectionButton: React.FC<{
     // The "?" sits outside the click target, so reading it never starts the action.
     return (
       <div
-        className={`account-pill ${colorClassName} ${className} relative flex h-12 w-full items-center justify-center rounded-card px-3 text-[17px] font-bold leading-6 transition-opacity hover:opacity-90`}
+        className={`account-pill ${colorClassName} ${className} relative flex h-12 w-full items-center justify-center rounded-card px-3 text-[17px] font-bold leading-6`}
       >
         <button
           type="button"
@@ -171,7 +171,7 @@ export const AccountSectionButton: React.FC<{
       type="button"
       onClick={onClick}
       disabled={disabled || busy}
-      className={`account-pill ${colorClassName} ${className} flex h-12 w-full items-center justify-center rounded-card px-3 text-[17px] font-bold leading-6 transition-opacity hover:opacity-90`}
+      className={`account-pill ${colorClassName} ${className} flex h-12 w-full items-center justify-center rounded-card px-3 text-[17px] font-bold leading-6`}
     >
       <span className="flex translate-y-px items-center gap-2.5">
         {iconSrc && <img src={iconSrc} alt="" className="h-6 w-6" />}
@@ -335,7 +335,7 @@ export const AccountSectionRow: React.FC<{
           onSelect();
         }
       }}
-      className={`account-pill ${colorClassName} grid h-14 ${singleLine ? (leadingAction ? 'grid-cols-[minmax(0,1fr)_60px] gap-2' : 'grid-cols-[minmax(0,1fr)_44px] gap-2') : 'grid-cols-[minmax(0,1fr)] auto-rows-[16px] content-center'} items-center rounded-card border-2 ${selected ? 'is-selected' : 'border-transparent'} px-3 transition-opacity hover:opacity-90`}
+      className={`account-pill ${colorClassName} grid h-14 ${singleLine ? (leadingAction ? 'grid-cols-[minmax(0,1fr)_60px] gap-2' : 'grid-cols-[minmax(0,1fr)_44px] gap-2') : 'grid-cols-[minmax(0,1fr)] auto-rows-[16px] content-center'} items-center rounded-card border-2 ${selected ? 'is-selected' : 'border-transparent'} px-3`}
     >
       <span
         className={`min-w-0 items-center gap-2 ${singleLine ? 'grid grid-cols-[minmax(0,1fr)_auto]' : 'flex'}`}

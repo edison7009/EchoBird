@@ -25,7 +25,7 @@ pub struct Price {
     pub provider: String,
     pub fetched_at: u64,
 }
-#[derive(Clone, Default, Debug, Serialize, Deserialize)]
+#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Tier {
     pub above: u64,
@@ -258,7 +258,11 @@ pub async fn refresh() -> Result<Status, String> {
     Ok(status)
 }
 
-pub(crate) async fn warm_for_assistant() {
+pub(crate) async fn warm_for_assistant(refresh_public: bool) {
+    if !refresh_public {
+        let _ = tauri::async_runtime::spawn_blocking(status).await;
+        return;
+    }
     use std::sync::atomic::{AtomicU64, Ordering};
     static NEXT_CHECK: AtomicU64 = AtomicU64::new(0);
     let now = chrono::Utc::now().timestamp_millis().max(0) as u64;
@@ -303,6 +307,65 @@ pub fn lookup(base_url: &str, source: Option<&AccountSource>, model: &str) -> Op
     }
     c.prices.get(&format!("{provider}/{model}")).cloned()
 }
+
+pub(crate) fn lookup_assistant_model(model: &str) -> Option<Price> {
+    let catalog = cache().lock().unwrap_or_else(|e| e.into_inner());
+    assistant_model_price(&catalog, model.trim()).cloned()
+}
+
+fn assistant_model_price<'a>(catalog: &'a Cache, model: &str) -> Option<&'a Price> {
+    const PUBLISHERS: &[&str] = &[
+        "alibaba",
+        "anthropic",
+        "cohere",
+        "deepseek",
+        "google",
+        "minimax",
+        "mistral",
+        "moonshotai",
+        "openai",
+        "xai",
+        "xiaomi",
+        "zai",
+    ];
+    // A catalog-qualified ID explicitly identifies a priced entry.
+    if let Some(price) = catalog.prices.get(model) {
+        return Some(price);
+    }
+    let claude = model.strip_prefix("anthropic/").unwrap_or(model);
+    if claude.starts_with("claude-") && claude.contains('.') {
+        if let Some(price) = catalog
+            .prices
+            .get(&format!("anthropic/{}", claude.replace('.', "-")))
+        {
+            return Some(price);
+        }
+    }
+    let published = PUBLISHERS
+        .iter()
+        .filter_map(|publisher| catalog.prices.get(&format!("{publisher}/{model}")));
+    agreed_price(published).or_else(|| {
+        agreed_price(catalog.prices.iter().filter_map(|(key, price)| {
+            key.split_once('/')
+                .and_then(|(_, id)| (id == model).then_some(price))
+        }))
+    })
+}
+
+fn agreed_price<'a>(mut prices: impl Iterator<Item = &'a Price>) -> Option<&'a Price> {
+    let first = prices.next()?;
+    prices
+        .all(|price| {
+            price.input == first.input
+                && price.output == first.output
+                && price.cache_read == first.cache_read
+                && price.cache_write == first.cache_write
+                && price.cache_write_1h == first.cache_write_1h
+                && price.tiers == first.tiers
+        })
+        .then_some(first)
+}
+
 impl Price {
     pub fn estimate(&self, report: &UsageReport) -> Option<u64> {
         if !report.billable || !valid(self) {
@@ -351,6 +414,47 @@ impl Price {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn assistant_pricing_matches_models_without_a_request_host() {
+        let catalog = parse(
+            br#"{
+                "anthropic": {"models": {"claude-test-4-6": {"cost": {"input": 5, "output": 25}}}},
+                "relay": {"models": {
+                    "claude-test-4-6": {"cost": {"input": 2, "output": 4}},
+                    "neutral/unique": {"cost": {"input": 1, "output": 2}},
+                    "same": {"cost": {"input": 3, "output": 6}},
+                    "ambiguous": {"cost": {"input": 3, "output": 6, "cache_read": 1}}
+                }},
+                "another": {"models": {
+                    "same": {"cost": {"input": 3, "output": 6}},
+                    "ambiguous": {"cost": {"input": 3, "output": 6, "cache_read": 2}}
+                }}
+            }"#,
+            42,
+        )
+        .unwrap();
+        for model in ["claude-test-4-6", "anthropic/claude-test-4.6"] {
+            let price = assistant_model_price(&catalog, model).unwrap();
+            assert_eq!((price.input, price.output), (5.0, 25.0));
+        }
+        assert_eq!(
+            assistant_model_price(&catalog, "relay/claude-test-4-6")
+                .unwrap()
+                .input,
+            2.0
+        );
+        assert_eq!(
+            assistant_model_price(&catalog, "neutral/unique")
+                .unwrap()
+                .input,
+            1.0
+        );
+        assert_eq!(assistant_model_price(&catalog, "same").unwrap().input, 3.0);
+        assert!(assistant_model_price(&catalog, "ambiguous").is_none());
+        assert!(assistant_model_price(&catalog, "not-in-catalog").is_none());
+    }
+
     #[test]
     fn prices_exact_models_cache_categories_and_context_tiers_without_inventing_missing_rates() {
         let bytes=br#"{"vendor":{"models":{"exact":{"cost":{"input":2,"output":10,"cache_read":0.2,"cache_write":2.5,"tiers":[{"tier":{"type":"context","size":100},"input":4,"output":20,"cache_read":0.4,"cache_write":5}]}},"missing":{"cost":{"input":2}},"bad":{"cost":{"input":-1,"output":3}}}}}"#;

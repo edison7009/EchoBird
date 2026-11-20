@@ -1145,11 +1145,53 @@ describe('Mother Agent saved conversation workflow', () => {
       });
     }
     emitAgent({
+      type: 'tool_call_executing',
+      id: 'executed',
+      args: '{"command":"echo finalized fixture"}',
+      conversation_id: session,
+    });
+    emitAgent({
+      type: 'tool_call_args',
+      id: 'executed',
+      args: 'late fragment',
+      conversation_id: session,
+    });
+    for (const id of ['executed', 'queued']) {
+      emitAgent({
+        type: 'tool_call_output',
+        id,
+        preview: 'Reading fixture',
+        conversation_id: session,
+      });
+    }
+    const executed = state.chatOutput.find((m) => m.type === 'tool_call' && m.id === 'executed');
+    const queued = state.chatOutput.find((m) => m.type === 'tool_call' && m.id === 'queued');
+    expect(executed).toMatchObject({
+      args: '{"command":"echo finalized fixture"}',
+      executing: true,
+      liveOutput: 'Reading fixture',
+    });
+    expect(queued).not.toHaveProperty('executing');
+    expect(queued).not.toHaveProperty('liveOutput');
+    emitAgent({
       type: 'tool_result',
       id: 'executed',
       output: 'fixture',
       success: true,
       conversation_id: session,
+    });
+    emitAgent({
+      type: 'tool_call_output',
+      id: 'executed',
+      preview: 'Late output',
+      conversation_id: session,
+    });
+    expect(
+      state.chatOutput.find((m) => m.type === 'tool_call' && m.id === 'executed')
+    ).toMatchObject({
+      status: 'done',
+      output: 'fixture',
+      liveOutput: undefined,
     });
     expect(state.turnStartedAt).toBe(startedAt);
     emitAgent({ type: 'done', conversation_id: session, summary: null });
@@ -1165,6 +1207,9 @@ describe('Mother Agent saved conversation workflow', () => {
     });
     await mount();
     const tools = state.chatOutput.filter((m) => m.type === 'tool_call');
+    expect(
+      tools.every((tool) => tool.executing === undefined && tool.liveOutput === undefined)
+    ).toBe(true);
     expect(tools.map(({ id, status }) => [id, status])).toEqual([
       ['executed', 'done'],
       ['queued', 'failed'],

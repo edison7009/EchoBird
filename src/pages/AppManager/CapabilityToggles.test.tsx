@@ -2,6 +2,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import renderer, { act } from 'react-test-renderer';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { TAB_KEY_INSET } from '../../components/tabCanvas';
 import { CapabilityToggles, type CapabilityToggle } from './CapabilityToggles';
 
 const platform = vi.hoisted(() => ({ IS_MACOS: false }));
@@ -37,6 +38,27 @@ describe('CapabilityToggles', () => {
     expect(markup).not.toContain('role="switch"');
     expect(markup).not.toContain('view-mode-tabs');
     expect(markup).not.toContain('cursor-');
+  });
+
+  it('keeps the same button geometry and shares the canvas inset across states', () => {
+    const initial = toggles();
+    const tree = renderer.create(<CapabilityToggles toggles={initial} />);
+    const buttons = () => tree.root.findAllByType('button');
+    const classes = buttons().map((button) => button.props.className);
+    act(() =>
+      tree.update(
+        <CapabilityToggles
+          toggles={initial.map((toggle) => ({ ...toggle, checked: !toggle.checked }))}
+        />
+      )
+    );
+    expect(buttons().map((button) => button.props['aria-pressed'])).toEqual([false, true]);
+    expect(buttons().map((button) => button.props.className)).toEqual(classes);
+    expect(buttons().map((button) => button.props.style)).toEqual([
+      { '--capability-key-inset': `${TAB_KEY_INSET}px` },
+      { '--capability-key-inset': `${TAB_KEY_INSET}px` },
+    ]);
+    act(() => tree.unmount());
   });
 
   it('toggles only the clicked capability to its opposite value', () => {

@@ -18,6 +18,7 @@ use super::auto_fix;
 use super::datalog::DatalogWriter;
 use super::json_repair::repair_tool_args;
 use super::llm_client::*;
+use super::smart_router::usage::UsageReport;
 use crate::commands::ssh_commands::SSHPool;
 
 // ── Constants ──
@@ -42,6 +43,10 @@ pub enum AgentEvent {
     ToolCallStart { id: String, name: String },
     #[serde(rename = "tool_call_args")]
     ToolCallArgs { id: String, args: String },
+    #[serde(rename = "tool_call_executing")]
+    ToolCallExecuting { id: String, args: String },
+    #[serde(rename = "tool_call_output")]
+    ToolCallOutput { id: String, preview: String },
     #[serde(rename = "tool_result")]
     ToolResult {
         id: String,
@@ -63,7 +68,14 @@ pub struct ReplySummary {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub total_tokens: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub output_tokens: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub estimated_cost_micros: Option<u64>,
+}
+
+pub(super) fn reported_output_tokens(report: &UsageReport) -> Option<u64> {
+    let output = report.usage.output_tokens;
+    (output > 0 || report.billable).then_some(output)
 }
 
 pub(super) fn elapsed_ms(started: Instant) -> u64 {
@@ -81,6 +93,11 @@ fn reply_summary(
             let round = round.as_ref().filter(|round| round.total_known)?;
             sum.checked_add(round.report.usage.total_tokens)
         }),
+        // The reply count belongs to the completion that produced the final answer.
+        output_tokens: rounds
+            .last()
+            .and_then(Option::as_ref)
+            .and_then(|round| reported_output_tokens(&round.report)),
         estimated_cost_micros: rounds.iter().try_fold(0_u64, |sum, round| {
             sum.checked_add(estimate(round.as_ref()?)?)
         }),
@@ -332,9 +349,11 @@ pub async fn run_agent(
         .unwrap_or(&request.base_url);
     // Only an explicit send can fetch the shared public catalog. Pricing
     // is optional and never changes the model request.
-    let price_warmup = (url::Url::parse(price_endpoint).is_ok_and(|url| url.scheme() == "https")
-        || super::smart_router::is_router_url(price_endpoint))
-    .then(|| tokio::spawn(super::smart_router::pricing::warm_for_assistant()));
+    let refresh_prices = url::Url::parse(price_endpoint).is_ok_and(|url| url.scheme() == "https")
+        || super::smart_router::is_router_url(price_endpoint);
+    let price_warmup = tokio::spawn(super::smart_router::pricing::warm_for_assistant(
+        refresh_prices,
+    ));
 
     let tools = agent_tools::get_tool_definitions();
 
@@ -907,7 +926,8 @@ pub async fn run_agent(
                     if let Some(p) = pre {
                         return p;
                     }
-                    agent_tools::execute_tool(&name, &args, &sshp, &server_ids, &output_scope).await
+                    agent_tools::execute_tool(&name, &args, &sshp, &server_ids, &output_scope, None)
+                        .await
                 }));
             }
 
@@ -982,8 +1002,31 @@ pub async fn run_agent(
                 let (mut result, was_cancelled) = if let Some(pre) = precomputed.remove(&tc.id) {
                     (pre, false)
                 } else {
+                    let preview = |preview| {
+                        emit_event(
+                            &app,
+                            request.conversation_id.as_deref(),
+                            request.request_id.as_deref(),
+                            AgentEvent::ToolCallOutput {
+                                id: tc.id.clone(),
+                                preview,
+                            },
+                        );
+                    };
+                    let is_shell = matches!(tc.name.as_str(), "shell_exec" | "ssh_shell");
+                    if is_shell {
+                        emit_event(
+                            &app,
+                            request.conversation_id.as_deref(),
+                            request.request_id.as_deref(),
+                            AgentEvent::ToolCallExecuting {
+                                id: tc.id.clone(),
+                                args: tc.arguments.clone(),
+                            },
+                        );
+                    }
                     tokio::select! {
-                        r = agent_tools::execute_tool(&tc.name, &tc.arguments, &ssh_pool, &request.server_ids, &server_key) => (r, false),
+                        r = agent_tools::execute_tool(&tc.name, &tc.arguments, &ssh_pool, &request.server_ids, &server_key, is_shell.then_some(&preview)) => (r, false),
                         _ = cancel_token.cancelled() => {
                             log::info!("[AgentLoop] Tool cancelled by user: {}", tc.name);
                             (agent_tools::ToolResult { output: "Cancelled by user".to_string(), success: false }, true)
@@ -1142,17 +1185,19 @@ pub async fn run_agent(
     };
     let summary = if completed_turn && !cancel_token.is_cancelled() && save_error.is_none() {
         let duration_ms = elapsed_ms(started);
-        if let Some(warmup) = price_warmup {
-            // A slow or unavailable catalog must not keep the reply open.
-            let _ = tokio::time::timeout(std::time::Duration::from_millis(250), warmup).await;
-        }
+        // A slow or unavailable catalog must not keep the reply open.
+        let _ = tokio::time::timeout(std::time::Duration::from_millis(250), price_warmup).await;
         Some(reply_summary(duration_ms, &round_usage, |round| {
-            if let Some(routed) = &round.routed {
-                return routed.estimate(&round.report);
-            }
-            let model = round.model.as_deref().unwrap_or(&request.model_name);
-            super::smart_router::pricing::lookup(price_endpoint, None, model)?
-                .estimate(&round.report)
+            use super::smart_router::pricing::lookup_assistant_model;
+            let price = match round.routed_model.as_deref() {
+                Some(model) => lookup_assistant_model(model),
+                None => round
+                    .model
+                    .as_deref()
+                    .and_then(lookup_assistant_model)
+                    .or_else(|| lookup_assistant_model(&request.model_name)),
+            }?;
+            price.estimate(&round.report)
         }))
     } else {
         None
@@ -2374,7 +2419,7 @@ mod conversation_tests {
     use super::*;
 
     #[test]
-    fn reply_usage_sums_model_rounds_and_omits_incomplete_totals() {
+    fn reply_usage_separates_final_output_from_turn_totals() {
         use super::super::smart_router::{
             pricing::Price,
             usage::{TokenUsage, UsageReport},
@@ -2394,7 +2439,7 @@ mod conversation_tests {
                 },
                 total_known: true,
                 model: None,
-                routed: None,
+                routed_model: None,
             })
         };
         let price = Price {
@@ -2404,13 +2449,27 @@ mod conversation_tests {
             ..Default::default()
         };
         let estimate = |round: &CompletionUsage| price.estimate(&round.report);
-        let complete = reply_summary(4000, &[round(100, 10, 20), round(190, 10, 40)], estimate);
+        let complete = reply_summary(4000, &[round(100, 11, 20), round(190, 9, 40)], estimate);
         assert_eq!(complete.duration_ms, 4000);
         assert_eq!(complete.total_tokens, Some(310));
+        assert_eq!(complete.output_tokens, Some(9));
         assert_eq!(complete.estimated_cost_micros, Some(570));
+
+        let mut total_only = round(190, 10, 40).unwrap();
+        total_only.report.billable = false;
+        total_only.report.usage.output_tokens = 0;
+        let partial = reply_summary(4000, &[round(100, 10, 20), Some(total_only)], estimate);
+        assert_eq!(partial.total_tokens, Some(310));
+        assert_eq!(partial.output_tokens, None);
+
         let missing = reply_summary(4000, &[round(100, 10, 20), None], estimate);
         assert_eq!(missing.total_tokens, None);
+        assert_eq!(missing.output_tokens, None);
         assert_eq!(missing.estimated_cost_micros, None);
+
+        let only_final_usage = reply_summary(4000, &[None, round(190, 9, 40)], estimate);
+        assert_eq!(only_final_usage.output_tokens, Some(9));
+        assert_eq!(only_final_usage.total_tokens, None);
     }
 
     #[tokio::test]

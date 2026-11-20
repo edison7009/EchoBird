@@ -3237,17 +3237,11 @@ async fn assistant_receives_selected_upstream_usage_with_statistics_off() {
     .await;
     let root = tempfile::tempdir().unwrap();
     let mut state = AppState::for_tests().unwrap();
-    state.http_client = reqwest::Client::builder()
-        .no_proxy()
-        .resolve("api.openai.com", addr)
-        .build()
-        .unwrap();
     state.config_path = root.path().join("assistant-route.json");
     state.protection_settings_path = root.path().join("settings.json");
     state.statistics_collector =
         Some(super::super::statistics::Collector::open(root.path().join("counts.json")).unwrap());
-    let mut backup = candidate(addr, "assistant-backup");
-    backup.base_url = format!("http://api.openai.com:{}/v1", addr.port());
+    let backup = candidate(addr, "assistant-backup");
     pricing::set_test_price(
         "openai",
         &backup.model_id,
@@ -3285,7 +3279,12 @@ async fn assistant_receives_selected_upstream_usage_with_statistics_off() {
         assert!(total_known);
         assert_eq!(report.usage.total_tokens, 120);
         assert_eq!(report.cache_read, 40);
-        assert_eq!(selected.pricing.estimate(&report), Some(220));
+        assert_eq!(selected.model, backup.model_id);
+        assert_eq!(
+            pricing::lookup_assistant_model(&selected.model)
+                .and_then(|price| price.estimate(&report)),
+            Some(220)
+        );
         assert!(assistant_usage::claim(&headers).is_none());
     }
     assert!(unrelated.selected().is_none());

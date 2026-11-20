@@ -53,7 +53,7 @@ export function SmartRouterIconPicker({
           ref={panel}
           role="dialog"
           aria-label={t('freeModels.router.chooseIcon')}
-          className="app-tooltip absolute left-0 top-full z-20 mt-1 grid w-72 grid-cols-7 gap-1 rounded-md border p-2 shadow-lg"
+          className="app-tooltip selection-popover absolute left-0 top-full z-20 mt-1 grid w-72 grid-cols-7 gap-1 p-2"
         >
           {Object.keys(smartRouterIcons).map((name) => (
             <button
@@ -66,7 +66,7 @@ export function SmartRouterIconPicker({
                 setOpen(false);
                 trigger.current?.focus();
               }}
-              className={`flex h-9 w-9 items-center justify-center rounded-button focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyber-accent ${selected === name ? 'bg-cyber-accent/15 text-cyber-accent' : 'text-cyber-text-secondary hover:bg-cyber-elevated hover:text-cyber-text'}`}
+              className={`flex h-9 w-9 items-center justify-center rounded-button focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyber-accent ${selected === name ? 'bg-cyber-accent/15 text-cyber-accent' : 'selection-menu-row text-cyber-text-secondary hover:text-white'}`}
             >
               <SmartRouterIcon name={name} size={20} />
             </button>

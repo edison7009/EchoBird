@@ -1,11 +1,14 @@
 // Agent Tools — shell execution (local + SSH), file operations
 // Cross-platform: Windows (PowerShell) / macOS+Linux (sh)
 
+use async_ssh2_tokio::{client::CommandExecutedResult, Client};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::process::Stdio;
 use std::time::Duration;
-use tokio::time::timeout;
+use tokio::io::{AsyncRead, AsyncReadExt};
+use tokio::sync::mpsc;
+use tokio::time::{timeout, Instant};
 
 use super::agent_context;
 use super::agent_history::HistoryStore;
@@ -372,12 +375,15 @@ pub fn get_tool_definitions() -> Vec<super::llm_client::ToolDef> {
 
 // ── Execution ──
 
+type ShellPreview<'a> = Option<&'a (dyn Fn(String) + Send + Sync)>;
+
 pub async fn execute_tool(
     name: &str,
     args_json: &str,
     ssh_pool: &SSHPool,
     session_server_ids: &[String],
     output_scope: &str,
+    preview: ShellPreview<'_>,
 ) -> ToolResult {
     let args: Value = match serde_json::from_str(args_json) {
         Ok(v) => v,
@@ -455,7 +461,7 @@ pub async fn execute_tool(
                 };
             }
             let server_id = resolve_server_id(raw_sid);
-            match capture_shell(command, &server_id, ssh_pool).await {
+            match capture_shell(command, &server_id, ssh_pool, preview).await {
                 Ok(record) => saved_shell_result(record, output_scope, &OutputStore::standard()),
                 Err(result) => result,
             }
@@ -728,11 +734,12 @@ async fn capture_shell(
     command: &str,
     server_id: &str,
     ssh_pool: &SSHPool,
+    preview: ShellPreview<'_>,
 ) -> Result<OutputRecord, ToolResult> {
     if server_id == "local" || server_id.is_empty() {
-        capture_local_shell(command).await
+        capture_local_shell(command, preview).await
     } else {
-        capture_ssh_shell(command, server_id, ssh_pool).await
+        capture_ssh_shell(command, server_id, ssh_pool, preview).await
     }
 }
 
@@ -769,13 +776,16 @@ pub async fn exec_shell(command: &str, server_id: &str, ssh_pool: &SSHPool) -> T
 }
 
 async fn exec_local_shell(command: &str) -> ToolResult {
-    match capture_local_shell(command).await {
+    match capture_local_shell(command, None).await {
         Ok(record) => legacy_shell_result(record),
         Err(result) => result,
     }
 }
 
-async fn capture_local_shell(command: &str) -> Result<OutputRecord, ToolResult> {
+async fn capture_local_shell(
+    command: &str,
+    preview: ShellPreview<'_>,
+) -> Result<OutputRecord, ToolResult> {
     log::info!(
         "[AgentTools] Local exec: {}",
         &command[..floor_char_boundary(command, 200)]
@@ -862,11 +872,15 @@ async fn capture_local_shell(command: &str) -> Result<OutputRecord, ToolResult> 
             });
         }
     };
-    // Capture the PID before wait_with_output consumes the Child handle —
-    // on timeout the handle is gone, so the tree-kill must go by PID.
+    // Retain the process group ID for timeout cleanup after the wait future drops.
     let pid = child.id();
 
-    match timeout(Duration::from_secs(timeout_secs), child.wait_with_output()).await {
+    match timeout(
+        Duration::from_secs(timeout_secs),
+        wait_for_shell(child, preview),
+    )
+    .await
+    {
         Ok(Ok(output)) => Ok(OutputRecord {
             command: command.into(),
             target: "local".into(),
@@ -893,6 +907,87 @@ async fn capture_local_shell(command: &str) -> Result<OutputRecord, ToolResult> 
             })
         }
     }
+}
+
+#[derive(Default)]
+struct ShellCapture {
+    bytes: Vec<u8>,
+    last_preview: Option<(Instant, String)>,
+}
+
+impl ShellCapture {
+    fn push(&mut self, bytes: &[u8], preview: ShellPreview<'_>) {
+        self.bytes.extend_from_slice(bytes);
+        let Some(emit) = preview else { return };
+        if self
+            .last_preview
+            .as_ref()
+            .is_some_and(|(sent, _)| sent.elapsed() < Duration::from_millis(50))
+        {
+            return;
+        }
+
+        let start = self.bytes.len().saturating_sub(1024);
+        let tail = String::from_utf8_lossy(&self.bytes[start..]);
+        let clean = agent_output_summary::strip_ansi(&tail);
+        let Some(line) = clean
+            .rsplit(['\r', '\n'])
+            .map(str::trim)
+            .find(|line| !line.is_empty())
+        else {
+            return;
+        };
+        let line = &line[ceil_char_boundary(line, line.len().saturating_sub(320))..];
+        let text: String = line
+            .chars()
+            .filter(|ch| !ch.is_control() || *ch == '\t')
+            .collect();
+        if !text.is_empty()
+            && self
+                .last_preview
+                .as_ref()
+                .is_none_or(|(_, last)| *last != text)
+        {
+            emit(text.clone());
+            self.last_preview = Some((Instant::now(), text));
+        }
+    }
+}
+
+async fn read_shell_pipe(
+    mut pipe: impl AsyncRead + Unpin,
+    preview: ShellPreview<'_>,
+) -> std::io::Result<Vec<u8>> {
+    let mut output = ShellCapture::default();
+    let mut chunk = [0; 4096];
+    loop {
+        let read = pipe.read(&mut chunk).await?;
+        if read == 0 {
+            return Ok(output.bytes);
+        }
+        output.push(&chunk[..read], preview);
+    }
+}
+
+async fn wait_for_shell(
+    mut child: tokio::process::Child,
+    preview: ShellPreview<'_>,
+) -> std::io::Result<std::process::Output> {
+    if preview.is_none() {
+        return child.wait_with_output().await;
+    }
+    let stdout = child.stdout.take().expect("shell stdout is piped");
+    let stderr = child.stderr.take().expect("shell stderr is piped");
+    let (status, stdout, stderr) = tokio::try_join!(
+        child.wait(),
+        read_shell_pipe(stdout, preview),
+        read_shell_pipe(stderr, preview),
+    )?;
+    Ok(std::process::Output {
+        status,
+        stdout,
+        stderr,
+    })
 }
 
 /// Kill a process and its entire descendant tree after a command timeout.
@@ -928,7 +1023,7 @@ fn kill_process_tree(pid: u32) {
 }
 
 async fn exec_ssh_shell(command: &str, server_id: &str, ssh_pool: &SSHPool) -> ToolResult {
-    match capture_ssh_shell(command, server_id, ssh_pool).await {
+    match capture_ssh_shell(command, server_id, ssh_pool, None).await {
         Ok(record) => legacy_shell_result(record),
         Err(result) => result,
     }
@@ -938,6 +1033,7 @@ async fn capture_ssh_shell(
     command: &str,
     server_id: &str,
     ssh_pool: &SSHPool,
+    preview: ShellPreview<'_>,
 ) -> Result<OutputRecord, ToolResult> {
     log::info!(
         "[AgentTools] SSH exec on {}: {}",
@@ -975,7 +1071,12 @@ async fn capture_ssh_shell(
 
     // Timeout to prevent hanging forever on remote commands
     let timeout_secs = get_exec_timeout(command);
-    match timeout(Duration::from_secs(timeout_secs), client.execute(command)).await {
+    match timeout(
+        Duration::from_secs(timeout_secs),
+        capture_ssh_output(&client, command, preview),
+    )
+    .await
+    {
         Ok(Ok(result)) => Ok(OutputRecord {
             command: command.into(),
             target: server_id.into(),
@@ -993,6 +1094,39 @@ async fn capture_ssh_shell(
             output: format!("SSH command timed out after {}s", timeout_secs),
         }),
     }
+}
+
+async fn receive_ssh_output(
+    mut receiver: mpsc::Receiver<Vec<u8>>,
+    preview: ShellPreview<'_>,
+) -> String {
+    let mut output = ShellCapture::default();
+    while let Some(bytes) = receiver.recv().await {
+        output.push(&bytes, preview);
+    }
+    String::from_utf8_lossy(&output.bytes).into_owned()
+}
+
+async fn capture_ssh_output(
+    client: &Client,
+    command: &str,
+    preview: ShellPreview<'_>,
+) -> Result<CommandExecutedResult, async_ssh2_tokio::Error> {
+    if preview.is_none() {
+        return client.execute(command).await;
+    }
+    let (stdout_tx, stdout_rx) = mpsc::channel(4);
+    let (stderr_tx, stderr_rx) = mpsc::channel(4);
+    let (exit_status, stdout, stderr) = tokio::join!(
+        client.execute_io(command, stdout_tx, Some(stderr_tx), None, false, None),
+        receive_ssh_output(stdout_rx, preview),
+        receive_ssh_output(stderr_rx, preview),
+    );
+    Ok(CommandExecutedResult {
+        exit_status: exit_status?,
+        stdout,
+        stderr,
+    })
 }
 
 fn exec_get_sudo_password(server_id: &str) -> ToolResult {
@@ -2004,6 +2138,7 @@ mod output_tests {
             &pool,
             &["local".into()],
             &scope,
+            None,
         )
         .await;
         let remote = execute_tool(
@@ -2012,6 +2147,7 @@ mod output_tests {
             &pool,
             &["fixture-remote".into()],
             &scope,
+            None,
         )
         .await;
         let _ = OutputStore::standard().clear_scope(&scope);
@@ -2287,6 +2423,7 @@ mod output_tests {
             &pool,
             &["remote-not-connected".into()],
             "isolated-fixture-conversation",
+            None,
         )
         .await;
         assert!(!result.success);
@@ -2300,7 +2437,14 @@ mod output_tests {
         let command = "[Console]::Out.Write(('x' * 12000)); [Console]::Error.Write('stderr diagnostic'); exit 7";
         #[cfg(not(windows))]
         let command = "printf '%12000s' x; printf 'stderr diagnostic' >&2; exit 7";
-        let captured = capture_local_shell(command).await.unwrap();
+        let previews = std::sync::Mutex::new(Vec::new());
+        let preview = |text| previews.lock().unwrap().push(text);
+        let captured = capture_local_shell(command, Some(&preview)).await.unwrap();
+        assert!(previews
+            .into_inner()
+            .unwrap()
+            .iter()
+            .any(|line| line == "stderr diagnostic"));
         assert!(!captured.success);
         assert_eq!(captured.exit_code, Some(7));
         assert_eq!(captured.stdout.len(), 12000);

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, RefreshCw } from 'lucide-react';
+import { Check, ChevronDown, RefreshCw } from 'lucide-react';
 import { isFreeModelOption } from '../utils/modelOptions';
 import './ModelIdCombobox.css';
 
@@ -423,9 +423,10 @@ export function ModelIdCombobox({
                 '--model-menu-left': compact ? `${menuPos.left}px` : undefined,
               } as React.CSSProperties
             }
-            className={`overflow-y-auto z-[9999] cursor-default ${compact ? `app-tooltip selection-popover model-selection-menu p-1.5 model-id-combobox-menu${menuPos.dropUp ? ' is-drop-up' : ''}` : 'bg-cyber-surface border border-cyber-border/60 rounded-button shadow-lg'}`}
+            className={`app-tooltip selection-popover model-selection-menu z-[9999] overflow-y-auto p-1.5 ${compact ? `model-id-combobox-menu${menuPos.dropUp ? ' is-drop-up' : ''}` : 'space-y-1'}`}
           >
             {filtered.map((opt, idx) => {
+              const selected = opt === value;
               const free = freeIds.has(opt);
               const multiplier = optionMultipliers?.[opt];
               const hasMultiplier =
@@ -443,42 +444,22 @@ export function ModelIdCombobox({
                     pick(opt);
                   }}
                   onMouseEnter={() => setActiveIdx(idx)}
-                  data-selected={compact && opt === value ? true : undefined}
-                  data-active={compact && idx === activeIdx ? true : undefined}
-                  className={
-                    compact
-                      ? 'selection-menu-row grid grid-cols-[minmax(0,1fr)_3rem] items-center gap-2 px-3 py-2 text-xs font-sans transition-colors'
-                      : `px-2 py-1.5 text-xs font-mono transition-colors ${free || hasMultiplier ? 'flex items-center gap-2' : 'truncate'} ${
-                          opt === value
-                            ? 'bg-cyber-text/15 text-cyber-text'
-                            : idx === activeIdx
-                              ? 'bg-cyber-text/10 text-cyber-text'
-                              : 'text-cyber-text hover:bg-cyber-text/10'
-                        }`
-                  }
+                  data-selected={selected || undefined}
+                  data-active={idx === activeIdx || undefined}
+                  className={`selection-menu-row items-center gap-2 px-3 py-2 text-xs transition-colors ${compact ? 'grid grid-cols-[minmax(0,1fr)_3rem]' : 'flex'}`}
                 >
-                  {compact ? (
-                    <>
-                      <span className="min-w-0 truncate">{label(opt)}</span>
-                      {(free || hasMultiplier) && (
-                        <span
-                          className={`col-start-2 text-right whitespace-nowrap ${free ? 'text-green-500' : 'text-cyber-text-muted'}`}
-                        >
-                          {free ? freeLabel : `${multiplier}×`}
-                        </span>
-                      )}
-                    </>
-                  ) : free || hasMultiplier ? (
-                    <>
-                      <span className="min-w-0 truncate">{label(opt)}</span>
-                      <span
-                        className={`shrink-0 font-sans ${free ? 'text-green-500' : 'text-cyber-text-muted'}`}
-                      >
-                        {free ? freeLabel : `${multiplier}×`}
-                      </span>
-                    </>
-                  ) : (
-                    label(opt)
+                  <span className={`min-w-0 truncate ${compact ? '' : 'flex-1'}`}>
+                    {label(opt)}
+                  </span>
+                  {(free || hasMultiplier) && (
+                    <span
+                      className={`shrink-0 whitespace-nowrap ${compact ? 'col-start-2 text-right' : ''} ${free ? 'text-green-500' : 'text-cyber-text-muted'}`}
+                    >
+                      {free ? freeLabel : `${multiplier}×`}
+                    </span>
+                  )}
+                  {!compact && selected && (
+                    <Check size={12} className="shrink-0" aria-hidden="true" />
                   )}
                 </div>
               );

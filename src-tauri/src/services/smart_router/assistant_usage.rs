@@ -6,12 +6,7 @@ use axum::http::HeaderMap;
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::models::model::AccountSource;
-
-use super::{
-    pricing,
-    usage::{UsageAccumulator, UsageReport},
-};
+use super::usage::{UsageAccumulator, UsageReport};
 
 pub(crate) const HEADER: &str = "x-echobird-assistant-usage";
 
@@ -66,25 +61,14 @@ pub(super) fn claim(headers: &HeaderMap) -> Option<Receipt> {
 #[derive(Clone)]
 pub(crate) struct RoutedUsage {
     usage: Arc<Mutex<UsageAccumulator>>,
-    pub pricing: RoutedPricing,
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct RoutedPricing {
-    base_url: String,
-    source: Option<AccountSource>,
-    model: String,
+    pub model: String,
 }
 
 impl RoutedUsage {
-    pub(super) fn new(base_url: &str, source: Option<&AccountSource>, model: &str) -> Self {
+    pub(super) fn new(model: &str) -> Self {
         Self {
             usage: Arc::default(),
-            pricing: RoutedPricing {
-                base_url: base_url.to_owned(),
-                source: source.cloned(),
-                model: model.to_owned(),
-            },
+            model: model.to_owned(),
         }
     }
 
@@ -98,11 +82,5 @@ impl RoutedUsage {
     pub fn report(&self) -> (UsageReport, bool) {
         let usage = self.usage.lock().unwrap_or_else(|e| e.into_inner());
         (usage.report(), usage.total_known())
-    }
-}
-
-impl RoutedPricing {
-    pub fn estimate(&self, report: &UsageReport) -> Option<u64> {
-        pricing::lookup(&self.base_url, self.source.as_ref(), &self.model)?.estimate(report)
     }
 }

@@ -554,7 +554,7 @@ function QuickAddDialog({
               return (
                 <section
                   key={row.key}
-                  className="inline-block w-full min-w-0 break-inside-avoid py-4 align-top [&_.capability-toggle]:max-w-full [&_.capability-toggle]:truncate [&_.capability-toggle[aria-pressed='false']]:border-dashed"
+                  className="inline-block w-full min-w-0 break-inside-avoid py-4 align-top [&_.capability-toggle]:max-w-full [&_.capability-toggle]:truncate"
                 >
                   <button
                     type="button"

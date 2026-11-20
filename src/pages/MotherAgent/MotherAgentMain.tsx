@@ -7,9 +7,12 @@ import { ChatBubble, ToolCallCard } from '../../components/chat';
 import { useI18n } from '../../hooks/useI18n';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { useMotherAgent } from './context';
+import { MessageNavigation } from './MessageNavigation';
 import { QuickCommandChips } from './QuickCommandChips';
 import { ReasoningControl } from './ReasoningControl';
 import { MA_PAGE_SIZE, type ChatMessage } from './types';
+
+const PROMPT_SCROLL_INSET = 16;
 
 function isVisibleMessage(message: ChatMessage) {
   return message.type !== 'tool_call' || !message.name.startsWith('memory_');
@@ -68,6 +71,14 @@ export function MotherAgentMain() {
   }, [chatInput, chatInputRef, chatPrefillRef, isProcessing]);
   const visibleChatOutput = React.useMemo(() => chatOutput.filter(isVisibleMessage), [chatOutput]);
 
+  const prompts = React.useMemo(
+    () =>
+      visibleChatOutput.flatMap((message, index) =>
+        message.type === 'user' ? [{ index, message }] : []
+      ),
+    [visibleChatOutput]
+  );
+
   // Build model list for RemoteModelSelector (with icons)
   const modelList: ModelOption[] = React.useMemo(
     () =>
@@ -100,10 +111,15 @@ export function MotherAgentMain() {
   const chatContainerRef = useRef<HTMLDivElement>(null!);
   const stickToBottomRef = useRef(true);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
-  const PAGE_SIZE = MA_PAGE_SIZE;
-  const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
+  const [retainedHistoryStart, setRetainedHistoryStart] = useState<number>();
   const [showSkeleton, setShowSkeleton] = useState(false);
   const paginationGenerationRef = useRef(0);
+  const pendingPromptRef = useRef<ChatMessage | null>(null);
+  const [readingPromptIndex, setReadingPromptIndex] = useState<number>();
+  const activePromptIndex =
+    (showScrollBtn ? readingPromptIndex : undefined) ?? prompts[prompts.length - 1]?.index;
+  const latestPageStart = Math.max(0, visibleChatOutput.length - MA_PAGE_SIZE);
+  const firstRenderedIndex = Math.min(latestPageStart, retainedHistoryStart ?? latestPageStart);
 
   // Re-snap to bottom every time the user opens this page — not just on first
   // hydration (the component stays mounted via CSS hidden, so a one-shot
@@ -149,11 +165,13 @@ export function MotherAgentMain() {
   useEffect(() => {
     paginationGenerationRef.current += 1;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setDisplayCount(PAGE_SIZE);
+    setRetainedHistoryStart(undefined);
     setShowSkeleton(false);
+    setReadingPromptIndex(undefined);
+    pendingPromptRef.current = null;
     stickToBottomRef.current = true;
     requestAnimationFrame(snapToBottom);
-  }, [selectedServerId, activeConversationId, snapToBottom, PAGE_SIZE]);
+  }, [selectedServerId, activeConversationId, snapToBottom]);
 
   // Re-arm sticky + snap whenever the page becomes active
   useEffect(() => {
@@ -168,7 +186,7 @@ export function MotherAgentMain() {
   useLayoutEffect(() => {
     if (!stickToBottomRef.current) return;
     snapToBottom();
-  }, [chatOutput, displayCount, isProcessing, snapToBottom]);
+  }, [chatOutput, firstRenderedIndex, isProcessing, snapToBottom]);
 
   // ResizeObserver safety net — catches async growth (markdown re-render,
   // image loads, code-block syntax highlighting) that bypasses React state.
@@ -182,6 +200,39 @@ export function MotherAgentMain() {
     return () => ro.disconnect();
   }, [snapToBottom]);
 
+  const scrollToPrompt = useCallback((index: number) => {
+    const container = chatContainerRef.current;
+    const target = container?.querySelector<HTMLElement>(`[data-prompt-anchor="${index}"]`);
+    if (!target) return;
+    container.scrollTop = target.offsetTop - PROMPT_SCROLL_INSET;
+    stickToBottomRef.current =
+      container.scrollHeight - container.scrollTop - container.clientHeight < 80;
+    setShowScrollBtn(!stickToBottomRef.current);
+    setReadingPromptIndex(index);
+  }, []);
+
+  const jumpToPrompt = (message: ChatMessage, index: number) => {
+    // A pending prepend must not restore the previous scroll position after a jump.
+    paginationGenerationRef.current += 1;
+    // Keep the expanded rows mounted as more replies arrive at the end.
+    setRetainedHistoryStart(Math.min(firstRenderedIndex, index));
+    if (index >= firstRenderedIndex && !showSkeleton) {
+      scrollToPrompt(index);
+      return;
+    }
+    pendingPromptRef.current = message;
+    stickToBottomRef.current = false;
+    setShowSkeleton(false);
+  };
+
+  useLayoutEffect(() => {
+    const pending = pendingPromptRef.current;
+    if (!pending) return;
+    pendingPromptRef.current = null;
+    const index = visibleChatOutput.indexOf(pending);
+    if (index >= firstRenderedIndex) scrollToPrompt(index);
+  }, [firstRenderedIndex, scrollToPrompt, showSkeleton, visibleChatOutput]);
+
   const handleScroll = async () => {
     const container = chatContainerRef.current;
     if (!container) return;
@@ -194,17 +245,32 @@ export function MotherAgentMain() {
     stickToBottomRef.current = isNearBottom;
     setShowScrollBtn(!isNearBottom && visibleChatOutput.length > 0);
 
-    if (container.scrollTop !== 0) return;
+    if (!isNearBottom && prompts.length > 1) {
+      // Each anchor is positioned relative to the scroll viewport.
+      const anchors = container.querySelectorAll<HTMLElement>('[data-prompt-anchor]');
+      const readingTop = container.scrollTop + PROMPT_SCROLL_INSET + 4;
+      let low = 0;
+      let high = anchors.length;
+      while (low < high) {
+        const middle = (low + high) >>> 1;
+        if (anchors[middle].offsetTop <= readingTop) low = middle + 1;
+        else high = middle;
+      }
+      const index = anchors[Math.max(0, low - 1)]?.dataset.promptAnchor;
+      setReadingPromptIndex(index === undefined ? undefined : Number(index));
+    }
+
+    if (container.scrollTop !== 0 || showSkeleton) return;
     const generation = paginationGenerationRef.current;
 
     // Phase 1: more in-memory messages to show
-    if (displayCount < visibleChatOutput.length) {
+    if (firstRenderedIndex > 0) {
       setShowSkeleton(true);
       const prevScrollHeight = container.scrollHeight;
       setTimeout(() => {
         if (generation !== paginationGenerationRef.current) return;
         setShowSkeleton(false);
-        setDisplayCount((c) => Math.min(c + PAGE_SIZE, visibleChatOutput.length));
+        setRetainedHistoryStart(Math.max(0, firstRenderedIndex - MA_PAGE_SIZE));
         requestAnimationFrame(() => {
           if (generation === paginationGenerationRef.current && chatContainerRef.current) {
             chatContainerRef.current.scrollTop =
@@ -234,7 +300,7 @@ export function MotherAgentMain() {
       }
       setShowSkeleton(false);
       if (visibleLoaded === 0) return;
-      setDisplayCount((c) => c + visibleLoaded);
+      setRetainedHistoryStart(0);
       requestAnimationFrame(() => {
         if (generation === paginationGenerationRef.current && chatContainerRef.current) {
           chatContainerRef.current.scrollTop =
@@ -263,7 +329,7 @@ export function MotherAgentMain() {
         <div
           ref={chatContainerRef}
           onScroll={handleScroll}
-          className={`absolute inset-0 overflow-y-auto slim-scroll ${showWelcome ? 'py-4' : 'p-4'}`}
+          className="absolute inset-0 overflow-y-auto slim-scroll py-4"
         >
           {showWelcome ? (
             <div className="grid min-h-full grid-rows-[minmax(0,0.35fr)_auto_minmax(0,0.65fr)]">
@@ -286,14 +352,18 @@ export function MotherAgentMain() {
               </div>
             </div>
           ) : (
-            /* Chat messages — markdown stream */
-            <div className="pt-2 pb-2">
+            <div className="mother-transcript py-2">
               {/* Skeleton placeholders — shown briefly when lazy-loading older messages */}
               {showSkeleton &&
                 [0, 1, 2].map((i) => <ChatBubble key={`sk-${i}`} role="skeleton" content="" />)}
-              {visibleChatOutput.slice(-displayCount).map((msg, i, arr) => {
+              {visibleChatOutput.slice(firstRenderedIndex).map((msg, offset) => {
+                const i = firstRenderedIndex + offset;
                 if (msg.type === 'user') {
-                  return <ChatBubble key={i} role="user" content={msg.text} chips={msg.chips} />;
+                  return (
+                    <div key={i} data-prompt-anchor={i}>
+                      <ChatBubble role="user" content={msg.text} chips={msg.chips} />
+                    </div>
+                  );
                 }
                 if (msg.type === 'tool_call') {
                   return (
@@ -302,13 +372,14 @@ export function MotherAgentMain() {
                       name={msg.name}
                       args={msg.args}
                       status={msg.status}
+                      liveOutput={msg.liveOutput}
                       output={msg.output}
                     />
                   );
                 }
                 if (msg.type === 'assistant') {
                   const isCurrentResponse = msg === lastVisibleOutput;
-                  const nextMessage = arr[i + 1];
+                  const nextMessage = visibleChatOutput[i + 1];
                   const legacyReply =
                     !msg.incomplete && (!nextMessage || nextMessage.type === 'user');
                   return (
@@ -343,10 +414,19 @@ export function MotherAgentMain() {
               {turnStartedAt !== undefined && lastVisibleOutput?.type !== 'assistant' && (
                 <ChatBubble role="working" content="" workingStartedAt={turnStartedAt} />
               )}
-              <div ref={chatEndRef} />
             </div>
           )}
+          {!showWelcome && <div ref={chatEndRef} />}
         </div>
+        {prompts.length > 0 && (
+          <MessageNavigation
+            key={activeConversationId}
+            prompts={prompts}
+            activeIndex={activePromptIndex}
+            active={isMotherActive}
+            onJump={jumpToPrompt}
+          />
+        )}
         {/* Scroll to bottom button */}
         {showScrollBtn && (
           <button

@@ -47,8 +47,10 @@ export function ApiModelFields({
   }, [source, active, t, showToast]);
   const revision = useRef(0);
   const running = useRef<string | null>(null);
+  const initialEditCatalogChecked = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [initial] = useState(() => ({
+    source,
     baseUrl: input.baseUrl,
     anthropicUrl: input.anthropicUrl,
     options: form.modelIdOptions,
@@ -153,24 +155,29 @@ export function ApiModelFields({
     const attempt = ++revision.current;
     running.current = null;
     if (!active || !validEndpoint) return;
-    void api.getCachedUpstreamModelCatalog(input).then(
-      (cached) => {
-        if (attempt !== revision.current) return;
-        setPendingSource(null);
-        if (cached) applyCatalog(cached);
-      },
-      () => {
-        if (attempt === revision.current) setPendingSource(null);
-        // A cache miss or unreadable key must not interrupt opening an edit form.
+    const acceptCache = (cached: api.UpstreamModelCatalog | null) => {
+      if (
+        attempt !== revision.current ||
+        !latest.current.active ||
+        latest.current.source !== source
+      )
+        return;
+      setPendingSource(null);
+      if (cached) applyCatalog(cached);
+      // Only the saved configuration gets an automatic request when opened in Edit.
+      if (editing && source === initial.source && !initialEditCatalogChecked.current) {
+        initialEditCatalogChecked.current = true;
+        if (!cached) void refresh(false);
       }
-    );
+    };
+    void api.getCachedUpstreamModelCatalog(input).then(acceptCache, () => acceptCache(null));
     if (!editing) timer.current = setTimeout(() => void refresh(false), 800);
     return () => {
       clearTimeout(timer.current);
       revision.current += 1;
       running.current = null;
     };
-  }, [source, input, active, editing, validEndpoint, applyCatalog, refresh]);
+  }, [source, input, active, editing, validEndpoint, applyCatalog, refresh, initial.source]);
 
   const fallback = (
     [...modelDirectory.providers, ...modelDirectory.relays] as api.ModelDirectoryEntry[]

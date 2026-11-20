@@ -19,6 +19,8 @@ export type ChatMessage =
       name: string;
       args: string;
       status: 'running' | 'done' | 'failed';
+      executing?: boolean;
+      liveOutput?: string;
       output?: string;
     }
   | { type: 'error'; text: string; i18nKey?: string }
