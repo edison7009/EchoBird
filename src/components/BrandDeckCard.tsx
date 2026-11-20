@@ -26,6 +26,7 @@ export function BrandDeckCard({
   off,
   picked,
   pressed,
+  addMark,
   extra,
   open,
   cancel,
@@ -47,6 +48,8 @@ export function BrandDeckCard({
   picked?: boolean;
   /** The main action is a toggle; its state for assistive tech. */
   pressed?: boolean;
+  /** Each click adds one more: a quiet plus at the card's end. */
+  addMark?: boolean;
   extra?: ReactNode;
   open?: { onClick: () => void; label: string; disabled?: boolean };
   cancel?: { onClick: () => void; label: string };
@@ -90,6 +93,11 @@ export function BrandDeckCard({
         <span className="brand-deck-extra">
           {busy && <LoaderCircle size={13} className="animate-spin" aria-hidden="true" />}
           {extra}
+        </span>
+      )}
+      {addMark && !busy && (
+        <span className="brand-deck-addmark" aria-hidden="true">
+          <Plus size={16} strokeWidth={2.5} />
         </span>
       )}
       {picked && !busy && (

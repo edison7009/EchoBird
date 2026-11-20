@@ -716,6 +716,23 @@ button.brand-deck-card:disabled:hover {
   filter: brightness(0);
 }
 
+/* A card that adds one more on each click: a quiet plus where the link icon
+   sits on other decks, brightening and turning on hover. */
+.brand-deck-addmark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: rgb(255 255 255 / 0.6);
+  transition:
+    color 0.15s ease,
+    transform 0.25s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.brand-deck-card:hover .brand-deck-addmark {
+  color: #fff;
+  transform: rotate(90deg);
+}
 /* A directory entry already added: a white check on the card. */
 .brand-deck-check {
   display: grid;

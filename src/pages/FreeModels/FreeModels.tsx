@@ -1800,6 +1800,7 @@ function SavedKeyCard({
       onClick={onAdd}
       disabled={disabled}
       busy={adding}
+      addMark
       extra={
         usage && (
           <span className="brand-deck-note">
