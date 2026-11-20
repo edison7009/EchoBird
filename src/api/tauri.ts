@@ -136,7 +136,7 @@ export async function startTool(
   toolId: string,
   startCommand?: string,
   cwd?: string
-): Promise<void> {
+): Promise<'partial' | 'deferred' | null | void> {
   return invoke('start_tool', {
     toolId,
     startCommand: startCommand || null,

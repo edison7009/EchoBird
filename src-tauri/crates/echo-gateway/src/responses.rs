@@ -274,7 +274,12 @@ pub fn responses_to_chat(input: &Value) -> Result<Value, ProxyError> {
     if let Some(text) = input["input"].as_str() {
         messages.push(json!({"role":"user","content":text}));
     } else if let Some(items) = input["input"].as_array() {
-        for item in items {
+        let latest_input = items.iter().rposition(|item| {
+            let kind = item["type"].as_str().unwrap_or("message");
+            matches!(kind, "function_call_output" | "custom_tool_call_output")
+                || (kind == "message" && item["role"] == "user")
+        });
+        for (index, item) in items.iter().enumerate() {
             match item["type"].as_str().unwrap_or("message") {
                 "message" => {
                     let content = if item["content"].is_string() {
@@ -291,8 +296,17 @@ pub fn responses_to_chat(input: &Value) -> Result<Value, ProxyError> {
                         }
                         json!(parts)
                     };
-                    // Strict Chat upstreams refuse an interrupted turn's empty reply.
-                    if item["role"] == "assistant" && empty_chat_content(&content) {
+                    // Compacted history can retain an empty text placeholder
+                    // for an old media-only user turn.
+                    let historical_user = item["role"] == "user"
+                        && latest_input.is_some_and(|latest| index < latest)
+                        && (item["content"].is_string()
+                            || item["content"]
+                                .as_array()
+                                .is_some_and(|parts| !parts.is_empty()));
+                    if (item["role"] == "assistant" || historical_user)
+                        && empty_chat_content(&content)
+                    {
                         continue;
                     }
                     if let Some(previous) = messages.last_mut().filter(|previous| {
@@ -1185,6 +1199,35 @@ mod tests {
         assert!(!repaired
             .iter()
             .any(|message| message["content"] == "late duplicate"));
+    }
+
+    #[test]
+    fn chat_conversion_skips_only_historical_empty_user_content() {
+        let input = json!({"input":[
+            {"role":"user","content":[{"type":"input_text","text":""}]},
+            {"role":"assistant","content":"First image described."},
+            {"role":"user","content":[{"type":"input_image","image_url":"data:image/png;base64,fixture"}]},
+            {"type":"function_call","call_id":"call_fixture","name":"inspect","arguments":"{}"},
+            {"type":"function_call_output","call_id":"call_fixture","output":"fixture result"},
+            {"role":"user","content":"Current question"}
+        ]});
+        let chat = responses_to_chat(&input).unwrap();
+        let messages = chat["messages"].as_array().unwrap();
+        assert_eq!(messages.len(), 5);
+        assert_eq!(messages[0]["content"], "First image described.");
+        assert_eq!(messages[1]["content"][0]["type"], "image_url");
+        assert_eq!(messages[2]["tool_calls"][0]["id"], "call_fixture");
+        assert_eq!(messages[3]["content"], "fixture result");
+        assert_eq!(messages[4]["content"], "Current question");
+        assert_eq!(chat[RESPONSES_REQUEST], input);
+
+        let current = responses_to_chat(&json!({"input":[
+            {"role":"user","content":""},
+            {"role":"user","content":[{"type":"input_text","text":""}]}
+        ]}))
+        .unwrap();
+        assert_eq!(current["messages"].as_array().unwrap().len(), 1);
+        assert_eq!(current["messages"][0]["content"][0]["text"], "");
     }
 
     #[test]

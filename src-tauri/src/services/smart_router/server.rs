@@ -1619,10 +1619,15 @@ async fn route_with_policy(
     }
 
     let configured_candidates = candidates.clone();
-    let standby_epoch = state
-        .standby
-        .order_for_request(&mut candidates, state.request_epoch)
-        .filter(|_| !bound_continuation);
+    let automatic =
+        !bound_continuation && !state.model_id.starts_with(super::catalog::SELECTOR_PREFIX);
+    let standby_epoch = automatic
+        .then(|| {
+            state
+                .standby
+                .order_for_request(&mut candidates, state.request_epoch)
+        })
+        .flatten();
     let mut available = prioritized_candidates(state, candidates);
     if bound_continuation {
         available.retain(|candidate| {

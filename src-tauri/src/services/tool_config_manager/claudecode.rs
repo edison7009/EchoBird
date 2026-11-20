@@ -10,6 +10,28 @@ use std::{fs, path::Path, path::PathBuf};
 
 static CONFIG_MUTATIONS: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
+fn lock_and_recover_selection(
+    settings_path: &Path,
+    relay_path: &Path,
+) -> Result<native_account_files::DirectoryLock, String> {
+    let lock = native_account_files::DirectoryLock::acquire(relay_path)?;
+    native_account_files::recover_file_mutations(
+        &relay_path.with_extension("pending.json"),
+        &[settings_path, relay_path],
+    )?;
+    Ok(lock)
+}
+
+pub(crate) fn recover_interrupted_selection() -> Result<(), String> {
+    let relay = echobird_dir().join("claudecode.json");
+    if !native_account_files::has_file_mutations(&relay.with_extension("pending.json"))? {
+        return Ok(());
+    }
+    let settings = config_dir()?.join("settings.json");
+    let _lock = lock_and_recover_selection(&settings, &relay)?;
+    Ok(())
+}
+
 pub(super) fn normalize_model_info_for_tool(tool_id: &str, mut model_info: ModelInfo) -> ModelInfo {
     if tool_id == "claudecode" && model_info.protocol.as_deref() == Some("anthropic") {
         if let Some(ref mut base_url) = model_info.base_url {
@@ -412,6 +434,10 @@ fn apply_claudecode_with_environment(
         .unwrap_or("")
         .to_string();
 
+    let _selection_lock = match lock_and_recover_selection(settings_path, relay_path) {
+        Ok(lock) => lock,
+        Err(message) => return config_error(message),
+    };
     let (previous_raw, mut config) = match read_object(settings_path) {
         Ok(value) => value,
         Err(message) => return config_error(message),
@@ -545,19 +571,24 @@ fn apply_claudecode_with_environment(
         "ANTHROPIC_AUTH_TOKEN".to_string(),
         serde_json::Value::String(api_key.clone()),
     );
-    let one_m = model_info.one_m_context.unwrap_or(false);
-    for var in CLAUDECODE_MODEL_VARS {
-        env.insert(
-            var.to_string(),
-            serde_json::Value::String(claudecode_env_model_id(&real_model_id, var, one_m)),
-        );
-    }
-
-    saved.applied_env = managed_env(env);
     let switch_models = match super::switching::models(model_info) {
         Ok(models) => models,
         Err(message) => return config_error(message),
     };
+    let one_m = model_info.one_m_context.unwrap_or(false);
+    let default_one_m = one_m
+        && (switch_models.is_empty()
+            || switch_models
+                .iter()
+                .any(|model| model.id == real_model_id && model.supports_claude_1m()));
+    for var in CLAUDECODE_MODEL_VARS {
+        env.insert(
+            var.to_string(),
+            serde_json::Value::String(claudecode_env_model_id(&real_model_id, var, default_one_m)),
+        );
+    }
+
+    saved.applied_env = managed_env(env);
     if !switch_models.is_empty() {
         if saved.applied_model_picker.is_none()
             || config.get("modelPicker") != saved.applied_model_picker.as_ref()
@@ -568,7 +599,7 @@ fn apply_claudecode_with_environment(
             .into_iter()
             .map(|model| {
                 serde_json::json!({
-                    "model": claudecode_env_model_id(&model.id, "ANTHROPIC_MODEL", one_m),
+                    "model": claudecode_env_model_id(&model.id, "ANTHROPIC_MODEL", one_m && model.supports_claude_1m()),
                     "label": model.name,
                     "description": "EchoBird"
                 })
@@ -609,7 +640,10 @@ fn apply_claudecode_with_environment(
         "otherSettings": profiles,
     });
     let result = (|| {
-        let mut transaction = native_account_files::Transaction::new();
+        let mut transaction = native_account_files::Transaction::recoverable(
+            &relay_path.with_extension("pending.json"),
+            &[settings_path, relay_path],
+        )?;
         if native_account_files::read_optional(relay_path)? != previous_relay_raw {
             return Err("Claude Code's model configuration changed. Try again.".into());
         }
@@ -620,8 +654,7 @@ fn apply_claudecode_with_environment(
             return Err("Claude Code's settings changed. Try again.".into());
         }
         transaction.replace_private_file(settings_path, &native_account_files::json(&config)?)?;
-        transaction.commit();
-        Ok::<_, String>(())
+        transaction.commit_files()
     })();
     if let Err(error) = result {
         return config_error(format!(
@@ -736,6 +769,7 @@ fn restore_claudecode_at(
         Err(_) => return config_error("Claude Code's previous configuration update was interrupted. Restart EchoBird before trying again."),
     };
     let result = (|| {
+        let _selection_lock = lock_and_recover_selection(settings_path, relay_path)?;
         let (relay_raw, relay) = read_object(relay_path)?;
         let Some(relay_raw) = relay_raw else {
             let (_, config) = read_object(settings_path)?;
@@ -823,22 +857,23 @@ fn restore_claudecode_at(
         {
             return Err("Claude Code's configuration changed. Try again.".into());
         }
+        let mut transaction = native_account_files::Transaction::recoverable(
+            &relay_path.with_extension("pending.json"),
+            &[settings_path, relay_path],
+        )?;
         if settings_raw != next_settings {
-            replace_config(settings_path, next_settings.as_deref())?;
+            replace_config(&mut transaction, settings_path, next_settings.as_deref())?;
         }
         #[cfg(test)]
         regression_tests::after_mutation_stage();
-        if let Err(error) = replace_config(relay_path, next_relay.as_deref()) {
-            if settings_raw != next_settings {
-                replace_config(settings_path, settings_raw.as_deref()).map_err(|rollback| {
-                    format!("Cannot restore Claude Code's model configuration: {error}. Settings rollback failed: {rollback}")
-                })?;
-            }
-            return Err(format!(
-                "Cannot restore Claude Code's model configuration: {error}"
-            ));
+        if native_account_files::read_optional(relay_path)?.as_deref() != Some(relay_raw.as_slice())
+        {
+            return Err("Claude Code's model configuration changed. Try again.".into());
         }
-        Ok::<_, String>(())
+        replace_config(&mut transaction, relay_path, next_relay.as_deref()).map_err(|error| {
+            format!("Cannot restore Claude Code's model configuration: {error}")
+        })?;
+        transaction.commit_files()
     })();
     if let Err(message) = result {
         return config_error(message);
@@ -851,10 +886,14 @@ fn restore_claudecode_at(
     }
 }
 
-fn replace_config(path: &Path, bytes: Option<&[u8]>) -> Result<(), String> {
+fn replace_config(
+    transaction: &mut native_account_files::Transaction,
+    path: &Path,
+    bytes: Option<&[u8]>,
+) -> Result<(), String> {
     match bytes {
-        Some(bytes) => native_account_files::write_private_file(path, bytes),
-        None => fs::remove_file(path).map_err(|error| error.to_string()),
+        Some(bytes) => transaction.replace_private_file(path, bytes),
+        None => transaction.remove_private_file(path),
     }
 }
 
@@ -1291,7 +1330,13 @@ mod switch_tests {
                 assert!(result.success, "{}", result.message);
                 let value = read_json_file(&settings).unwrap();
                 assert_eq!(value["modelPicker"]["options"].as_array().unwrap().len(), 3);
+                assert_eq!(value["env"]["ANTHROPIC_MODEL"], "auto");
+                assert_eq!(value["modelPicker"]["options"][0]["model"], "auto");
                 assert!(value["modelPicker"]["options"][1]["model"]
+                    .as_str()
+                    .unwrap()
+                    .ends_with("[1m]"));
+                assert!(!value["modelPicker"]["options"][2]["model"]
                     .as_str()
                     .unwrap()
                     .ends_with("[1m]"));

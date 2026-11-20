@@ -9,6 +9,14 @@ pub(crate) struct SwitchModel {
     pub id: String,
     pub name: String,
     pub codex_catalog: Option<serde_json::Value>,
+    pub claude_context_window: Option<u64>,
+}
+
+impl SwitchModel {
+    pub fn supports_claude_1m(&self) -> bool {
+        self.claude_context_window
+            .is_some_and(|window| window >= 1_000_000)
+    }
 }
 
 #[cfg(test)]
@@ -29,16 +37,19 @@ pub(crate) fn with_test_models_at<T>(base_url: &str, run: impl FnOnce() -> T) ->
                     id: "auto".into(),
                     name: "Auto Router".into(),
                     codex_catalog: None,
+                    claude_context_window: None,
                 },
                 SwitchModel {
                     id: selector("first"),
                     name: "First model".into(),
                     codex_catalog: None,
+                    claude_context_window: Some(1_048_576),
                 },
                 SwitchModel {
                     id: selector("second"),
                     name: "Second model".into(),
                     codex_catalog: None,
+                    claude_context_window: Some(204_800),
                 },
             ],
         ),
@@ -110,6 +121,33 @@ pub(crate) fn models_for_url(base_url: &str) -> Result<Vec<SwitchModel>, String>
     })
 }
 
+// Account gateways and resellers may offer different limits for a model
+// with the same name. Only exact native vendor entries have known limits.
+fn native_template(
+    base_url: &str,
+    model_id: &str,
+    account_route: bool,
+) -> Option<serde_json::Value> {
+    if account_route {
+        return None;
+    }
+    let mut template = crate::services::codex_catalog::template_for_model(base_url, model_id)?;
+    let window =
+        crate::services::codex_catalog::documented_context_window(&template, base_url, model_id)?;
+    template["context_window"] = serde_json::json!(window);
+    Some(template)
+}
+
+fn context_window(template: &serde_json::Value) -> Option<u64> {
+    template["context_window"]
+        .as_u64()
+        .filter(|window| *window > 0)
+}
+
+fn known_context_window(base_url: &str, model_id: &str, account_route: bool) -> Option<u64> {
+    context_window(&native_template(base_url, model_id, account_route)?)
+}
+
 pub(super) fn models(
     model_id: &str,
     name: &str,
@@ -120,53 +158,46 @@ pub(super) fn models(
         id: model_id.into(),
         name: name.into(),
         codex_catalog: None,
+        claude_context_window: None,
     }];
     models.extend(ids.iter().filter_map(|id| {
         let model = candidates
             .iter()
             .find(|m| m.internal_id == *id && model_is_routable(m))?;
+        let model_id = model.model_id.as_deref()?.trim();
+        let account_route = model.account_source.is_some();
+        let template = native_template(&model.base_url, model_id, account_route);
+        let claude_context_window = match model.anthropic_url.as_deref().map(str::trim) {
+            Some(url) if !url.is_empty() && !super::is_router_url(url) && url != model.base_url => {
+                known_context_window(url, model_id, account_route)
+            }
+            _ => template.as_ref().and_then(context_window),
+        };
         Some(SwitchModel {
             id: selector(id),
-            name: display_name(model.model_id.as_deref().unwrap_or_default(), &model.name),
-            // Account gateways and resellers must not inherit native-vendor
-            // capabilities merely because their model has the same name.
-            codex_catalog: model
-                .account_source
-                .is_none()
-                .then(|| {
-                    crate::services::codex_catalog::template_for_model(
-                        &model.base_url,
-                        model.model_id.as_deref().unwrap_or_default(),
-                    )
-                    .filter(|template| {
-                        template["slug"].as_str() == model.model_id.as_deref()
-                            || (crate::services::codex_catalog::url_matches_domain(
-                                &model.base_url,
-                                "deepseek.com",
-                            ) && matches!(
-                                model.model_id.as_deref(),
-                                Some("deepseek-flash" | "deepseek-v4-pro")
-                            ))
-                    })
-                    .map(|template| {
-                        let context = template["context_window"].as_u64().unwrap_or(
-                            match model.model_id.as_deref() {
-                                Some("deepseek-flash" | "deepseek-v4-pro") => 1_048_576,
-                                _ => 1_000_000,
-                            },
-                        );
-                        crate::services::codex_catalog::build_catalog(
-                            &template,
-                            model.model_id.as_deref().unwrap_or_default(),
-                            &model.name,
-                            context,
-                        )["models"][0]
-                            .clone()
-                    })
-                })
-                .flatten(),
+            name: display_name(model_id, &model.name),
+            codex_catalog: template.and_then(|template| {
+                Some(
+                    crate::services::codex_catalog::build_catalog(
+                        &template,
+                        model_id,
+                        &model.name,
+                        context_window(&template)?,
+                    )["models"][0]
+                        .clone(),
+                )
+            }),
+            claude_context_window,
         })
     }));
+    if models.len() > 1 && models.len() - 1 == ids.len() {
+        models[0].claude_context_window = models[1..]
+            .iter()
+            .map(|model| model.claude_context_window)
+            .try_fold(u64::MAX, |minimum, window| {
+                window.map(|window| minimum.min(window))
+            });
+    }
     models
 }
 
@@ -201,7 +232,18 @@ mod tests {
         let entries = &catalog["models"];
         assert_eq!(entries[1]["context_window"], 204_800);
         assert_eq!(entries[2]["context_window"], 1_048_576);
-        assert_eq!(entries[0]["context_window"], 204_800);
+        assert!(entries[0]["context_window"].is_null());
+        assert!(entries[3]["context_window"].is_null());
+        assert!(entries[3]["max_context_window"].is_null());
+        assert_eq!(
+            crate::services::codex_catalog::build_router_catalog(&listed[..3], false)["models"][0]
+                ["context_window"],
+            204_800
+        );
+        assert!(!listed[0].supports_claude_1m());
+        assert!(!listed[1].supports_claude_1m());
+        assert!(listed[2].supports_claude_1m());
+        assert!(!listed[3].supports_claude_1m());
         assert_eq!(
             entries[2]["input_modalities"],
             serde_json::json!(["text", "image"])

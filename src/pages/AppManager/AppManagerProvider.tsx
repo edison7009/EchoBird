@@ -247,15 +247,15 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
   const [selectedToolId, setSelectedTool] = useState<string | null>(null);
   const selectedTool = selectedToolId;
   const [isLaunching, setIsLaunching] = useState(false);
-  const launchGeneration = useRef(0);
-  const previewLaunch = useRef(false);
+  const launchGenerationRef = useRef(0);
+  const previewLaunchRef = useRef(false);
   const [applyError, setApplyError] = useState<string | null>(null);
   useEffect(
     () =>
       useNavigationStore.subscribe((state, previous) => {
-        if (previous.developerMode && !state.developerMode && previewLaunch.current) {
-          launchGeneration.current += 1;
-          previewLaunch.current = false;
+        if (previous.developerMode && !state.developerMode && previewLaunchRef.current) {
+          launchGenerationRef.current += 1;
+          previewLaunchRef.current = false;
           setIsLaunching(false);
           setApplyError(null);
         }
@@ -832,6 +832,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
             ...Object.fromEntries(sharedTools.map((id) => [id, model.internalId])),
           }));
         }
+        if (isClaudeCodeApp) showToast('info', t('agent.claudeCodeReopen'));
         return true;
       } else {
         console.error('[AppManager] Failed to apply model:', result?.message);
@@ -912,7 +913,10 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
   // a vendor-default config on next launch, so restore is symmetric with
   // a fresh install. Backend also clears the ~/.echobird/{tool}.json relay
   // for "custom" tools.
-  const applyRestore = async (toolId: string): Promise<true | string | false> => {
+  const applyRestore = async (
+    toolId: string,
+    notifyRestart = true
+  ): Promise<true | string | false> => {
     try {
       const result = await api.restoreToolToOfficial(toolId);
       if (result?.success) {
@@ -920,9 +924,12 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
         setDetectedTools((prev) =>
           prev.map((t) => (t.id === toolId ? { ...t, activeModel: official?.name || '' } : t))
         );
+        if (toolId === 'claudecode' && notifyRestart)
+          showToast('info', t('agent.claudeCodeReopen'));
         return true;
       }
-      return result?.message || false;
+      const message = result?.message;
+      return message?.startsWith('accountError.') ? accountError(message, t) : message || false;
     } catch (err) {
       console.error('[AppManager] Restore-to-official failed:', err);
       return String(err);
@@ -983,8 +990,8 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     loadCodexAccounts,
     selectedTool,
     isLaunching,
-    launchGeneration,
-    previewLaunch,
+    launchGenerationRef,
+    previewLaunchRef,
     setIsLaunching,
     setApplyError,
     detectedTools,
@@ -997,6 +1004,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
     activePage,
     locale,
     t,
+    showToast,
     applyRestore,
     applyModelConfig,
   });

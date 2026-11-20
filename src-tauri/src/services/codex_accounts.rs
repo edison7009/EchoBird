@@ -11,7 +11,6 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
 
-const LEGACY_BACKUP_FILE: &str = "codex-auth.bak.json";
 #[cfg(target_os = "macos")]
 const KEYCHAIN_SERVICE: &str = "Codex Auth";
 const OAUTH_TOKEN_URL: &str = "https://auth.openai.com/oauth/token";
@@ -120,6 +119,58 @@ pub(crate) fn codex_home() -> Result<PathBuf, String> {
     dirs::home_dir()
         .map(|home| home.join(".codex"))
         .ok_or_else(|| "accountError.home".to_string())
+}
+
+pub(crate) fn auth_backup_path(codex_dir: &Path, state_dir: &Path) -> Result<PathBuf, String> {
+    let home = fs::canonicalize(codex_dir).map_err(|_| "accountError.home")?;
+    let home_id = hex::encode(Sha256::digest(home.as_os_str().as_encoded_bytes()));
+    // The old shared backup has no home attribution. Keep it intact so it
+    // can be recovered explicitly without signing another home into it.
+    Ok(state_dir
+        .join("codex-auth-backups")
+        .join(format!("{home_id}.json")))
+}
+
+fn selection_files(codex_dir: &Path, backup: &Path) -> [PathBuf; 4] {
+    [
+        codex_dir.join("config.toml"),
+        codex_dir.join("auth.json"),
+        super::codex_catalog::models_json_path(codex_dir),
+        backup.to_path_buf(),
+    ]
+}
+
+pub(crate) fn recover_selection_at(codex_dir: &Path, backup: &Path) -> Result<(), String> {
+    let files = selection_files(codex_dir, backup);
+    super::native_account_files::recover_file_mutations(
+        &backup.with_extension("pending.json"),
+        &files.each_ref().map(PathBuf::as_path),
+    )
+}
+
+pub(crate) fn selection_transaction(
+    codex_dir: &Path,
+    backup: &Path,
+) -> Result<super::native_account_files::Transaction, String> {
+    let files = selection_files(codex_dir, backup);
+    super::native_account_files::Transaction::recoverable(
+        &backup.with_extension("pending.json"),
+        &files.each_ref().map(PathBuf::as_path),
+    )
+}
+
+pub(crate) fn recover_interrupted_selection(codex_dir: &Path) -> Result<(), String> {
+    if !codex_dir.is_dir() {
+        return Ok(());
+    }
+    let backup = auth_backup_path(codex_dir, &echobird_dir()?)?;
+    if !super::native_account_files::has_file_mutations(&backup.with_extension("pending.json"))? {
+        return Ok(());
+    }
+    let _lock = super::native_account_files::DirectoryLock::acquire_existing(
+        &codex_dir.join("config.toml"),
+    )?;
+    recover_selection_at(codex_dir, &backup)
 }
 
 fn account_store_dir() -> Result<PathBuf, String> {
@@ -367,7 +418,7 @@ fn write_keychain_raw(_base_dir: &Path, _raw: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
-fn is_oauth_auth(auth: &Value) -> bool {
+pub(crate) fn is_oauth_auth(auth: &Value) -> bool {
     let auth_mode = auth
         .get("auth_mode")
         .and_then(Value::as_str)
@@ -458,7 +509,10 @@ fn subscription_end_at(value: Option<&Value>) -> Option<i64> {
 }
 
 fn read_oauth_snapshot(path: &Path) -> Option<(Vec<u8>, Value)> {
-    let raw = fs::read(path).ok()?;
+    parse_oauth_snapshot(fs::read(path).ok()?)
+}
+
+fn parse_oauth_snapshot(raw: Vec<u8>) -> Option<(Vec<u8>, Value)> {
     let auth: Value = serde_json::from_slice(&raw).ok()?;
     is_oauth_auth(&auth).then_some((raw, auth))
 }
@@ -765,11 +819,14 @@ pub(crate) fn save_effective_snapshot_at(
 
 pub fn capture_current_account() -> Result<CodexAccountSummary, String> {
     let codex_dir = codex_home()?;
+    let _lock = super::native_account_files::DirectoryLock::acquire_existing(
+        &codex_dir.join("config.toml"),
+    )?;
     retry_keychain(&codex_dir);
     let state_dir = echobird_dir()?;
     let summary = save_effective_snapshot_at(
         &codex_dir.join("auth.json"),
-        &state_dir.join(LEGACY_BACKUP_FILE),
+        &auth_backup_path(&codex_dir, &state_dir)?,
         &state_dir.join("codex-accounts"),
     )?;
     super::smart_router::forget_account_authentication(
@@ -1230,82 +1287,115 @@ async fn finish_token_rotation(
     receiver.await.map_err(|_| "accountError.network")?
 }
 
-fn switch_account_at(
+fn switch_official_account_at(
     account_id: &str,
-    auth_path: &Path,
-    backup_path: &Path,
-    store_dir: &Path,
+    codex_dir: &Path,
+    state_dir: &Path,
+    write_keychain: impl FnOnce(&Path, &[u8]) -> Result<(), String>,
 ) -> Result<CodexAccountSummary, String> {
+    use super::native_account_files::{read_optional, DirectoryLock, Transaction};
+
     if !valid_account_id(account_id) {
-        return Err("accountError.invalidAccount".to_string());
+        return Err("accountError.invalidAccount".into());
     }
 
-    match effective_snapshot(auth_path, backup_path) {
-        Ok((raw, auth)) => {
-            let _ = save_snapshot(&raw, &auth, store_dir);
-        }
-        Err(error) if error.starts_with("accountError.keychain") => return Err(error),
-        Err(_) => {}
+    fs::create_dir_all(codex_dir).map_err(|_| "accountError.write")?;
+    let config_path = codex_dir.join("config.toml");
+    let auth_path = codex_dir.join("auth.json");
+    let _lock = DirectoryLock::acquire_existing(&config_path)?;
+    let backup_path = auth_backup_path(codex_dir, state_dir)?;
+    recover_selection_at(codex_dir, &backup_path)?;
+    let store_dir = state_dir.join("codex-accounts");
+    let config_before = read_optional(&config_path)?;
+    let replacement =
+        super::tool_config_manager::official_codex_replacement(config_before.as_deref())?;
+    let auth_before = read_optional(&auth_path)?;
+    let backup_before = read_optional(&backup_path)?;
+
+    // A backed-up file sign-in becomes active again when leaving the route.
+    // Use that storage and snapshot rather than an unrelated Keychain entry.
+    retry_keychain(codex_dir);
+    let file_session = [auth_before.as_ref(), backup_before.as_ref()]
+        .into_iter()
+        .flatten()
+        .find_map(|raw| parse_oauth_snapshot(raw.clone()));
+    let keychain = if file_session.is_none() {
+        read_keychain_raw(codex_dir)?
+    } else {
+        None
+    };
+    let use_keychain = keychain.is_some();
+    let current = file_session.or_else(|| keychain.and_then(parse_oauth_snapshot));
+    // The requested account may be the same account with recently rotated tokens.
+    if let Some((raw, auth)) = current {
+        let _ = save_snapshot(&raw, &auth, &store_dir);
     }
 
     let saved_path = store_dir.join(format!("{account_id}.json"));
-    let raw = fs::read(&saved_path).map_err(|_| "accountError.invalidAccount".to_string())?;
-    let mut auth: Value = serde_json::from_slice(&raw)
-        .map_err(|error| format!("accountError.invalidAccount|{error}"))?;
-    let metadata = metadata_from_auth(&auth, &raw)?;
-    let raw = if ensure_native_account_id(&mut auth)? {
-        let repaired = serde_json::to_vec_pretty(&auth).map_err(|_| "accountError.format")?;
-        write_private_file(&saved_path, &repaired)?;
-        repaired
-    } else {
-        raw
-    };
-
-    let keychain_is_current = read_oauth_snapshot(auth_path).is_none()
-        && read_keychain_raw(auth_path.parent().unwrap_or(Path::new("")))?.is_some();
-    let target = if !keychain_is_current
-        && (read_oauth_snapshot(auth_path).is_some() || !backup_path.exists())
-    {
-        auth_path
-    } else {
-        backup_path
-    };
-    if keychain_is_current {
-        write_keychain_raw(auth_path.parent().unwrap_or(Path::new("")), &raw)?;
-    } else {
-        write_private_file(target, &raw)?;
+    let saved = read_optional(&saved_path)?.ok_or("accountError.invalidAccount")?;
+    let mut auth: Value =
+        serde_json::from_slice(&saved).map_err(|_| "accountError.invalidAccount")?;
+    let metadata = metadata_from_auth(&auth, &saved)?;
+    if metadata.id != account_id {
+        return Err("accountError.invalidAccount".into());
     }
+    let repaired = ensure_native_account_id(&mut auth)?
+        .then(|| serde_json::to_vec_pretty(&auth).map_err(|_| "accountError.format"))
+        .transpose()?;
+    let raw = repaired.as_deref().unwrap_or(&saved);
 
-    let mut summary = build_summary(metadata, None, store_dir);
+    let mut saved_account = Transaction::guarded();
+    if let Some(repaired) = &repaired {
+        if read_optional(&saved_path)?.as_deref() != Some(saved.as_slice()) {
+            return Err("accountError.busy".into());
+        }
+        saved_account.replace_private_file(&saved_path, repaired)?;
+    }
+    let mut transaction = if use_keychain {
+        Transaction::guarded()
+    } else {
+        selection_transaction(codex_dir, &backup_path)?
+    };
+    if read_optional(&auth_path)? != auth_before {
+        return Err("accountError.busy".into());
+    }
+    if use_keychain {
+        // A leftover API key file would hide the selected Keychain sign-in.
+        transaction.remove_private_file(&auth_path)?;
+    } else {
+        transaction.replace_private_file(&auth_path, raw)?;
+    }
+    if let Some(config) = &replacement {
+        if read_optional(&config_path)? != config_before {
+            return Err("accountError.busy".into());
+        }
+        transaction.replace_private_file(&config_path, config.as_bytes())?;
+    }
+    if read_optional(&backup_path)? != backup_before {
+        return Err("accountError.busy".into());
+    }
+    if backup_before.is_some() {
+        transaction.remove(&backup_path)?;
+    }
+    if use_keychain {
+        // No fallible file operations follow the credential-store update.
+        write_keychain(codex_dir, raw)?;
+    }
+    transaction.commit_files()?;
+    saved_account.commit();
+
+    let _ = fs::remove_file(state_dir.join("codex.json"));
+    let mut summary = build_summary(metadata, None, &store_dir);
     summary.active = true;
     Ok(summary)
 }
 
-pub(crate) fn restore_legacy_oauth(auth_path: &Path, backup_path: &Path) -> Result<bool, String> {
-    if !backup_path.exists() {
-        return Ok(false);
-    }
-    let raw = fs::read(backup_path).map_err(|error| format!("accountError.read|{error}"))?;
-    retry_keychain(auth_path.parent().unwrap_or(Path::new("")));
-    let keychain_was_used =
-        read_keychain_raw(auth_path.parent().unwrap_or(Path::new("")))?.is_some();
-    write_private_file(auth_path, &raw)?;
-    if keychain_was_used {
-        write_keychain_raw(auth_path.parent().unwrap_or(Path::new("")), &raw)?;
-    }
-    fs::remove_file(backup_path).map_err(|error| format!("accountError.write|{error}"))?;
-    Ok(true)
-}
-
 pub fn switch_account(account_id: &str) -> Result<CodexAccountSummary, String> {
-    let codex_dir = codex_home()?;
-    retry_keychain(&codex_dir);
-    let state_dir = echobird_dir()?;
-    switch_account_at(
+    switch_official_account_at(
         account_id,
-        &codex_dir.join("auth.json"),
-        &state_dir.join(LEGACY_BACKUP_FILE),
-        &account_store_dir()?,
+        &codex_home()?,
+        &echobird_dir()?,
+        write_keychain_raw,
     )
 }
 
@@ -1471,20 +1561,18 @@ mod tests {
         let _reset = Reset;
         let root = temp_dir("keychain-refused");
         let auth_path = root.join("auth.json");
-        let backup = root.join("backup.json");
-        let store = root.join("accounts");
+        let backup = auth_backup_path(&root, &root).unwrap();
+        let store = root.join("codex-accounts");
         let raw = oauth("fixture@example.test", "fixture-account", "fixture-refresh");
-        fs::write(&backup, &raw).unwrap();
+        write_private_file(&backup, &raw).unwrap();
         let auth: Value = serde_json::from_slice(&raw).unwrap();
-        let account = save_snapshot(&raw, &auth, &store).unwrap();
+        save_snapshot(&raw, &auth, &store).unwrap();
         TEST_KEYCHAIN_READ
             .with(|value| *value.borrow_mut() = Some(Err("accountError.keychain|Refused".into())));
         assert!(effective_snapshot(&auth_path, &backup)
             .unwrap_err()
             .starts_with("accountError.keychain"));
         assert!(list_accounts_at(&auth_path, &store).is_err());
-        assert!(switch_account_at(&account.id, &auth_path, &backup, &store).is_err());
-        assert!(restore_legacy_oauth(&auth_path, &backup).is_err());
         assert!(!auth_path.exists());
         assert_eq!(fs::read(&backup).unwrap(), raw);
         TEST_KEYCHAIN_READ.with(|value| *value.borrow_mut() = None);
@@ -2298,7 +2386,7 @@ mod tests {
             let root = temp_dir("legacy-workspace");
             let auth_path = root.join("native/auth.json");
             let backup = root.join("backup.json");
-            let store = root.join("accounts");
+            let store = root.join("codex-accounts");
             let mut auth: Value = serde_json::from_slice(&oauth(
                 "fixture@example.test",
                 "fixture-account",
@@ -2324,7 +2412,13 @@ mod tests {
             assert!(!auth_path.exists());
             assert!(!backup.exists());
 
-            let applied = switch_account_at(&metadata.id, &auth_path, &backup, &store).unwrap();
+            let applied = switch_official_account_at(
+                &metadata.id,
+                auth_path.parent().unwrap(),
+                &root,
+                write_keychain_raw,
+            )
+            .unwrap();
             assert_eq!(applied.id, metadata.id);
             assert!(applied.active);
             let repaired = fs::read(&auth_path).unwrap();
@@ -2480,29 +2574,92 @@ mod tests {
     }
 
     #[test]
-    fn switches_the_backup_while_api_auth_is_active() {
-        let dir = temp_dir("api-switch");
-        let auth_path = dir.join("codex/auth.json");
-        let backup_path = dir.join("state/codex-auth.bak.json");
-        let store_dir = dir.join("state/codex-accounts");
-        let first = oauth("first@example.com", "acc-1", "refresh-1");
-        let second = oauth("second@example.com", "acc-2", "refresh-2");
-        write_private_file(&backup_path, &first).unwrap();
-        write_private_file(&auth_path, br#"{"OPENAI_API_KEY":"sk-test"}"#).unwrap();
-        let second_value: Value = serde_json::from_slice(&second).unwrap();
-        let second_metadata = save_snapshot(&second, &second_value, &store_dir).unwrap();
+    fn switches_the_route_and_selected_account_together_with_only_a_legacy_backup() {
+        let root = temp_dir("official-switch-legacy");
+        let home = root.join("codex");
+        let config_path = home.join("config.toml");
+        let auth_path = home.join("auth.json");
+        let legacy = root.join("codex-auth.bak.json");
+        let store = root.join("codex-accounts");
+        let prior_config = b"model_provider = 'OpenAI'\n[model_providers.OpenAI]\nbase_url = 'https://route.invalid/v1'\n[projects.fixture]\ntrust_level = 'trusted'\n";
+        let prior_auth = br#"{"OPENAI_API_KEY":"fixture-route-key"}"#;
+        write_private_file(&config_path, prior_config).unwrap();
+        write_private_file(&auth_path, prior_auth).unwrap();
+        let unowned = oauth("other@example.test", "other-workspace", "other-refresh");
+        write_private_file(&legacy, &unowned).unwrap();
+        let requested = oauth("chosen@example.test", "chosen-workspace", "chosen-refresh");
+        let requested_auth = serde_json::from_slice(&requested).unwrap();
+        let selected = save_snapshot(&requested, &requested_auth, &store).unwrap();
 
-        switch_account_at(&second_metadata.id, &auth_path, &backup_path, &store_dir).unwrap();
-
-        assert_eq!(
-            fs::read(&auth_path).unwrap(),
-            br#"{"OPENAI_API_KEY":"sk-test"}"#
+        assert!(
+            switch_official_account_at(&"0".repeat(64), &home, &root, write_keychain_raw).is_err()
         );
-        assert_eq!(fs::read(&backup_path).unwrap(), second);
-        let accounts = list_accounts_at(&auth_path, &store_dir).unwrap();
-        assert_eq!(accounts.len(), 2);
-        assert!(accounts.iter().all(|account| !account.active));
-        let _ = fs::remove_dir_all(dir);
+        assert_eq!(fs::read(&config_path).unwrap(), prior_config);
+        assert_eq!(fs::read(&auth_path).unwrap(), prior_auth);
+
+        let result =
+            switch_official_account_at(&selected.id, &home, &root, write_keychain_raw).unwrap();
+        assert!(result.active);
+        let config = fs::read_to_string(&config_path).unwrap();
+        assert!(!config.contains("route.invalid"));
+        assert!(config.contains("trust_level = 'trusted'"));
+        assert_eq!(fs::read(&auth_path).unwrap(), requested);
+        assert_eq!(fs::read(&legacy).unwrap(), unowned);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn keychain_write_failure_rolls_back_route_auth_and_scoped_backup() {
+        struct Reset;
+        impl Drop for Reset {
+            fn drop(&mut self) {
+                TEST_KEYCHAIN_READ.with(|value| *value.borrow_mut() = None);
+            }
+        }
+        let _reset = Reset;
+        let root = temp_dir("official-switch-write-failure");
+        let config = root.join("config.toml");
+        let auth = root.join("auth.json");
+        let backup = auth_backup_path(&root, &root).unwrap();
+        let prior_config = b"model_provider = 'OpenAI'\n[model_providers.OpenAI]\nbase_url = 'https://route.invalid/v1'\n";
+        let prior_auth = br#"{"OPENAI_API_KEY":"fixture-route-key"}"#;
+        write_private_file(&config, prior_config).unwrap();
+        write_private_file(&auth, prior_auth).unwrap();
+        write_private_file(&backup, b"null").unwrap();
+        TEST_KEYCHAIN_READ.with(|value| {
+            *value.borrow_mut() = Some(Ok(Some(oauth(
+                "current@example.test",
+                "current-workspace",
+                "current-refresh",
+            ))));
+        });
+        let requested = oauth("chosen@example.test", "chosen-workspace", "chosen-refresh");
+        let requested_auth = serde_json::from_slice(&requested).unwrap();
+        let selected =
+            save_snapshot(&requested, &requested_auth, &root.join("codex-accounts")).unwrap();
+
+        let attempt = switch_official_account_at(&selected.id, &root, &root, |_, raw| {
+            assert_eq!(raw, requested);
+            assert!(!fs::read_to_string(&config)
+                .unwrap()
+                .contains("route.invalid"));
+            assert!(!auth.exists());
+            assert!(!backup.exists());
+            Err("accountError.keychain".into())
+        });
+        assert!(matches!(attempt, Err(error) if error == "accountError.keychain"));
+        assert_eq!(fs::read(&config).unwrap(), prior_config);
+        assert_eq!(fs::read(&auth).unwrap(), prior_auth);
+        assert_eq!(fs::read(&backup).unwrap(), b"null");
+
+        switch_official_account_at(&selected.id, &root, &root, |_, raw| {
+            assert_eq!(raw, requested);
+            Ok(())
+        })
+        .unwrap();
+        assert!(!auth.exists());
+        assert!(!backup.exists());
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

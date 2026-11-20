@@ -29,30 +29,6 @@ const CODEX_ROUTE_TOP_LEVEL_KEYS: &[&str] = &[
     "model_reasoning_summary",
 ];
 
-// ─── Per-model capability registry ───
-//
-// Some tool configs must reflect a model's real context window and input
-// modalities rather than a one-size-fits-all default. Codex's
-// `model_context_window` / `model_auto_compact_token_limit` and ZCode's
-// `modalities.input` are the two places a wrong default silently caps or
-// mis-advertises a third-party model. The values below are sourced from the
-// provider's official model specs so apply_codex / apply_zcode stay
-// data-driven — no model-id branching inside the apply logic.
-
-const DEFAULT_CODEX_CONTEXT_WINDOW: u64 = 1_000_000;
-
-/// Look up a model's real context window (in tokens). Returns
-/// `DEFAULT_CODEX_CONTEXT_WINDOW` for models the registry does not list —
-/// the historic Codex default — so unknown models keep working as before.
-fn model_context_window_for(model_id: &str) -> u64 {
-    match model_id {
-        "deepseek-flash" | "deepseek-v4-pro" => 1_048_576,
-        "MiniMax-M3" => 1_000_000,
-        "MiniMax-M2.7" => 204_800,
-        _ => DEFAULT_CODEX_CONTEXT_WINDOW,
-    }
-}
-
 /// Derive the auto-compact token limit (90% of the context window) that
 /// Codex writes as `model_auto_compact_token_limit`. Keeping it proportional
 /// to the real window stops Codex from trying to compact at 900k on a model
@@ -151,7 +127,7 @@ fn write_codex_canonical_fields(
     content: &str,
     codex_base_url: &str,
     model: &str,
-    context_window: u64,
+    context_window: Option<u64>,
     web_search: Option<bool>,
 ) -> String {
     // Preserve the input's trailing-newline convention after helper edits.
@@ -184,13 +160,17 @@ fn write_codex_canonical_fields(
     // Remove the deprecated flag from configs written by older EchoBird
     // versions. Codex no longer supports opting into response storage.
     c = toml_delete_top(&c, "disable_response_storage");
-    // Top-level raw (int).
-    c = toml_write_top_raw(&c, "model_context_window", &context_window.to_string());
-    c = toml_write_top_raw(
-        &c,
-        "model_auto_compact_token_limit",
-        &codex_compact_limit_for(context_window).to_string(),
-    );
+    if let Some(context_window) = context_window {
+        c = toml_write_top_raw(&c, "model_context_window", &context_window.to_string());
+        c = toml_write_top_raw(
+            &c,
+            "model_auto_compact_token_limit",
+            &codex_compact_limit_for(context_window).to_string(),
+        );
+    } else {
+        c = toml_delete_top(&c, "model_context_window");
+        c = toml_delete_top(&c, "model_auto_compact_token_limit");
+    }
     c = toml_write_top(
         &c,
         "web_search",
@@ -323,11 +303,64 @@ pub(crate) fn apply_codex_at(
         raw_api_key
     };
 
+    ensure_parent(&config_path);
+    let _selection_lock =
+        match crate::services::native_account_files::DirectoryLock::acquire_existing(&config_path) {
+            Ok(lock) => lock,
+            Err(error) => {
+                return ApplyResult {
+                    success: false,
+                    message: format!("Codex configuration is busy: {error}"),
+                }
+            }
+        };
+
+    let auth_backup_path = match codex_accounts::auth_backup_path(codex_dir, state_dir) {
+        Ok(path) => path,
+        Err(message) => {
+            return ApplyResult {
+                success: false,
+                message,
+            };
+        }
+    };
+    if let Err(message) = codex_accounts::recover_selection_at(codex_dir, &auth_backup_path) {
+        return ApplyResult {
+            success: false,
+            message,
+        };
+    }
+    let existing = match fs::read_to_string(&config_path) {
+        Ok(content) => content,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
+        Err(error) => {
+            return ApplyResult {
+                success: false,
+                message: format!("Codex config read error: {error}"),
+            }
+        }
+    };
+    if existing.parse::<toml_edit::DocumentMut>().is_err() {
+        return ApplyResult {
+            success: false,
+            message: "Codex configuration is not valid TOML".into(),
+        };
+    }
+
     // Establish every rollback point before touching Codex's live config. A
     // failed account snapshot must stop the apply before auth.json changes.
-    let auth_backup_path = state_dir.join("codex-auth.bak.json");
-    if auth_path.exists() && !auth_backup_path.exists() {
-        let existing_auth = match fs::read(&auth_path) {
+    let mut transaction = match codex_accounts::selection_transaction(codex_dir, &auth_backup_path)
+    {
+        Ok(transaction) => transaction,
+        Err(message) => {
+            return ApplyResult {
+                success: false,
+                message,
+            }
+        }
+    };
+    if !auth_backup_path.exists() {
+        let existing_auth = match crate::services::native_account_files::read_optional(&auth_path) {
             Ok(value) => value,
             Err(error) => {
                 return ApplyResult {
@@ -336,12 +369,19 @@ pub(crate) fn apply_codex_at(
                 };
             }
         };
-        ensure_parent(&auth_backup_path);
-        if let Err(error) = fs::write(&auth_backup_path, existing_auth) {
-            return ApplyResult {
-                success: false,
-                message: format!("Codex auth backup write error: {error}"),
-            };
+        // A key already attached to another route has no official provenance.
+        let unowned_route_key = !codex_route_is_official(&existing)
+            && existing_auth.as_deref().is_some_and(auth_has_api_key);
+        if !unowned_route_key {
+            if let Err(error) = transaction.replace(
+                &auth_backup_path,
+                existing_auth.as_deref().unwrap_or(b"null"),
+            ) {
+                return ApplyResult {
+                    success: false,
+                    message: format!("Codex auth backup write error: {error}"),
+                };
+            }
         }
     }
     if codex_accounts::has_effective_oauth_snapshot(&auth_path, &auth_backup_path) {
@@ -361,22 +401,9 @@ pub(crate) fn apply_codex_at(
     // `model_context_window` / `model_auto_compact_token_limit` matching the
     // model's actual token budget rather than the historic 1M default.
     let catalog_template = codex_catalog::template_for_model(&base_url, model_id);
-    let context_window = catalog_template
-        .as_ref()
-        .and_then(|template| template["context_window"].as_u64())
-        .unwrap_or_else(|| model_context_window_for(model_id));
-
-    ensure_parent(&config_path);
-    let _selection_lock =
-        match crate::services::native_account_files::DirectoryLock::acquire_existing(&config_path) {
-            Ok(lock) => lock,
-            Err(error) => {
-                return ApplyResult {
-                    success: false,
-                    message: format!("Codex configuration is busy: {error}"),
-                }
-            }
-        };
+    let context_window = catalog_template.as_ref().and_then(|template| {
+        codex_catalog::documented_context_window(template, &base_url, model_id)
+    });
 
     // Canonicalize every field we own. Overwrite-in-place
     // if present, insert if missing. Manual edits or other tools may have
@@ -384,22 +411,6 @@ pub(crate) fn apply_codex_at(
     // canonical shape end-to-end, not just `base_url`. Codex's own
     // runtime state (`[projects.*]` trust, `[tui.*]` NUX, `[plugins.*]`)
     // and any unrelated user-edited top-level keys stay untouched.
-    let existing = match fs::read_to_string(&config_path) {
-        Ok(content) => content,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
-        Err(error) => {
-            return ApplyResult {
-                success: false,
-                message: format!("Codex config read error: {error}"),
-            }
-        }
-    };
-    if existing.parse::<toml_edit::DocumentMut>().is_err() {
-        return ApplyResult {
-            success: false,
-            message: "Codex configuration is not valid TOML".into(),
-        };
-    }
     let mut new_content = write_codex_canonical_fields(
         &existing,
         &base_url,
@@ -430,12 +441,12 @@ pub(crate) fn apply_codex_at(
         // Direct providers keep their single-model catalog. Smart Access adds
         // the enabled candidates beside the automatic selection.
         let catalog = if switch_models.is_empty() {
-            codex_catalog::build_catalog(
+            serde_json::json!({"models":[codex_catalog::catalog_entry(
                 &catalog_template.unwrap(),
                 model_id,
                 model_info.name.as_deref().unwrap_or(model_id),
                 context_window,
-            )
+            )]})
         } else {
             codex_catalog::build_router_catalog(
                 &switch_models,
@@ -476,8 +487,15 @@ pub(crate) fn apply_codex_at(
         }
     }
 
-    if let Err(message) =
-        publish_codex_files(codex_dir, &existing, &new_content, catalog_change, api_key)
+    if let Err(message) = write_codex_files(
+        &mut transaction,
+        codex_dir,
+        &existing,
+        &new_content,
+        catalog_change,
+        api_key,
+    )
+    .and_then(|()| transaction.commit_files())
     {
         return ApplyResult {
             success: false,
@@ -508,7 +526,8 @@ pub(crate) fn apply_codex_at(
 }
 
 /// Publish one explicit selection; roll back only files still equal to our write.
-fn publish_codex_files(
+fn write_codex_files(
+    transaction: &mut Transaction,
     codex_dir: &Path,
     previous_config: &str,
     config: &str,
@@ -520,7 +539,6 @@ fn publish_codex_files(
     if live.as_deref().unwrap_or_default() != previous_config.as_bytes() {
         return Err("Codex configuration changed during selection; try again".into());
     }
-    let mut transaction = Transaction::guarded();
     let catalog = codex_catalog::models_json_path(codex_dir);
     match catalog_change {
         Some(Some(value)) => transaction
@@ -546,7 +564,6 @@ fn publish_codex_files(
                 .expect("Codex auth JSON"),
         )
         .map_err(|error| format!("Codex auth.json error: {error}"))?;
-    transaction.commit();
     Ok(())
 }
 
@@ -680,52 +697,111 @@ fn official_codex_config_from(content: &str) -> Result<String, String> {
     Ok(next)
 }
 
-fn restore_codex_config_at(config_path: &Path) -> Result<bool, String> {
-    let existing = match fs::read_to_string(config_path) {
-        Ok(content) => content,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
-        Err(error) => {
-            return Err(format!(
-                "Failed to read Codex config {}: {error}",
-                config_path.display()
-            ))
-        }
-    };
-    if !existing.trim().is_empty() && codex_route_is_official(&existing) {
-        return Ok(false);
+fn auth_has_api_key(raw: &[u8]) -> bool {
+    serde_json::from_slice::<serde_json::Value>(raw).is_ok_and(|auth| {
+        auth["OPENAI_API_KEY"]
+            .as_str()
+            .is_some_and(|key| !key.trim().is_empty())
+    })
+}
+
+pub(crate) fn official_codex_replacement(
+    existing: Option<&[u8]>,
+) -> Result<Option<String>, String> {
+    let content = std::str::from_utf8(existing.unwrap_or_default())
+        .map_err(|_| "Codex configuration is not valid UTF-8")?;
+    if !content.trim().is_empty() && codex_route_is_official(content) {
+        Ok(None)
+    } else {
+        official_codex_config_from(content).map(Some)
+    }
+}
+
+fn restore_codex_at(config_path: &Path, state_dir: &Path) -> Result<bool, String> {
+    use crate::services::native_account_files::{read_optional, DirectoryLock};
+
+    let home = config_path.parent().ok_or("accountError.home")?;
+    fs::create_dir_all(home).map_err(|_| "accountError.write")?;
+    let _lock = DirectoryLock::acquire_existing(config_path)?;
+    let backup = codex_accounts::auth_backup_path(home, state_dir)?;
+    codex_accounts::recover_selection_at(home, &backup)?;
+    let existing = read_optional(config_path)?;
+    let next = official_codex_replacement(existing.as_deref())?;
+    let auth = read_optional(&backup)?;
+    let saved_auth = auth
+        .as_deref()
+        .map(|bytes| {
+            let value: serde_json::Value =
+                serde_json::from_slice(bytes).map_err(|_| "accountError.format")?;
+            match value {
+                serde_json::Value::Null => Ok(None),
+                serde_json::Value::Object(_) => Ok(Some(bytes)),
+                _ => Err("accountError.format"),
+            }
+        })
+        .transpose()?;
+
+    let auth_path = home.join("auth.json");
+    let replacing_route = next.is_some()
+        && existing
+            .as_deref()
+            .is_some_and(|config| config.iter().any(|byte| !byte.is_ascii_whitespace()));
+    if replacing_route
+        && saved_auth.is_none()
+        && read_optional(&auth_path)?
+            .as_deref()
+            .is_some_and(auth_has_api_key)
+    {
+        return Err("Select a saved OpenAI account to restore the official provider. The current API key has no verified backup for this Codex directory.".into());
     }
 
-    let next = official_codex_config_from(&existing)?;
-    ensure_parent(config_path);
-    fs::write(config_path, next).map_err(|error| {
-        format!(
-            "Failed to write Codex config {}: {error}",
-            config_path.display()
-        )
-    })?;
-    Ok(true)
+    let mut transaction = codex_accounts::selection_transaction(home, &backup)?;
+    if let Some(saved_auth) = saved_auth {
+        // Applying a model only replaces auth.json. Leave Keychain alone
+        // and respect a native sign-in written after the model was applied.
+        let live = read_optional(&auth_path)?;
+        let signed_in = live
+            .as_deref()
+            .and_then(|bytes| serde_json::from_slice(bytes).ok())
+            .is_some_and(|value| codex_accounts::is_oauth_auth(&value));
+        if !signed_in {
+            match saved_auth {
+                Some(bytes) => transaction.replace_private_file(&auth_path, bytes)?,
+                None => transaction.remove_private_file(&auth_path)?,
+            }
+        }
+    }
+    if let Some(next) = &next {
+        if read_optional(config_path)? != existing {
+            return Err("Codex configuration changed during restore; try again".into());
+        }
+        transaction.replace_private_file(config_path, next.as_bytes())?;
+    }
+    if saved_auth.is_some() {
+        if read_optional(&backup)? != auth {
+            return Err("Codex authentication backup changed during restore; try again".into());
+        }
+        // A retry still has its snapshot if either native write failed.
+        transaction.remove(&backup)?;
+    }
+    transaction.commit_files()?;
+    Ok(next.is_some())
+}
+
+#[cfg(test)]
+fn restore_codex_config_at(config_path: &Path) -> Result<bool, String> {
+    restore_codex_at(config_path, config_path.parent().unwrap())
 }
 
 pub(super) fn restore_codex_to_official(tool_id: &str, config_path: &Path) -> ApplyResult {
-    if let Err(error) = restore_codex_config_at(config_path) {
+    if let Err(error) = restore_codex_at(config_path, &echobird_dir()) {
         return ApplyResult {
             success: false,
-            message: format!("Failed to restore Codex config: {error}"),
-        };
-    }
-
-    // Restore auth.json from the snapshot taken before third-party mode.
-    // When no snapshot exists, keep the current file: deleting it while the
-    // client is running leaves the UI and disk state inconsistent.
-    let auth_path = config_path
-        .parent()
-        .unwrap_or(Path::new(""))
-        .join("auth.json");
-    let auth_backup_path = echobird_dir().join("codex-auth.bak.json");
-    if let Err(error) = codex_accounts::restore_legacy_oauth(&auth_path, &auth_backup_path) {
-        return ApplyResult {
-            success: false,
-            message: format!("Failed to restore Codex account: {error}"),
+            message: if error.starts_with("accountError.") {
+                error
+            } else {
+                format!("Failed to restore Codex configuration and account: {error}")
+            },
         };
     }
 
@@ -749,6 +825,136 @@ pub(super) fn restore_codex_to_official(tool_id: &str, config_path: &Path) -> Ap
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn publish_codex_files(
+        codex_dir: &Path,
+        previous_config: &str,
+        config: &str,
+        catalog_change: Option<Option<serde_json::Value>>,
+        api_key: &str,
+    ) -> Result<(), String> {
+        let backup = codex_accounts::auth_backup_path(codex_dir, codex_dir)?;
+        let mut transaction = codex_accounts::selection_transaction(codex_dir, &backup)?;
+        write_codex_files(
+            &mut transaction,
+            codex_dir,
+            previous_config,
+            config,
+            catalog_change,
+            api_key,
+        )?;
+        transaction.commit_files()
+    }
+
+    #[test]
+    fn reapplying_a_legacy_route_does_not_adopt_its_key_as_official() {
+        let root = super::super::switching::TestDir::new();
+        let home = root.path();
+        let config = home.join("config.toml");
+        let auth = home.join("auth.json");
+        let legacy = home.join("codex-auth.bak.json");
+        fs::write(&config, "model_provider = 'OpenAI'\n[model_providers.OpenAI]\nbase_url = 'https://route.invalid/v1'\n").unwrap();
+        fs::write(&auth, br#"{"OPENAI_API_KEY":"old-route-key"}"#).unwrap();
+        fs::write(&legacy, br#"{"tokens":{"access_token":"unattributed"}}"#).unwrap();
+        let info: ModelInfo = serde_json::from_value(serde_json::json!({
+            "model": "fixture", "baseUrl": "https://provider.invalid/v1", "apiKey": "new-route-key"
+        }))
+        .unwrap();
+        assert!(apply_codex_at("codex", &info, home, home).success);
+        assert!(!codex_accounts::auth_backup_path(home, home)
+            .unwrap()
+            .exists());
+        let before = fs::read(&config).unwrap();
+        let before_auth = fs::read(&auth).unwrap();
+        assert!(restore_codex_at(&config, home)
+            .unwrap_err()
+            .contains("Select a saved OpenAI account"));
+        assert_eq!(fs::read(config).unwrap(), before);
+        assert_eq!(fs::read(auth).unwrap(), before_auth);
+        assert_eq!(
+            fs::read(legacy).unwrap(),
+            br#"{"tokens":{"access_token":"unattributed"}}"#
+        );
+    }
+
+    #[test]
+    fn restoring_two_homes_uses_only_their_own_auth_backups() {
+        let root = super::super::switching::TestDir::new();
+        let state = root.path().join("state");
+        fs::create_dir(&state).unwrap();
+        let legacy = state.join("codex-auth.bak.json");
+        fs::write(&legacy, br#"{"OPENAI_API_KEY":"unattributed"}"#).unwrap();
+        let first = root.path().join("first");
+        let second = root.path().join("second");
+        let original_first = br#"{"OPENAI_API_KEY":"first"}"#;
+        let original_second = br#"{"OPENAI_API_KEY":"second"}"#;
+        let info: ModelInfo = serde_json::from_value(serde_json::json!({
+            "model": "fixture", "baseUrl": "https://provider.invalid/v1", "apiKey": "fixture"
+        }))
+        .unwrap();
+        for (home, auth) in [
+            (&first, original_first.as_slice()),
+            (&second, original_second.as_slice()),
+        ] {
+            fs::create_dir(home).unwrap();
+            fs::write(home.join("auth.json"), auth).unwrap();
+            let result = apply_codex_at("codex", &info, home, &state);
+            assert!(result.success, "{}", result.message);
+        }
+        restore_codex_at(&second.join("config.toml"), &state).unwrap();
+        assert_eq!(fs::read(second.join("auth.json")).unwrap(), original_second);
+        assert_ne!(fs::read(first.join("auth.json")).unwrap(), original_first);
+        restore_codex_at(&first.join("config.toml"), &state).unwrap();
+        assert_eq!(fs::read(first.join("auth.json")).unwrap(), original_first);
+        assert_eq!(
+            fs::read(legacy).unwrap(),
+            br#"{"OPENAI_API_KEY":"unattributed"}"#
+        );
+    }
+
+    #[test]
+    fn official_restore_keeps_existing_route_and_snapshot_when_auth_cannot_be_written() {
+        let root = super::super::switching::TestDir::new();
+        let home = root.path();
+        let path = home.join("config.toml");
+        let prior = b"model_provider = 'OpenAI'\n[model_providers.OpenAI]\nbase_url = 'https://provider.invalid/v1'\n";
+        fs::write(&path, prior).unwrap();
+        let backup = codex_accounts::auth_backup_path(home, home).unwrap();
+        crate::services::native_account_files::write(&backup, br#"{"OPENAI_API_KEY":"original"}"#)
+            .unwrap();
+        fs::create_dir(home.join("auth.json")).unwrap();
+
+        assert!(restore_codex_at(&path, home).is_err());
+        assert_eq!(fs::read(&path).unwrap(), prior);
+        assert_eq!(
+            fs::read(&backup).unwrap(),
+            br#"{"OPENAI_API_KEY":"original"}"#
+        );
+        fs::remove_dir(home.join("auth.json")).unwrap();
+        assert!(restore_codex_at(&path, home).unwrap());
+        assert!(!backup.exists());
+    }
+
+    #[test]
+    fn official_restore_removes_only_the_file_created_for_a_model_selection() {
+        let root = super::super::switching::TestDir::new();
+        let home = root.path();
+        let info: ModelInfo = serde_json::from_value(serde_json::json!({
+            "model": "fixture", "baseUrl": "https://provider.invalid/v1", "apiKey": "fixture"
+        }))
+        .unwrap();
+        let result = apply_codex_at("codex", &info, home, home);
+        assert!(result.success, "{}", result.message);
+        assert!(home.join("auth.json").exists());
+        restore_codex_at(&home.join("config.toml"), home).unwrap();
+        assert!(!home.join("auth.json").exists());
+
+        assert!(apply_codex_at("codex", &info, home, home).success);
+        let new_sign_in = br#"{"tokens":{"access_token":"fixture-native-token"}}"#;
+        fs::write(home.join("auth.json"), new_sign_in).unwrap();
+        restore_codex_at(&home.join("config.toml"), home).unwrap();
+        assert_eq!(fs::read(home.join("auth.json")).unwrap(), new_sign_in);
+    }
 
     #[test]
     fn selection_rejects_a_config_edited_after_it_was_read() {
@@ -881,13 +1087,8 @@ mod tests {
             "https://provider.example/v1",
         ] {
             for (enabled, expected) in [(true, "live"), (false, "disabled")] {
-                let out = write_codex_canonical_fields(
-                    "",
-                    base_url,
-                    "fixture",
-                    DEFAULT_CODEX_CONTEXT_WINDOW,
-                    Some(enabled),
-                );
+                let out =
+                    write_codex_canonical_fields("", base_url, "fixture", None, Some(enabled));
                 assert_eq!(toml_read_top(&out, "web_search"), expected);
             }
         }
@@ -900,7 +1101,7 @@ mod tests {
                 "",
                 "http://127.0.0.1:53683/v1",
                 "auto",
-                DEFAULT_CODEX_CONTEXT_WINDOW,
+                None,
                 enabled,
             );
             assert_eq!(
@@ -936,7 +1137,7 @@ mod tests {
             stale,
             "https://ark.cn-beijing.volces.com/api/coding/v1",
             "glm-5.2",
-            DEFAULT_CODEX_CONTEXT_WINDOW,
+            None,
             None,
         );
         assert!(
@@ -958,7 +1159,7 @@ mod tests {
             stale,
             "https://provider.example/v1",
             "provider-model",
-            DEFAULT_CODEX_CONTEXT_WINDOW,
+            None,
             None,
         );
         assert!(!out.contains("review_model"));
@@ -977,7 +1178,7 @@ mod tests {
             stale,
             "https://provider.example/v1",
             "provider-model",
-            DEFAULT_CODEX_CONTEXT_WINDOW,
+            None,
             None,
         );
         assert!(
@@ -1011,18 +1212,18 @@ mod tests {
     // window is smaller than the historic 1M default is not over-claimed.
 
     #[test]
-    fn model_context_window_for_known_model() {
-        assert_eq!(model_context_window_for("MiniMax-M2.7"), 204_800);
-    }
-
-    #[test]
     fn deepseek_context_matches_official_catalog_in_config_and_generated_catalog() {
         let template = serde_json::from_str(codex_catalog::DEEPSEEK_TEMPLATE).unwrap();
         for model in ["deepseek-flash", "deepseek-v4-pro"] {
-            let context = model_context_window_for(model);
+            let context = 1_048_576;
             assert_eq!(context, 1_048_576);
-            let config =
-                write_codex_canonical_fields("", "https://api.deepseek.com", model, context, None);
+            let config = write_codex_canonical_fields(
+                "",
+                "https://api.deepseek.com",
+                model,
+                Some(context),
+                None,
+            );
             assert_eq!(toml_read_top(&config, "model_context_window"), "1048576");
             assert_eq!(
                 toml_read_top(&config, "model_auto_compact_token_limit"),
@@ -1046,7 +1247,7 @@ mod tests {
                 &config,
                 "https://api.deepseek.com",
                 model,
-                model_context_window_for(model),
+                Some(1_048_576),
                 None,
             );
             assert_eq!(
@@ -1060,7 +1261,7 @@ mod tests {
             &config,
             "https://api.deepseek.com",
             "deepseek-v4-pro",
-            model_context_window_for("deepseek-v4-pro"),
+            Some(1_048_576),
             None,
         );
         assert_eq!(reapplied, config);
@@ -1069,13 +1270,7 @@ mod tests {
             "https://api.xiaomimimo.com/v1",
             "https://provider.example/v1",
         ] {
-            let other = write_codex_canonical_fields(
-                &config,
-                base_url,
-                "other-model",
-                DEFAULT_CODEX_CONTEXT_WINDOW,
-                None,
-            );
+            let other = write_codex_canonical_fields(&config, base_url, "other-model", None, None);
             assert!(!other.contains("enabled-reasoning-efforts"));
             assert!(other.contains("# keep"));
             assert_eq!(toml_read_top(&other, "show_raw_agent_reasoning"), "false");
@@ -1104,7 +1299,7 @@ mod tests {
                 &config,
                 "https://provider.example/v1",
                 "other-model",
-                DEFAULT_CODEX_CONTEXT_WINDOW,
+                None,
                 None,
             );
             assert!(
@@ -1135,7 +1330,7 @@ mod tests {
                 &config,
                 "https://api.xiaomimimo.com/v1",
                 "mimo-v2.5",
-                DEFAULT_CODEX_CONTEXT_WINDOW,
+                None,
                 None,
             );
             assert_eq!(
@@ -1210,7 +1405,7 @@ mod tests {
                     "https://api.deepseek.com",
                     "deepseek-v5-flash",
                     "https://api.deepseek.com",
-                    DEFAULT_CODEX_CONTEXT_WINDOW,
+                    0,
                     "high",
                 ),
                 (
@@ -1343,13 +1538,18 @@ mod tests {
                     toml_read_table_value(&config, "model_providers.OpenAI", "wire_api"),
                     "responses"
                 );
+                let expected_context = (context > 0).then_some(context);
                 assert_eq!(
                     toml_read_top(&config, "model_context_window"),
-                    context.to_string()
+                    expected_context
+                        .map(|value| value.to_string())
+                        .unwrap_or_default()
                 );
                 assert_eq!(
                     toml_read_top(&config, "model_auto_compact_token_limit"),
-                    codex_compact_limit_for(context).to_string()
+                    expected_context
+                        .map(|value| codex_compact_limit_for(value).to_string())
+                        .unwrap_or_default()
                 );
                 assert_eq!(toml_read_top(&config, "model_reasoning_effort"), effort);
                 assert_eq!(toml_read_top(&config, "model"), model);
@@ -1368,18 +1568,26 @@ mod tests {
                 assert_eq!(catalog["models"].as_array().unwrap().len(), 1);
                 assert_eq!(catalog["models"][0]["slug"], model);
                 assert_eq!(catalog["models"][0]["display_name"], "Custom name");
-                assert_eq!(catalog["models"][0]["context_window"], context);
+                assert_eq!(
+                    catalog["models"][0]["context_window"].as_u64(),
+                    expected_context
+                );
+                assert_eq!(
+                    catalog["models"][0]["max_context_window"].as_u64(),
+                    expected_context
+                );
                 let before = config;
                 assert!(apply_codex_at(tool, &info, &codex_dir, &state_dir).success);
                 assert_eq!(fs::read_to_string(&config_path).unwrap(), before);
             }
         }
         assert_eq!(
-            fs::read_to_string(state_dir.join("codex-auth.bak.json")).unwrap(),
+            fs::read_to_string(codex_accounts::auth_backup_path(&codex_dir, &state_dir).unwrap())
+                .unwrap(),
             original_auth
         );
         let unknown: ModelInfo = serde_json::from_value(serde_json::json!({
-            "model": "future", "baseUrl": "https://reseller.example/v1", "apiKey": "fixture-key"
+            "model": "deepseek-flash", "baseUrl": "https://reseller.example/v1", "apiKey": "fixture-key"
         }))
         .unwrap();
         assert!(apply_codex_at("codex", &unknown, &codex_dir, &state_dir).success);
@@ -1391,6 +1599,9 @@ mod tests {
         .is_empty());
 
         let config_before = fs::read(&config_path).unwrap();
+        let text = std::str::from_utf8(&config_before).unwrap();
+        assert!(toml_read_top(text, "model_context_window").is_empty());
+        assert!(toml_read_top(text, "model_auto_compact_token_limit").is_empty());
         let auth_before = fs::read(codex_dir.join("auth.json")).unwrap();
         let mut missing_key = unknown;
         missing_key.api_key = None;
@@ -1457,14 +1668,6 @@ mod tests {
     }
 
     #[test]
-    fn model_context_window_for_unknown_model_defaults_to_1m() {
-        assert_eq!(
-            model_context_window_for("glm-5.2"),
-            DEFAULT_CODEX_CONTEXT_WINDOW
-        );
-    }
-
-    #[test]
     fn codex_compact_limit_is_90_percent_of_window() {
         assert_eq!(codex_compact_limit_for(1_000_000), 900_000);
         assert_eq!(codex_compact_limit_for(204_800), 184_320);
@@ -1477,7 +1680,7 @@ mod tests {
             stale,
             "https://provider.example/v1",
             "provider-model",
-            DEFAULT_CODEX_CONTEXT_WINDOW,
+            None,
             None,
         );
         assert!(
@@ -1495,7 +1698,7 @@ mod tests {
             "model = \"gpt-5.5\"\n[model_providers.OpenAI]\n",
             "http://127.0.0.1:53682/v1",
             "gpt-5.5",
-            204_800,
+            Some(204_800),
             None,
         );
         assert!(out.contains("model_context_window = 204800"), "got: {out}");
@@ -1521,13 +1724,7 @@ mod tests {
             "https://api.xiaomimimo.com/v1",
             "https://token-plan-cn.xiaomimimo.com/v1",
         ] {
-            let out = write_codex_canonical_fields(
-                "",
-                base_url,
-                "provider-model",
-                DEFAULT_CODEX_CONTEXT_WINDOW,
-                None,
-            );
+            let out = write_codex_canonical_fields("", base_url, "provider-model", None, None);
             assert!(out.contains("web_search = \"disabled\""), "got: {out}");
         }
     }
@@ -1538,7 +1735,7 @@ mod tests {
             "",
             "https://api.xiaomimimo.com/v1",
             "mimo-v2.5-pro",
-            DEFAULT_CODEX_CONTEXT_WINDOW,
+            None,
             None,
         );
         assert!(mimo.contains("model_supports_reasoning_summaries = true"));
@@ -1548,7 +1745,7 @@ mod tests {
             &mimo,
             "https://provider.example/v1",
             "provider-model",
-            DEFAULT_CODEX_CONTEXT_WINDOW,
+            None,
             None,
         );
         assert!(!other.contains("model_supports_reasoning_summaries"));
@@ -1570,8 +1767,13 @@ remote_compaction = "v2"
         let mode = |content: &str| {
             toml_read_table_value(content, CODEX_CAPABILITIES_TABLE, "remote_compaction")
         };
-        let switched =
-            write_codex_canonical_fields(config, "http://127.0.0.1:1234/v1", "auto", 200_000, None);
+        let switched = write_codex_canonical_fields(
+            config,
+            "http://127.0.0.1:1234/v1",
+            "auto",
+            Some(200_000),
+            None,
+        );
         assert_eq!(mode(&switched), "unsupported");
         assert_eq!(
             toml_read_table_value(&switched, CODEX_CAPABILITIES_TABLE, "external_web_access"),
@@ -1591,20 +1793,28 @@ remote_compaction = "v2"
                 &switched,
                 "https://api.openai.com/v1",
                 "gpt-test",
-                200_000,
+                Some(200_000),
                 None,
             )),
             ""
         );
         assert_eq!(
             mode(&write_codex_canonical_fields(
-                config, upstream, "model", 200_000, None
+                config,
+                upstream,
+                "model",
+                Some(200_000),
+                None
             )),
             "v2"
         );
         assert_eq!(
             mode(&write_codex_canonical_fields(
-                "", upstream, "model", 200_000, None
+                "",
+                upstream,
+                "model",
+                Some(200_000),
+                None
             )),
             "unsupported"
         );
@@ -1613,7 +1823,7 @@ remote_compaction = "v2"
                 "",
                 "https://api.openai.com.example/v1",
                 "model",
-                200_000,
+                Some(200_000),
                 None,
             )),
             "unsupported"
@@ -1751,7 +1961,8 @@ command = "files-server"
             "https://provider.example/v1"
         );
 
-        assert!(restore_codex_config_at(&config_path).unwrap());
+        assert!(restore_codex_at(&config_path, &state_dir).unwrap());
+        assert!(!codex_dir.join("auth.json").exists());
         let restored = fs::read_to_string(&config_path).unwrap();
         assert_eq!(toml_read_top(&restored, "model_provider"), "OpenAI");
         assert_eq!(toml_read_table_value(&restored, "desktop", "theme"), "dark");
@@ -1810,8 +2021,7 @@ command = "files-server"
             fs::write(&path, &content).unwrap();
             let changed = restore_codex_config_at(&path).unwrap();
             let restored = fs::read_to_string(&path).unwrap();
-            fs::remove_file(&path).unwrap();
-            fs::remove_dir(&fixture).unwrap();
+            fs::remove_dir_all(&fixture).unwrap();
             assert!(!changed, "official provider {selected:?} must be a no-op");
             assert_eq!(restored, content);
         }

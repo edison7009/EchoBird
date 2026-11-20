@@ -6,6 +6,7 @@ import { useToolsStore } from '../../stores/toolsStore';
 import { useSystemApplicationsStore } from '../../stores/systemApplicationsStore';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { AppManagerProvider } from './AppManagerProvider';
+import { ToastProvider } from '../../components/Toast';
 import { AppManagerContext, useAppManager } from './context';
 import { AppManagerBottom } from './AppManagerComponents';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
@@ -606,7 +607,7 @@ describe('Claude Desktop account apply', () => {
       await context.handleLaunch();
     });
     expect(api.switchClaudeDesktopAccount).toHaveBeenCalledWith('desktop-saved');
-    expect(api.restoreToolToOfficial).toHaveBeenCalledWith('claudedesktop');
+    expect(api.restoreToolToOfficial).not.toHaveBeenCalled();
     expect(api.listClaudeDesktopAccounts).toHaveBeenCalledTimes(2);
     expect(api.startTool).not.toHaveBeenCalled();
     expect(api.refreshClaudeDesktopAccount).not.toHaveBeenCalled();
@@ -689,9 +690,11 @@ describe.each(['claudedesktop', 'claudecode'] as const)('%s direct API configura
   async function mount() {
     await act(async () => {
       renderer = create(
-        <AppManagerProvider>
-          <Harness />
-        </AppManagerProvider>
+        <ToastProvider>
+          <AppManagerProvider>
+            <Harness />
+          </AppManagerProvider>
+        </ToastProvider>
       );
     });
     await act(async () => context.setSelectedTool(tool));
@@ -730,6 +733,32 @@ describe.each(['claudedesktop', 'claudecode'] as const)('%s direct API configura
       oneMContext: false,
       webSearch: true,
     });
+  });
+  it('shows the restart notice only after successful Claude Code apply and restore', async () => {
+    await mount();
+    const notices = () =>
+      renderer.root
+        .findAllByType('p')
+        .filter((node) => node.children.includes('agent.claudeCodeReopen'));
+    expect(notices()).toHaveLength(0);
+    vi.mocked(api.applyModelToTool).mockResolvedValueOnce({
+      success: false,
+      message: 'write failed',
+    });
+    await act(async () => context.handleLaunch());
+    expect(context.applyError).toBe('write failed');
+    expect(notices()).toHaveLength(0);
+
+    await act(async () => {
+      await context.handleLaunch();
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+    const expectedCount = tool === 'claudecode' ? 1 : 0;
+    expect(notices()).toHaveLength(expectedCount);
+    vi.mocked(api.restoreToolToOfficial).mockResolvedValueOnce({ success: true, message: 'ok' });
+    await act(async () => context.handleRestoreModel(tool));
+    expect(notices()).toHaveLength(expectedCount * 2);
+    expect(api.startTool).not.toHaveBeenCalled();
   });
   it('stages Claude preferences until explicit launch and restores them on reentry', async () => {
     await mount();
@@ -930,9 +959,11 @@ describe.each(['codex', 'chatgptdesktop'])('%s Web Search preference', (tool) =>
   const mount = async () => {
     await act(async () => {
       renderer = create(
-        <AppManagerProvider>
-          <Harness />
-        </AppManagerProvider>
+        <ToastProvider>
+          <AppManagerProvider>
+            <Harness />
+          </AppManagerProvider>
+        </ToastProvider>
       );
     });
     await act(async () => {
@@ -944,6 +975,38 @@ describe.each(['codex', 'chatgptdesktop'])('%s Web Search preference', (tool) =>
       context.setLaunchAfterApply(false);
     });
   };
+  it('shows pending history merge feedback only after launch', async () => {
+    await mount();
+    const historyNotices = () =>
+      renderer.root
+        .findAllByType('p')
+        .filter((node) =>
+          node.children.some(
+            (text) => typeof text === 'string' && text.startsWith('agent.codexHistory')
+          )
+        );
+    await act(async () => {
+      await context.handleLaunch();
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+    expect(api.startTool).not.toHaveBeenCalled();
+    expect(historyNotices()).toHaveLength(0);
+
+    act(() => context.setLaunchAfterApply(true));
+    for (const [status, notice] of [
+      ['partial', 'agent.codexHistoryPartial'],
+      ['deferred', 'agent.codexHistoryDeferred'],
+    ] as const) {
+      vi.mocked(api.startTool).mockResolvedValueOnce(status);
+      await act(async () => {
+        await context.handleLaunch();
+        await vi.advanceTimersByTimeAsync(3000);
+      });
+      expect(context.applyError).toBeNull();
+      expect(historyNotices().some((node) => node.children.includes(notice))).toBe(true);
+    }
+    expect(api.startTool).toHaveBeenCalledTimes(2);
+  });
   it('restores the default-on preference without inferring provider capabilities', async () => {
     await mount();
     for (const id of ['fixture', 'deepseek.com', 'xiaomimimo.com']) {
@@ -1005,9 +1068,11 @@ describe.each(['codex', 'chatgptdesktop'])('%s Web Search preference', (tool) =>
     routerState.routerEnabled = true;
     await act(async () =>
       renderer.update(
-        <AppManagerProvider>
-          <Harness />
-        </AppManagerProvider>
+        <ToastProvider>
+          <AppManagerProvider>
+            <Harness />
+          </AppManagerProvider>
+        </ToastProvider>
       )
     );
     expect(context.toolModelConfig[tool]).toBe('smart-router');
@@ -1015,9 +1080,11 @@ describe.each(['codex', 'chatgptdesktop'])('%s Web Search preference', (tool) =>
     routerState.routers = [];
     await act(async () =>
       renderer.update(
-        <AppManagerProvider>
-          <Harness />
-        </AppManagerProvider>
+        <ToastProvider>
+          <AppManagerProvider>
+            <Harness />
+          </AppManagerProvider>
+        </ToastProvider>
       )
     );
     expect(context.toolModelConfig[tool]).toBeNull();
@@ -1120,6 +1187,41 @@ describe.each(['codex', 'chatgptdesktop'])('%s Web Search preference', (tool) =>
       await pending;
     });
     expect(context.isLaunching).toBe(false);
+  });
+  it('uses one command for an official account and preserves the applied model on failure', async () => {
+    const account = { id: 'saved-account', email: 'saved@example.test', active: false };
+    vi.mocked(api.listCodexAccounts).mockResolvedValue([account]);
+    await mount();
+    act(() => {
+      useToolsStore
+        .getState()
+        .setDetectedTools(
+          useToolsStore
+            .getState()
+            .detectedTools.map((entry) =>
+              entry.id === tool ? { ...entry, activeModel: 'Previous route' } : entry
+            )
+        );
+      context.setSelectedCodexAccountId(account.id);
+    });
+    vi.mocked(api.switchCodexAccount).mockRejectedValueOnce('accountError.keychain');
+    await act(async () => context.handleLaunch());
+    expect(api.switchCodexAccount).toHaveBeenCalledExactlyOnceWith(account.id);
+    expect(api.restoreToolToOfficial).not.toHaveBeenCalled();
+    expect(api.startTool).not.toHaveBeenCalled();
+    expect(context.selectedToolData?.activeModel).toBe('Previous route');
+    expect(context.applyError).toBeTruthy();
+
+    vi.mocked(api.switchCodexAccount).mockResolvedValueOnce({ ...account, active: true });
+    await act(async () => {
+      await context.handleLaunch();
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+    expect(api.switchCodexAccount).toHaveBeenCalledTimes(2);
+    expect(api.restoreToolToOfficial).not.toHaveBeenCalled();
+    expect(api.applyModelToTool).not.toHaveBeenCalled();
+    expect(api.startTool).not.toHaveBeenCalled();
+    expect(context.selectedToolData?.activeModel).not.toBe('Previous route');
   });
   it('only saves the preference when an account or uninstalled client is selected', async () => {
     await mount();

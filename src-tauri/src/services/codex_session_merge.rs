@@ -60,6 +60,28 @@ pub struct MergeReport {
     pub threads_retagged: usize,
     pub rollouts_retagged: usize,
     pub dbs_locked: usize,
+    pub failures: usize,
+    pub sessions_in_use: usize,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum HistoryMergeNotice {
+    Partial,
+    Deferred,
+}
+
+impl MergeReport {
+    fn notice(&self) -> Option<HistoryMergeNotice> {
+        if self.failures == 0 && self.dbs_locked == 0 && self.sessions_in_use == 0 {
+            return None;
+        }
+        Some(if self.threads_retagged > 0 || self.rollouts_retagged > 0 {
+            HistoryMergeNotice::Partial
+        } else {
+            HistoryMergeNotice::Deferred
+        })
+    }
 }
 
 struct HistoryCoordinationLock(File);
@@ -75,11 +97,16 @@ impl Drop for HistoryCoordinationLock {
 
 /// Public entry — called from the Codex launch pre-flight in
 /// `process_manager::start_tool`, after `config.toml` is written
-/// and before Codex spawns. Never returns an error: everything is logged.
-pub fn merge_codex_history(codex_home: &Path) {
-    let Some(active) = read_active_provider(codex_home) else {
-        log::warn!("[CodexMerge] no top-level model_provider in config.toml; skipping merge");
-        return;
+/// and before Codex spawns. A notice lets the client report pending work
+/// without preventing launch.
+pub fn merge_codex_history(codex_home: &Path) -> Option<HistoryMergeNotice> {
+    let active = match read_active_provider(codex_home) {
+        Ok(Some(active)) => active,
+        Ok(None) => return None,
+        Err(error) => {
+            log::warn!("[CodexMerge] cannot read the active provider; retry next launch: {error}");
+            return Some(HistoryMergeNotice::Deferred);
+        }
     };
     let report = retag_all(codex_home, &active);
     if report.threads_retagged > 0 || report.rollouts_retagged > 0 || report.dbs_locked > 0 {
@@ -92,6 +119,7 @@ pub fn merge_codex_history(codex_home: &Path) {
             report.dbs_locked
         );
     }
+    report.notice()
 }
 
 /// Retag both stores to `active`. Split from the public entry for tests.
@@ -101,22 +129,44 @@ fn retag_all(codex_home: &Path, active: &str) -> MergeReport {
         Ok(guard) => guard,
         Err(e) => {
             log::warn!("[CodexMerge] writer coordination unavailable; retry next launch: {e}");
+            report.failures += 1;
             return report;
         }
     };
     let mut files = Vec::new();
-    collect_jsonl(&codex_home.join("sessions"), 4, &mut files);
-    collect_jsonl(&codex_home.join("archived_sessions"), 1, &mut files);
+    let databases = match collect_jsonl(&codex_home.join("sessions"), 4, &mut files)
+        .and_then(|()| collect_jsonl(&codex_home.join("archived_sessions"), 1, &mut files))
+        .and_then(|()| find_state_dbs(codex_home))
+    {
+        Ok(databases) => databases,
+        Err(error) => {
+            log::warn!("[CodexMerge] history discovery failed; retry next launch: {error}");
+            report.failures += 1;
+            return report;
+        }
+    };
     // Old clients do not take writer locks. Also leave their fresh DB rows
     // alone instead of retagging the index while skipping the transcript.
     for path in &files {
         if is_live_session(path) {
-            if let Some(id) = rollout_id(path) {
-                skipped.insert(id);
+            let header = match rollout_header(path) {
+                Ok(header) => header,
+                Err(error) => {
+                    log::warn!("[CodexMerge] cannot read an active rollout {path:?}: {error}");
+                    report.failures += 1;
+                    return report;
+                }
+            };
+            if let Some(id) = header
+                .as_ref()
+                .and_then(|header| header.pointer("/payload/id"))
+                .and_then(serde_json::Value::as_str)
+            {
+                skipped.insert(id.to_owned());
             }
         }
     }
-    for db in find_state_dbs(codex_home) {
+    for db in databases {
         report.dbs_seen += 1;
         match retag_db(&db, active, &skipped) {
             Ok(Some(n)) => report.threads_retagged += n,
@@ -126,11 +176,12 @@ fn retag_all(codex_home: &Path, active: &str) -> MergeReport {
             }
             Err(e) => {
                 log::warn!("[CodexMerge] state db {db:?}; retry next launch: {e}");
+                report.failures += 1;
                 return report;
             }
         }
     }
-    report.rollouts_retagged = retag_rollouts(&files, active, &skipped);
+    retag_rollouts(&files, active, &skipped, &mut report);
     report
 }
 
@@ -176,50 +227,35 @@ fn lock_history_writers(
     Ok((coordination, active))
 }
 
-fn rollout_id(path: &Path) -> Option<String> {
+fn rollout_header(path: &Path) -> io::Result<Option<serde_json::Value>> {
     use std::io::BufRead;
     let mut first = String::new();
-    io::BufReader::new(File::open(path).ok()?)
-        .read_line(&mut first)
-        .ok()?;
-    let value: serde_json::Value = serde_json::from_str(&first).ok()?;
-    value.get("payload")?.get("id")?.as_str().map(String::from)
+    io::BufReader::new(File::open(path)?).read_line(&mut first)?;
+    Ok(serde_json::from_str::<serde_json::Value>(&first)
+        .ok()
+        .filter(|value| {
+            value.get("type").and_then(serde_json::Value::as_str) == Some("session_meta")
+        }))
 }
 
 // ─── config.toml: the active provider ────────────────────────────────────
 
-fn read_active_provider(codex_home: &Path) -> Option<String> {
-    let text = std::fs::read_to_string(codex_home.join("config.toml")).ok()?;
-    active_provider_id(&text)
+fn read_active_provider(codex_home: &Path) -> io::Result<Option<String>> {
+    match std::fs::read_to_string(codex_home.join("config.toml")) {
+        Ok(text) => active_provider_id(&text)
+            .map_err(|_| io::Error::other("Codex configuration is not valid TOML")),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(error),
+    }
 }
 
-/// Extract the TOP-LEVEL `model_provider = "X"` — the value that decides
-/// which provider Codex launches with. Top-level TOML keys appear before
-/// the first `[table]` header, so we stop at the first table to avoid
-/// picking up `name = "OpenAI"` inside `[model_providers.OpenAI]`.
-fn active_provider_id(config_text: &str) -> Option<String> {
-    for raw in config_text.lines() {
-        let line = raw.trim();
-        if line.starts_with('[') {
-            break; // entered a table — top-level keys are done
-        }
-        let Some(rest) = line.strip_prefix("model_provider") else {
-            continue;
-        };
-        // Guard against keys like `model_provider_foo`: the next
-        // non-space character must be `=`.
-        let Some(rest) = rest.trim_start().strip_prefix('=') else {
-            continue;
-        };
-        // First double-quoted token (ignores any trailing comment).
-        let start = rest.find('"')? + 1;
-        let end = rest[start..].find('"')? + start;
-        let val = &rest[start..end];
-        if !val.is_empty() {
-            return Some(val.to_string());
-        }
-    }
-    None
+fn active_provider_id(config_text: &str) -> Result<Option<String>, toml_edit::TomlError> {
+    let document = config_text.parse::<toml_edit::DocumentMut>()?;
+    Ok(document
+        .get("model_provider")
+        .and_then(toml_edit::Item::as_str)
+        .filter(|value| !value.trim().is_empty())
+        .map(str::to_owned))
 }
 
 // ─── state_*.sqlite: threads.model_provider ─────────────────────────────
@@ -228,14 +264,11 @@ fn active_provider_id(config_text: &str) -> Option<String> {
 /// (cli 0.133 → 0.140) and bumps the generation suffix on schema resets
 /// (… → `state_5` → eventually `state_6`). Scan both locations and glob
 /// `state_*.sqlite` so we retag whichever the running Codex actually reads.
-fn find_state_dbs(codex_home: &Path) -> Vec<PathBuf> {
+fn find_state_dbs(codex_home: &Path) -> io::Result<Vec<PathBuf>> {
     let mut out = Vec::new();
     for dir in [codex_home.to_path_buf(), codex_home.join("sqlite")] {
-        let Ok(entries) = std::fs::read_dir(&dir) else {
-            continue;
-        };
-        for entry in entries.flatten() {
-            let path = entry.path();
+        for entry in read_dir_if_present(&dir)?.into_iter().flatten() {
+            let path = entry?.path();
             if !path.is_file() {
                 continue;
             }
@@ -250,7 +283,7 @@ fn find_state_dbs(codex_home: &Path) -> Vec<PathBuf> {
             }
         }
     }
-    out
+    Ok(out)
 }
 
 /// Retag every thread in one state DB to `active`.
@@ -387,36 +420,68 @@ fn prune_backups(db_path: &Path) {
 
 // ─── rollout JSONL: session_meta.model_provider ─────────────────────────
 
-fn retag_rollouts(files: &[PathBuf], active: &str, skipped: &HashSet<String>) -> usize {
-    let mut count = 0;
+fn retag_rollouts(
+    files: &[PathBuf],
+    active: &str,
+    skipped: &HashSet<String>,
+    report: &mut MergeReport,
+) {
     for file in files {
-        if is_live_session(file) || rollout_id(file).is_some_and(|id| skipped.contains(&id)) {
+        let header = match rollout_header(file) {
+            Ok(header) => header,
+            Err(error) => {
+                report.failures += 1;
+                log::warn!("[CodexMerge] cannot read rollout {file:?}: {error}");
+                continue;
+            }
+        };
+        let id = header
+            .as_ref()
+            .and_then(|header| header.pointer("/payload/id"))
+            .and_then(serde_json::Value::as_str);
+        if is_live_session(file) || id.is_some_and(|id| skipped.contains(id)) {
+            if header
+                .as_ref()
+                .and_then(|header| header.pointer("/payload/model_provider"))
+                .and_then(serde_json::Value::as_str)
+                .is_some_and(|provider| provider != active)
+            {
+                report.sessions_in_use += 1;
+            }
             continue;
         }
         match rewrite_rollout_meta(file, active) {
-            Ok(true) => count += 1,
+            Ok(true) => report.rollouts_retagged += 1,
             Ok(false) => {}
-            Err(e) => log::warn!("[CodexMerge] rollout {file:?}: {e}"),
+            Err(e) => {
+                report.failures += 1;
+                log::warn!("[CodexMerge] rollout {file:?}: {e}");
+            }
         }
     }
-    count
 }
 
-fn collect_jsonl(dir: &Path, depth: u8, out: &mut Vec<PathBuf>) {
-    if depth == 0 || !dir.is_dir() {
-        return;
+fn read_dir_if_present(path: &Path) -> io::Result<Option<std::fs::ReadDir>> {
+    match std::fs::read_dir(path) {
+        Ok(entries) => Ok(Some(entries)),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(error),
     }
-    let Ok(entries) = std::fs::read_dir(dir) else {
-        return;
-    };
-    for entry in entries.flatten() {
-        let path = entry.path();
+}
+
+fn collect_jsonl(dir: &Path, depth: u8, out: &mut Vec<PathBuf>) -> io::Result<()> {
+    if depth == 0 {
+        return Ok(());
+    }
+    for entry in read_dir_if_present(dir)?.into_iter().flatten() {
+        let path = entry?.path();
         if path.is_dir() {
-            collect_jsonl(&path, depth - 1, out);
+            collect_jsonl(&path, depth - 1, out)?;
         } else if path.extension().and_then(|x| x.to_str()) == Some("jsonl") {
             out.push(path);
         }
     }
+    Ok(())
 }
 
 /// True if the rollout was written so recently that Codex may still be
@@ -603,25 +668,40 @@ mod tests {
                    model = \"gpt-5.5\"\n\
                    [model_providers.OpenAI]\n\
                    name = \"OpenAI\"\n";
-        assert_eq!(active_provider_id(cfg).as_deref(), Some("OpenAI"));
+        assert_eq!(active_provider_id(cfg).unwrap().as_deref(), Some("OpenAI"));
     }
 
     #[test]
     fn active_provider_id_handles_relay_comment_and_spacing() {
         // relay-mode provider, no spaces, trailing comment
         assert_eq!(
-            active_provider_id("model_provider=\"anthropic\"  # relay\n").as_deref(),
+            active_provider_id("model_provider=\"anthropic\"  # relay\n")
+                .unwrap()
+                .as_deref(),
             Some("anthropic")
         );
         // a key that merely shares the prefix must be ignored
-        assert_eq!(active_provider_id("model_provider_foo = \"x\"\n"), None);
-        // commented-out line ignored
-        assert_eq!(active_provider_id("# model_provider = \"x\"\n"), None);
-        // a `name` inside a table must never win
         assert_eq!(
-            active_provider_id("[model_providers.OpenAI]\nname = \"OpenAI\"\n"),
+            active_provider_id("model_provider_foo = \"x\"\n").unwrap(),
             None
         );
+        // commented-out line ignored
+        assert_eq!(
+            active_provider_id("# model_provider = \"x\"\n").unwrap(),
+            None
+        );
+        // a `name` inside a table must never win
+        assert_eq!(
+            active_provider_id("[model_providers.OpenAI]\nname = \"OpenAI\"\n").unwrap(),
+            None
+        );
+        assert_eq!(
+            active_provider_id("model_provider = 'native'")
+                .unwrap()
+                .as_deref(),
+            Some("native")
+        );
+        assert!(active_provider_id("model_provider = \"native\"\n[").is_err());
     }
 
     #[test]
@@ -671,7 +751,7 @@ mod tests {
         )
         .unwrap();
 
-        let found = find_state_dbs(&dir);
+        let found = find_state_dbs(&dir).unwrap();
         assert_eq!(found.len(), 2, "both state dbs, never the backup");
         assert!(found
             .iter()
@@ -877,6 +957,36 @@ mod tests {
     }
 
     #[test]
+    fn launch_reports_partial_history_and_retries_the_remaining_rollout() {
+        let dir = tmp_dir("partial_launch");
+        let db = dir.join("state_5.sqlite");
+        make_state_db(&db, &[("s1", "openai")]);
+        std::fs::write(dir.join("config.toml"), "model_provider = 'custom'").unwrap();
+        let path = old_rollout(&dir, "s1");
+        let before = std::fs::read_to_string(&path).unwrap();
+        let backup = path.with_extension("jsonl.eb-merge-original-meta");
+        std::fs::create_dir(&backup).unwrap();
+
+        assert_eq!(merge_codex_history(&dir), Some(HistoryMergeNotice::Partial));
+        assert_eq!(provider_count(&db, "custom"), 1);
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), before);
+
+        std::fs::remove_dir(&backup).unwrap();
+        assert_eq!(merge_codex_history(&dir), None);
+        let after = std::fs::read_to_string(&path).unwrap();
+        assert_eq!(
+            rollout_header(&path).unwrap().unwrap()["payload"]["model_provider"],
+            "custom"
+        );
+        assert_eq!(
+            before.split_once('\n').unwrap().1,
+            after.split_once('\n').unwrap().1
+        );
+        assert_eq!(merge_codex_history(&dir), None);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
     fn appended_body_is_not_replaced_with_stale_copy() {
         use std::io::Write;
         let dir = tmp_dir("append_race");
@@ -909,7 +1019,10 @@ mod tests {
         std::fs::create_dir_all(&locks).unwrap();
         let guard = File::create(locks.join(".coordination.lock")).unwrap();
         guard.try_lock_exclusive().unwrap();
-        assert_eq!(retag_all(&dir, "OpenAI"), MergeReport::default());
+        assert_eq!(
+            retag_all(&dir, "OpenAI").notice(),
+            Some(HistoryMergeNotice::Deferred)
+        );
         assert_eq!(std::fs::read(&path).unwrap(), before);
         assert_eq!(provider_count(&db, "openai"), 1);
         drop(guard);
@@ -932,6 +1045,8 @@ mod tests {
         let report = retag_all(&dir, "OpenAI");
         assert_eq!(report.threads_retagged, 0);
         assert_eq!(report.rollouts_retagged, 0);
+        assert_eq!(report.notice(), Some(HistoryMergeNotice::Deferred));
+        assert_eq!(retag_all(&dir, "openai").notice(), None);
         assert_eq!(std::fs::read(&path).unwrap(), before);
         assert_eq!(provider_count(&db, "openai"), 1);
         std::fs::remove_dir_all(dir).unwrap();

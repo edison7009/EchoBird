@@ -461,6 +461,37 @@ fn managed_config_failed_restore_keeps_the_relay_for_repair() {
     assert_eq!(fs::read(&fixture.settings).unwrap(), b"{\"env\":");
 }
 
+#[test]
+fn failed_restore_preserves_settings_written_during_the_operation() {
+    let fixture = Fixture::new();
+    write_json_file(
+        &fixture.settings,
+        &json!({"env":{"ANTHROPIC_MODEL":"original"}}),
+    )
+    .unwrap();
+    assert!(fixture.apply(true).success);
+    let settings = fixture.settings.clone();
+    let relay = fixture.relay.clone();
+    MUTATION_STAGE.with(|hook| {
+        *hook.borrow_mut() = Some(Box::new(move || {
+            let mut current = read_json_file(&settings).unwrap();
+            current["language"] = json!("ja");
+            write_json_file(&settings, &current).unwrap();
+            let mut current = read_json_file(&relay).unwrap();
+            current["externalEdit"] = json!(true);
+            write_json_file(&relay, &current).unwrap();
+        }));
+    });
+    let result = fixture.restore();
+    MUTATION_STAGE.with(|hook| hook.borrow_mut().take());
+    assert!(!result.success);
+    assert_eq!(read_json_file(&fixture.settings).unwrap()["language"], "ja");
+    assert_eq!(
+        read_json_file(&fixture.relay).unwrap()["externalEdit"],
+        true
+    );
+}
+
 #[cfg(windows)]
 #[test]
 fn managed_config_settings_write_failure_rolls_back_the_saved_relay() {

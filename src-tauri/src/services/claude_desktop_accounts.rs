@@ -8,6 +8,8 @@ use super::cursor_auth::{read, write};
 mod browser;
 mod oauth;
 use super::electron_storage::{cipher, decrypt_bytes, Cipher};
+use super::native_account_files::{self, Transaction};
+use super::tool_config_manager::claudedesktop::{self, ClaudeDesktopLayout};
 use rusqlite::{types::Value as SqlValue, Connection, OpenFlags};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -648,12 +650,23 @@ pub async fn cancel_login(id: &str) -> Result<(), String> {
     Ok(())
 }
 fn restore(db: &mut Connection, config_path: &Path, snapshot: &Snapshot) -> Result<(), String> {
+    let mut files = Transaction::guarded();
+    restore_with_files(db, config_path, snapshot, &mut files)?;
+    files.commit();
+    Ok(())
+}
+
+fn restore_with_files(
+    db: &mut Connection,
+    config_path: &Path,
+    snapshot: &Snapshot,
+    files: &mut Transaction,
+) -> Result<(), String> {
     let version = cookie_version(db);
     if (version >= 24) != (snapshot.cookie_version >= 24) {
         return Err("accountError.format".into());
     }
     let mut config = config_at(config_path)?;
-    let original = config.clone();
     let object = config.as_object_mut().ok_or("accountError.format")?;
     for name in AUTH_CONFIG {
         object.remove(*name);
@@ -701,12 +714,8 @@ fn restore(db: &mut Connection, config_path: &Path, snapshot: &Snapshot) -> Resu
         )
         .map_err(|_| "accountError.write")?;
     }
-    write(config_path, &config)?;
-    if tx.commit().is_err() {
-        write(config_path, &original)?;
-        return Err("accountError.write".into());
-    }
-    Ok(())
+    files.replace_private_file(config_path, &native_account_files::json(&config)?)?;
+    tx.commit().map_err(|_| "accountError.write".into())
 }
 #[derive(Serialize, Deserialize)]
 struct LocalModeBackup {
@@ -788,7 +797,18 @@ async fn restore_local_mode() -> Result<(), String> {
 }
 
 fn restore_local_mode_at(path: &Path) -> Result<(), String> {
-    let backup: LocalModeBackup = read(path)?;
+    let mut files = Transaction::guarded();
+    restore_local_mode_with_files(path, &mut files)?;
+    files.commit();
+    Ok(())
+}
+
+fn restore_local_mode_with_files(path: &Path, files: &mut Transaction) -> Result<(), String> {
+    let Some(raw) = native_account_files::read_optional(path)? else {
+        return Ok(());
+    };
+    let backup: LocalModeBackup =
+        serde_json::from_slice(&raw).map_err(|_| "accountError.format")?;
     let config_path = backup.config_path();
     if cookie_path(&backup.directory).is_ok() {
         let mut db = cookie_db(&backup.directory, true)?;
@@ -797,10 +817,8 @@ fn restore_local_mode_at(path: &Path) -> Result<(), String> {
             config: backup.config,
             cookie_version: cookie_version(&db),
         });
-        if !config_path.exists() {
-            write(&config_path, &json!({}))?;
-        }
-        restore(&mut db, &config_path, &snapshot)?;
+        files.remove(path)?;
+        restore_with_files(&mut db, &config_path, &snapshot, files)?;
     } else {
         // No cookie store existed at entry and none has been created since.
         if backup.snapshot.is_some() {
@@ -812,27 +830,65 @@ fn restore_local_mode_at(path: &Path) -> Result<(), String> {
             object.remove(*key);
         }
         object.extend(backup.config);
-        write(&config_path, &config)?;
+        files.replace_private_file(&config_path, &native_account_files::json(&config)?)?;
+        files.remove(path)?;
     }
-    std::fs::remove_file(path).map_err(|_| "accountError.write".into())
+    Ok(())
+}
+
+pub(crate) async fn restore_official_mode() -> Result<(), String> {
+    let _selection = claudedesktop::SELECTION_LOCK.lock().await;
+    let official = OfficialMode::resolve()?;
+    super::process_manager::stop_desktop_for_account("claudedesktop").await?;
+    let _guard = ACCOUNT_LOCK.lock().await;
+    require_closed().await?;
+    claudedesktop::restore_with(&official.paths, &official.relay, |files| {
+        restore_local_mode_with_files(&official.local_backup, files)
+    })?;
+    super::claude_desktop_local::stop().await;
+    Ok(())
+}
+
+struct OfficialMode {
+    paths: ClaudeDesktopLayout,
+    relay: PathBuf,
+    local_backup: PathBuf,
+}
+
+impl OfficialMode {
+    fn resolve() -> Result<Self, String> {
+        Ok(Self {
+            paths: claudedesktop::resolve_claudedesktop_paths().ok_or("accountError.home")?,
+            relay: claudedesktop::relay_path(),
+            local_backup: local_mode_backup_path()?,
+        })
+    }
 }
 
 pub async fn switch(id: &str) -> Result<Account, String> {
+    let _selection = claudedesktop::SELECTION_LOCK.lock().await;
     let directory = data_dir()?;
     let path = store_path()?;
     let store = load_store_at(&path)?;
     let saved = store.get(id).ok_or("accountError.invalidAccount")?;
     let (_, org) = session_values(&directory, &saved.snapshot)?;
     validate_saved_identity(saved, id, &org)?;
+    let official = OfficialMode::resolve()?;
     // Launch owns the manager lock before ACCOUNT_LOCK. Stop before acquiring
     // ACCOUNT_LOCK here so simultaneous explicit operations keep that order.
     super::process_manager::stop_desktop_for_account("claudedesktop").await?;
     let _guard = ACCOUNT_LOCK.lock().await;
-    restore_local_mode().await?;
-    switch_at(id, &directory, &path, require_closed(), |target| {
-        super::claude_desktop_history::prepare(Some(target))
-    })
-    .await
+    let account = switch_at(
+        id,
+        &directory,
+        &path,
+        require_closed(),
+        |target| super::claude_desktop_history::prepare(Some(target)),
+        Some(&official),
+    )
+    .await?;
+    super::claude_desktop_local::stop().await;
+    Ok(account)
 }
 async fn switch_at<S, H, HF>(
     id: &str,
@@ -840,6 +896,7 @@ async fn switch_at<S, H, HF>(
     store_path: &Path,
     stop: S,
     prepare_history: H,
+    official: Option<&OfficialMode>,
 ) -> Result<Account, String>
 where
     S: std::future::Future<Output = Result<(), String>>,
@@ -853,8 +910,27 @@ where
     stop.await?;
     // Claude Desktop renews its tokens while it runs. Keep the signed-in
     // account's current sign-in, read before the target replaces it.
-    let live = snapshot(dir).ok().and_then(|live| {
-        let uuid = signed_in_account(&native_config(dir).ok()?)?;
+    let config_path = native_config_path(dir);
+    let local_backup = official
+        .map(|mode| native_account_files::read_optional(&mode.local_backup))
+        .transpose()?
+        .flatten()
+        .map(|raw| {
+            serde_json::from_slice::<LocalModeBackup>(&raw).map_err(|_| "accountError.format")
+        })
+        .transpose()?;
+    let live = if let Some(backup) = local_backup {
+        if backup.directory != dir || backup.config_path() != config_path {
+            return Err(
+                "Claude Desktop's saved sign-in belongs to another client directory.".into(),
+            );
+        }
+        backup.snapshot
+    } else {
+        snapshot_at(dir, &config_path).ok()
+    };
+    let live = live.and_then(|live| {
+        let uuid = signed_in_account(&json!(live.config))?;
         let (_, org) = session_values(dir, &live).ok()?;
         Some((uuid, org, live))
     });
@@ -870,11 +946,10 @@ where
     } else {
         saved.snapshot.clone()
     };
-    restore(&mut db, &native_config_path(dir), &snapshot)?;
     store
         .get_mut(id)
         .ok_or("accountError.invalidAccount")?
-        .snapshot = snapshot;
+        .snapshot = snapshot.clone();
     remember_live(&mut store, id, live);
     for (key, saved) in &mut store {
         saved.account.active = key == id;
@@ -884,8 +959,23 @@ where
         .ok_or("accountError.invalidAccount")?
         .account
         .clone();
-    write(store_path, &store)?;
-    Ok(account)
+    let apply = |files: &mut Transaction| {
+        let store_bytes = serde_json::to_vec_pretty(&store).map_err(|_| "accountError.format")?;
+        files.replace_private_file(store_path, &store_bytes)?;
+        if let Some(mode) = official {
+            files.remove(&mode.local_backup)?;
+        }
+        restore_with_files(&mut db, &config_path, &snapshot, files)?;
+        Ok(account)
+    };
+    if let Some(mode) = official {
+        claudedesktop::restore_with(&mode.paths, &mode.relay, apply)
+    } else {
+        let mut files = Transaction::guarded();
+        let account = apply(&mut files)?;
+        files.commit();
+        Ok(account)
+    }
 }
 /// Stores the signed-in account's current sign-in in its saved snapshot.
 fn remember_live(store: &mut Store, target: &str, live: Option<(String, String, Snapshot)>) {
@@ -1141,10 +1231,7 @@ mod tests {
     }
     impl Drop for ApplyFixture {
         fn drop(&mut self) {
-            for name in ["accounts.json", "config.json", "Cookies"] {
-                std::fs::remove_file(self.dir.join(name)).unwrap();
-            }
-            std::fs::remove_dir(&self.dir).unwrap();
+            let _ = std::fs::remove_dir_all(&self.dir);
         }
     }
 
@@ -1181,6 +1268,7 @@ mod tests {
                 );
                 async { Ok(()) }
             },
+            None,
         )
         .await
         .unwrap();
@@ -1241,6 +1329,7 @@ mod tests {
                 &path,
                 async { panic!("invalid identity must not stop the client") },
                 |_| async { panic!("invalid identity must not prepare history") },
+                None,
             )
             .await;
             assert!(matches!(result, Err(error) if error == "accountError.authResponse"));
@@ -1258,10 +1347,55 @@ mod tests {
             &fixture.dir.join("accounts.json"),
             async { Err("accountError.stopClient".into()) },
             |_| async { panic!("failed stop must not prepare history") },
+            None,
         )
         .await;
         assert!(matches!(result, Err(error) if error == "accountError.stopClient"));
         assert_eq!(fixture.state(), before);
+    }
+
+    #[tokio::test]
+    async fn official_switch_preserves_account_and_proxy_when_restore_cannot_commit() {
+        let fixture = ApplyFixture::new();
+        let mode = OfficialMode {
+            paths: claudedesktop::claudedesktop_paths_at(&fixture.dir),
+            relay: fixture.dir.join("relay.json"),
+            local_backup: fixture.dir.join("local-auth.json"),
+        };
+        write(&mode.relay, &json!({"mode":"firstParty"})).unwrap();
+        let library = fixture.dir.join("Claude-3p/configLibrary");
+        let backup = library.with_file_name("configLibrary.echobird-local-backup");
+        for folder in [&library, &backup] {
+            std::fs::create_dir_all(folder).unwrap();
+            std::fs::write(folder.join("managed.json"), b"existing profile").unwrap();
+        }
+        let store = fixture.dir.join("accounts.json");
+        let switch = || {
+            switch_at(
+                &fixture.id,
+                &fixture.dir,
+                &store,
+                async { Ok(()) },
+                |_| async { Ok(()) },
+                Some(&mode),
+            )
+        };
+        let before = fixture.state();
+        assert!(matches!(switch().await, Err(error) if error.contains("profiles changed")));
+        assert_eq!(fixture.state(), before);
+        assert!(mode.relay.exists());
+
+        std::fs::remove_dir_all(&library).unwrap();
+        cookie_db(&fixture.dir, true)
+            .unwrap()
+            .execute_batch("CREATE TRIGGER fixture_reject_cookie BEFORE INSERT ON cookies BEGIN SELECT RAISE(ABORT, 'fixture failure'); END;")
+            .unwrap();
+        let before = fixture.state();
+        assert!(switch().await.is_err());
+        assert_eq!(fixture.state(), before);
+        assert!(mode.relay.exists());
+        assert!(backup.join("managed.json").exists());
+        assert!(!library.exists());
     }
 
     fn database(extra: &str) -> Connection {

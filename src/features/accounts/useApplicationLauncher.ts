@@ -2,7 +2,7 @@ import type { Dispatch, SetStateAction, MutableRefObject } from 'react';
 import * as api from '../../api/tauri';
 import type { LocalTool, ModelConfig } from '../../api/types';
 import { accountError } from '../../utils/accountError';
-import { isOfficialModelSentinel } from '../../data/officialEndpoints';
+import { getOfficialEndpoint, isOfficialModelSentinel } from '../../data/officialEndpoints';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { switchCodeArtsAccount } from '../../api/codeArtsAccounts';
 import { switchKimiAccount } from '../../api/kimiAccounts';
@@ -10,6 +10,7 @@ import { useNavigationStore } from '../../stores/navigationStore';
 import type { useI18n } from '../../hooks/useI18n';
 import type { useAccountDirectory } from './useAccountDirectory';
 import { runAccountApplication } from './runAccountApplication';
+import type { ToastType } from '../../components/Toast';
 
 type Directory = ReturnType<typeof useAccountDirectory>;
 interface LaunchOptions extends Pick<
@@ -57,8 +58,8 @@ interface LaunchOptions extends Pick<
 > {
   selectedTool: string | null;
   isLaunching: boolean;
-  launchGeneration: MutableRefObject<number>;
-  previewLaunch: MutableRefObject<boolean>;
+  launchGenerationRef: MutableRefObject<number>;
+  previewLaunchRef: MutableRefObject<boolean>;
   setIsLaunching: (value: boolean) => void;
   setApplyError: (error: string | null) => void;
   detectedTools: LocalTool[];
@@ -71,7 +72,8 @@ interface LaunchOptions extends Pick<
   activePage: ReturnType<typeof useNavigationStore.getState>['activePage'];
   locale: string;
   t: ReturnType<typeof useI18n>['t'];
-  applyRestore: (id: string) => Promise<true | string | false>;
+  showToast: (type: ToastType, message: string) => void;
+  applyRestore: (id: string, notifyRestart?: boolean) => Promise<true | string | false>;
   applyModelConfig: (id: string, model: string) => Promise<true | string | false>;
 }
 
@@ -118,8 +120,8 @@ export function useApplicationLauncher({
   loadCodexAccounts,
   selectedTool,
   isLaunching,
-  launchGeneration,
-  previewLaunch,
+  launchGenerationRef,
+  previewLaunchRef,
   setIsLaunching,
   setApplyError,
   detectedTools,
@@ -132,6 +134,7 @@ export function useApplicationLauncher({
   activePage,
   locale,
   t,
+  showToast,
   applyRestore,
   applyModelConfig,
 }: LaunchOptions) {
@@ -170,10 +173,10 @@ export function useApplicationLauncher({
     if (['doubaowork', 'dola'].includes(selectedTool) && doubaoAccounts.busy) return;
     if (['qwenwork', 'qwenworkcn'].includes(selectedTool) && qwenWorkAccounts.busy) return;
     if ((selectedTool === 'kirocrew' || selectedTool === 'kirocli') && kiroAccounts.busy) return;
-    const generation = ++launchGeneration.current;
+    const generation = ++launchGenerationRef.current;
     const finishLaunch = () => {
-      if (launchGeneration.current === generation) {
-        previewLaunch.current = false;
+      if (launchGenerationRef.current === generation) {
+        previewLaunchRef.current = false;
         setIsLaunching(false);
       }
     };
@@ -219,7 +222,7 @@ export function useApplicationLauncher({
       startCooldown();
 
     const toolData = detectedTools.find((t) => t.id === selectedTool);
-    previewLaunch.current = false;
+    previewLaunchRef.current = false;
     const isLaunchable = !!toolData?.launchFile?.endsWith('.html');
     const noModelConfig = !!toolData?.noModelConfig;
     const pickWorkingDirectory = async () => {
@@ -237,8 +240,7 @@ export function useApplicationLauncher({
     // An account switch honors "launch directly"; only model flows force-launch.
     let accountApplied = false;
     // An OpenAI account and a third-party API model are one exclusive choice.
-    // Selecting an account restores the official provider before writing that
-    // account's auth snapshot; selecting a model clears the account choice.
+    // Applying a Codex account commits the official route and sign-in together.
     if (
       (selectedTool === 'antigravity' || selectedTool === 'antigravitydesktop') &&
       antigravityAccounts.selectedId!
@@ -254,16 +256,14 @@ export function useApplicationLauncher({
       }
       startCooldown();
     } else if (isCodexTool && selectedCodexAccountId) {
-      const restoreResult = await applyRestore(selectedTool);
-      if (restoreResult !== true) {
-        setApplyError(
-          typeof restoreResult === 'string' ? accountError(restoreResult, t) : t('key.destroyed')
-        );
-        finishLaunch();
-        return;
-      }
       try {
         await api.switchCodexAccount(selectedCodexAccountId);
+        const official = getOfficialEndpoint(selectedTool);
+        setDetectedTools((previous) =>
+          previous.map((tool) =>
+            tool.id === selectedTool ? { ...tool, activeModel: official?.name || '' } : tool
+          )
+        );
         await loadCodexAccounts();
         accountApplied = true;
       } catch (error) {
@@ -379,7 +379,7 @@ export function useApplicationLauncher({
       const selectedAccount = commandCodeAccounts.selectedId;
       const navigation = accountNavigation.current;
       const current = () =>
-        launchGeneration.current === generation &&
+        launchGenerationRef.current === generation &&
         accountNavigation.current === navigation &&
         commandCodeAccounts.isCurrentSelection(selectedAccount);
       await runAccountApplication(
@@ -691,9 +691,12 @@ export function useApplicationLauncher({
       await runAccountApplication(
         async () => {
           await api.switchClaudeDesktopAccount(claudeDesktopAccounts.selectedId!);
-          const restored = await applyRestore(selectedTool);
-          if (restored !== true)
-            throw new Error(typeof restored === 'string' ? restored : t('key.destroyed'));
+          const official = getOfficialEndpoint(selectedTool);
+          setDetectedTools((previous) =>
+            previous.map((tool) =>
+              tool.id === selectedTool ? { ...tool, activeModel: official?.name || '' } : tool
+            )
+          );
           await claudeDesktopAccounts.reload();
           if (launchAfterApply) await api.startTool(selectedTool, toolData?.startCommand);
         },
@@ -706,11 +709,15 @@ export function useApplicationLauncher({
       return;
     } else if (selectedTool === 'claudecode' && claudeCodeAccounts.selectedId!) {
       try {
-        const restored = await applyRestore(selectedTool);
-        if (restored !== true)
-          throw new Error(typeof restored === 'string' ? restored : t('key.destroyed'));
+        const restored = await applyRestore(selectedTool, false);
+        if (restored !== true) {
+          setApplyError(typeof restored === 'string' ? restored : t('key.destroyed'));
+          finishLaunch();
+          return;
+        }
         await api.switchClaudeCodeAccount(claudeCodeAccounts.selectedId!);
         await claudeCodeAccounts.reload();
+        showToast('info', t('agent.claudeCodeReopen'));
         accountApplied = true;
         startCooldown();
       } catch (error) {
@@ -790,10 +797,13 @@ export function useApplicationLauncher({
         return;
       }
       try {
-        await api.startTool(selectedTool, toolData?.startCommand, cwd);
+        const history = await api.startTool(selectedTool, toolData?.startCommand, cwd);
+        if (history === 'partial') showToast('warning', t('agent.codexHistoryPartial'));
+        if (history === 'deferred') showToast('warning', t('agent.codexHistoryDeferred'));
       } catch (err) {
         console.error('Failed to launch tool:', err);
-        setApplyError(err instanceof Error ? err.message : String(err));
+        const message = err instanceof Error ? err.message : String(err);
+        setApplyError(message.startsWith('accountError.') ? accountError(message, t) : message);
       } finally {
         if ((selectedTool === 'kirocrew' || selectedTool === 'kirocli') && kiroAccounts.selectedId!)
           finishLaunch();

@@ -2,7 +2,7 @@
 // Tool-specific implementations live in tool_config_manager/<tool>.rs.
 
 mod aider;
-mod claudecode;
+pub(crate) mod claudecode;
 pub(crate) mod claudedesktop;
 mod claudescience;
 pub(crate) mod commandcode;
@@ -50,8 +50,8 @@ use claudecode::{
     apply_claudecode, normalize_model_info_for_tool, read_claudecode,
     restore_claudecode_to_official,
 };
-use claudedesktop::{apply_claudedesktop, read_claudedesktop, restore_claudedesktop_to_official};
-pub(crate) use codex::{apply_codex, apply_codex_at};
+use claudedesktop::{apply_claudedesktop, read_claudedesktop};
+pub(crate) use codex::{apply_codex, apply_codex_at, official_codex_replacement};
 use codex::{read_codex, restore_codex_to_official};
 use copilot::{
     apply_copilot, apply_copilot_desktop, read_copilot, read_copilot_desktop,
@@ -368,6 +368,7 @@ pub async fn apply_model_to_tool(tool_id: &str, model_info: ModelInfo) -> ApplyR
         // Claude Desktop Code with a local first-party identity.
         "commandcode" => return commandcode::apply(&model_info),
         "claudedesktop" => {
+            let _selection = claudedesktop::SELECTION_LOCK.lock().await;
             if let Err(message) = claudedesktop::model_parameters(&model_info) {
                 return ApplyResult {
                     success: false,
@@ -393,11 +394,10 @@ pub async fn apply_model_to_tool(tool_id: &str, model_info: ModelInfo) -> ApplyR
                 }
                 _ => {}
             }
-            let mut result = apply_claudedesktop(&model_info);
+            let result = apply_claudedesktop(&model_info);
             if result.success {
                 if let Err(message) = super::claude_desktop_history::prepare_if_stopped().await {
-                    result.success = false;
-                    result.message = message;
+                    log::warn!("Could not prepare Claude Desktop history after applying a model: {message}");
                 }
             }
             return result;
@@ -505,27 +505,23 @@ pub async fn restore_tool_to_official(tool_id: &str) -> ApplyResult {
         };
     }
     if tool_id == "claudedesktop" {
-        if let Err(message) = super::process_manager::stop_desktop_for_account(tool_id).await {
-            return ApplyResult {
-                success: false,
-                message,
-            };
-        }
-        if let Err(message) = super::claude_desktop_accounts::end_local_mode().await {
-            return ApplyResult {
-                success: false,
-                message,
-            };
-        }
-        super::claude_desktop_local::stop().await;
-        let mut result = restore_claudedesktop_to_official();
-        if result.success {
-            if let Err(message) = super::claude_desktop_history::prepare_if_stopped().await {
-                result.success = false;
-                result.message = message;
+        return match super::claude_desktop_accounts::restore_official_mode().await {
+            Ok(()) => {
+                if let Err(message) = super::claude_desktop_history::prepare_if_stopped().await {
+                    log::warn!("Could not prepare Claude Desktop history after restoring its configuration: {message}");
+                }
+                ApplyResult {
+                    success: true,
+                    message:
+                        "Claude Desktop configured. Restart Claude Desktop to apply the selection."
+                            .into(),
+                }
             }
-        }
-        return result;
+            Err(message) => ApplyResult {
+                success: false,
+                message,
+            },
+        };
     }
     if tool_id == "claudecode" {
         return restore_claudecode_to_official();

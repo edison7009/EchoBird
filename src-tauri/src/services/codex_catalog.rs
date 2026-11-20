@@ -158,6 +158,22 @@ pub fn template_for_model(base_url: &str, model_id: &str) -> Option<Value> {
     template_for_url(base_url).and_then(|s| serde_json::from_str(s).ok())
 }
 
+pub(crate) fn documented_context_window(
+    template: &Value,
+    base_url: &str,
+    model_id: &str,
+) -> Option<u64> {
+    if template["slug"].as_str() == Some(model_id) {
+        return template["context_window"]
+            .as_u64()
+            .filter(|window| *window > 0);
+    }
+    // These two models share a vendor template without a model-specific window.
+    (url_matches_domain(base_url, "deepseek.com")
+        && matches!(model_id, "deepseek-flash" | "deepseek-v4-pro"))
+    .then_some(1_048_576)
+}
+
 pub(crate) fn build_router_catalog(
     models: &[crate::services::smart_router::catalog::SwitchModel],
     web_search: bool,
@@ -182,9 +198,10 @@ pub(crate) fn build_router_catalog(
         .iter()
         .enumerate()
         .map(|(index, model)| {
-            let mut entry = model.codex_catalog.clone().unwrap_or_else(|| {
-                build_catalog(&template, &model.id, &model.name, 1_000_000)["models"][0].clone()
-            });
+            let mut entry = model
+                .codex_catalog
+                .clone()
+                .unwrap_or_else(|| catalog_entry(&template, &model.id, &model.name, None));
             entry["slug"] = json!(model.id);
             entry["display_name"] = json!(model.name);
             entry["description"] = json!(format!("{} via EchoBird", model.name));
@@ -199,13 +216,15 @@ pub(crate) fn build_router_catalog(
         .collect();
     let mut entries = entries;
     if entries.len() > 1 {
-        let context = entries[1..]
-            .iter()
-            .filter_map(|entry| entry["context_window"].as_u64())
-            .min()
-            .unwrap_or(1_000_000);
-        entries[0]["context_window"] = json!(context);
-        entries[0]["max_context_window"] = json!(context);
+        let context = entries[1..].iter().try_fold(u64::MAX, |minimum, entry| {
+            entry["context_window"]
+                .as_u64()
+                .map(|window| minimum.min(window))
+        });
+        if let Some(context) = context {
+            entries[0]["context_window"] = json!(context);
+            entries[0]["max_context_window"] = json!(context);
+        }
         let levels = entries[0]["supported_reasoning_levels"]
             .as_array()
             .cloned()
@@ -263,6 +282,15 @@ pub fn build_catalog(
     display_name: &str,
     context_window: u64,
 ) -> Value {
+    json!({ "models": [catalog_entry(template, model_id, display_name, Some(context_window))] })
+}
+
+pub(crate) fn catalog_entry(
+    template: &Value,
+    model_id: &str,
+    display_name: &str,
+    context_window: Option<u64>,
+) -> Value {
     let documented_model = template["slug"].as_str() == Some(model_id);
     let mut entry = template.clone();
     entry["slug"] = json!(model_id);
@@ -296,7 +324,7 @@ pub fn build_catalog(
             entry["base_instructions"] = json!(bi.replace("{model}", display_name));
         }
     }
-    json!({ "models": [entry] })
+    entry
 }
 
 /// Absolute path to the catalog file Codex reads. Uses forward slashes on

@@ -243,6 +243,37 @@ async fn business(state: &AppState, candidates: Vec<Candidate>) -> String {
 }
 
 #[tokio::test]
+async fn picking_an_exact_model_keeps_the_automatic_route_and_warmed_standby() {
+    let upstream = Upstream::start().await;
+    let candidates = upstream.candidates(&["one", "two", "three"]);
+    let mut automatic = state();
+    upstream.fail("one");
+    assert_eq!(business(&automatic, candidates.clone()).await, "two/two");
+    wait_idle(&automatic).await;
+    upstream.fixture.failing.lock().unwrap().remove("one");
+    automatic
+        .route_memory
+        .lock()
+        .unwrap()
+        .candidates
+        .remove("one");
+    let standby = automatic.standby.snapshot();
+    assert_eq!(standby.0.as_deref(), Some("two"));
+    assert_eq!(standby.1.as_deref(), Some("three"));
+    let epoch = automatic.standby.epoch();
+
+    automatic.request_epoch = Some(epoch);
+    let mut manual = automatic.clone();
+    let selector = super::super::catalog::selector("one");
+    let selected = select_candidates(&mut manual, &selector, candidates.clone(), false).unwrap();
+    assert_eq!(business(&manual, selected).await, "one/one");
+    assert_eq!(automatic.standby.snapshot(), standby);
+    assert_eq!(automatic.standby.epoch(), epoch);
+    assert_eq!(business(&automatic, candidates).await, "two/two");
+    automatic.shutdown.cancel();
+}
+
+#[tokio::test]
 async fn sequential_standby_stops_at_one_ready_and_advances_only_after_real_failover() {
     let upstream = Upstream::start().await;
     upstream.fail("two");

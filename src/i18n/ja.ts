@@ -282,6 +282,8 @@ const ja: Partial<Translations> = {
   'accountError.state': '認証が今回のログインと一致しません。再度ログインしてください。',
   'accountError.cancelled': '認証がキャンセルされました。再度アカウントを追加してください。',
   'accountError.expired': '認証がタイムアウトしました。再度アカウントを追加してください。',
+  'accountError.configConflict':
+    'EchoBird の中断後に設定ファイルが変更されました。設定を確認してから再試行してください。',
   'accountError.busy': '認証を処理しています。',
   'accountError.auth': '認証に失敗しました。コードを確認するか、再度アカウントを追加してください。',
   'accountError.authResponse': '認証応答が不完全または不正です。再度ログインしてください。',
@@ -550,6 +552,11 @@ const ja: Partial<Translations> = {
   'backup.saved': '{count} 件をバックアップしました。',
   'backup.restored': '復元：{count} · 既存：{duplicates} · 未復元：{skipped}',
   'backup.restartRequired': '再起動後に反映されます。',
+  'agent.claudeCodeReopen':
+    '設定を保存しました。実行中の Claude Code セッションは開き直すと反映されます。',
+  'agent.codexHistoryPartial':
+    '一部の Codex 会話を統合しました。残りは次回の起動時に再試行されます。',
+  'agent.codexHistoryDeferred': 'Codex に未統合の会話があります。次回の起動時に再試行されます。',
   'backup.deviceBound': '{count} 件は元の端末でのみ利用できます。',
   'autoImport.title': '設定のバックアップと移行',
   'autoImport.description': '各アプリの API モデルとアカウント設定を探して、まとめて管理。',

@@ -195,8 +195,11 @@ impl ProcessManager {
         tool_id: &str,
         start_command: Option<&str>,
         cwd: Option<&str>,
-    ) -> Result<(), String> {
-        self.launch_tool(tool_id, start_command, cwd, true).await
+    ) -> Result<Option<super::codex_session_merge::HistoryMergeNotice>, String> {
+        let mut history_notice = None;
+        self.launch_tool(tool_id, start_command, cwd, true, &mut history_notice)
+            .await?;
+        Ok(history_notice)
     }
 
     async fn launch_tool(
@@ -205,9 +208,19 @@ impl ProcessManager {
         start_command: Option<&str>,
         cwd: Option<&str>,
         restart: bool,
+        history_notice: &mut Option<super::codex_session_merge::HistoryMergeNotice>,
     ) -> Result<(), String> {
         if self.cooldown.is_cooling(tool_id) {
             return Err("Please wait before launching again".to_string());
+        }
+        let codex_dir = matches!(tool_id, "codex" | "chatgptdesktop")
+            .then(crate::services::codex_runtime::default_codex_dir)
+            .flatten();
+        if let Some(dir) = &codex_dir {
+            super::codex_accounts::recover_interrupted_selection(dir)?;
+        }
+        if tool_id == "claudecode" {
+            super::tool_config_manager::claudecode::recover_interrupted_selection()?;
         }
         self.cooldown.mark(tool_id);
 
@@ -303,10 +316,8 @@ impl ProcessManager {
         if tool_id == "claudedesktop" && restart {
             crate::services::claude_desktop_history::prepare(None).await?;
         }
-        if matches!(tool_id, "codex" | "chatgptdesktop") {
-            if let Some(codex_dir) = crate::services::codex_runtime::default_codex_dir() {
-                crate::services::codex_session_merge::merge_codex_history(&codex_dir);
-            }
+        if let Some(codex_dir) = codex_dir {
+            *history_notice = super::codex_session_merge::merge_codex_history(&codex_dir);
         }
 
         // Provider-specific preparation does not choose a separate launcher.
@@ -1928,7 +1939,7 @@ pub async fn start_tool(
     tool_id: &str,
     start_command: Option<&str>,
     cwd: Option<&str>,
-) -> Result<(), String> {
+) -> Result<Option<super::codex_session_merge::HistoryMergeNotice>, String> {
     let mgr = get_manager().await;
     let mut mgr = mgr.lock().await;
     mgr.start_tool(tool_id, start_command, cwd).await
@@ -1962,7 +1973,7 @@ pub async fn claude_science_url() -> Result<url::Url, String> {
 pub async fn open_tool_for_login(tool_id: &str) -> Result<(), String> {
     let mgr = get_manager().await;
     let mut mgr = mgr.lock().await;
-    mgr.launch_tool(tool_id, None, None, false).await
+    mgr.launch_tool(tool_id, None, None, false, &mut None).await
 }
 
 /// A temporary native client used only by an explicit configuration operation.

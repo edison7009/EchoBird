@@ -286,18 +286,30 @@ fn local_models() -> Vec<Value> {
 }
 fn models_for_relay(relay: &Value) -> Vec<Value> {
     let one_m = relay["oneMContext"].as_bool().unwrap_or(false);
+    let routes = relay["baseUrl"].as_str().map_or_else(
+        || Ok(Vec::new()),
+        super::smart_router::catalog::models_for_url,
+    );
+    let selected = relay["actualModel"].as_str().unwrap_or("auto");
+    let default_one_m = one_m
+        && routes.as_ref().is_ok_and(|routes| {
+            routes.is_empty()
+                || routes
+                    .iter()
+                    .any(|route| route.id == selected && route.supports_claude_1m())
+        });
     let mut models = vec![model_entry(
         "claude-opus-5-5",
         relay["modelName"].as_str().unwrap_or("EchoBird model"),
-        one_m,
+        default_one_m,
     )];
-    if let Some(base) = relay["baseUrl"].as_str() {
-        if let Ok(routes) = super::smart_router::catalog::models_for_url(base) {
-            for route in routes {
-                if route.id != "auto" && !models.iter().any(|model| model["id"] == route.id) {
-                    models.push(model_entry(&route.id, &route.name, one_m));
-                }
-            }
+    for route in routes.unwrap_or_default() {
+        if route.id != "auto" && !models.iter().any(|model| model["id"] == route.id) {
+            models.push(model_entry(
+                &route.id,
+                &route.name,
+                one_m && route.supports_claude_1m(),
+            ));
         }
     }
     models
@@ -936,7 +948,17 @@ mod tests {
             assert_eq!(models.len(), 3);
             assert_eq!(models[0]["name"], "Selected model");
             assert_eq!(models[1]["name"], "First model");
+            assert_eq!(models[0]["supports_1m_context"], false);
             assert_eq!(models[1]["supports_1m_context"], true);
+            assert_eq!(models[2]["supports_1m_context"], false);
+            assert!(selectable(
+                &models,
+                &json!(format!("{}[1m]", models[1]["id"].as_str().unwrap()))
+            ));
+            assert!(!selectable(
+                &models,
+                &json!(format!("{}[1m]", models[2]["id"].as_str().unwrap()))
+            ));
             assert!(models[1]["id"]
                 .as_str()
                 .unwrap()

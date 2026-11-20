@@ -280,6 +280,8 @@ const en: Translations = {
     'This authorization does not match the current login. Please sign in again.',
   'accountError.cancelled': 'Authorization was cancelled. Please add the account again.',
   'accountError.expired': 'Authorization timed out. Please add the account again.',
+  'accountError.configConflict':
+    'A config file changed after EchoBird was interrupted. Review the configuration, then retry.',
   'accountError.busy': 'Authorization is in progress.',
   'accountError.auth': 'Authorization failed. Check the code or add the account again.',
   'accountError.authResponse':
@@ -519,6 +521,12 @@ const en: Translations = {
   'backup.saved': 'Backed up {count} items.',
   'backup.restored': 'Restored: {count} · Already present: {duplicates} · Not restored: {skipped}',
   'backup.restartRequired': 'Takes effect after restart.',
+  'agent.claudeCodeReopen':
+    'Configuration saved. Reopen any running Claude Code sessions to apply it.',
+  'agent.codexHistoryPartial':
+    'Some Codex conversations were merged. The rest will be retried at the next launch.',
+  'agent.codexHistoryDeferred':
+    'Codex still has conversations to merge. EchoBird will retry at the next launch.',
   'backup.deviceBound': '{count} items work only on the original machine.',
   'autoImport.title': 'Configuration backup and migration',
   'autoImport.description':

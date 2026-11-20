@@ -6,15 +6,16 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 pub(super) const CLAUDE_DESKTOP_PROFILE_ID: &str = "7d8f4e2a-9c3b-4f1a-b0e5-1a2b3c4d5e6f";
+pub(crate) static SELECTION_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
-pub(super) struct ClaudeDesktopLayout {
+pub(crate) struct ClaudeDesktopLayout {
     cfg_official: PathBuf,
     cfg_threep: PathBuf,
     pub(super) lib_dir: PathBuf,
 }
 
 #[cfg(any(target_os = "macos", windows, target_os = "linux"))]
-pub(super) fn resolve_claudedesktop_paths() -> Option<ClaudeDesktopLayout> {
+pub(crate) fn resolve_claudedesktop_paths() -> Option<ClaudeDesktopLayout> {
     #[cfg(any(target_os = "macos", windows))]
     let home = dirs::home_dir()?;
 
@@ -33,7 +34,7 @@ pub(super) fn resolve_claudedesktop_paths() -> Option<ClaudeDesktopLayout> {
     Some(claudedesktop_paths_at(&config_root))
 }
 
-fn claudedesktop_paths_at(config_root: &Path) -> ClaudeDesktopLayout {
+pub(crate) fn claudedesktop_paths_at(config_root: &Path) -> ClaudeDesktopLayout {
     let official_dir = config_root.join("Claude");
     let threep_dir = config_root.join("Claude-3p");
     ClaudeDesktopLayout {
@@ -44,7 +45,7 @@ fn claudedesktop_paths_at(config_root: &Path) -> ClaudeDesktopLayout {
 }
 
 #[cfg(not(any(target_os = "macos", windows, target_os = "linux")))]
-pub(super) fn resolve_claudedesktop_paths() -> Option<ClaudeDesktopLayout> {
+pub(crate) fn resolve_claudedesktop_paths() -> Option<ClaudeDesktopLayout> {
     None
 }
 
@@ -169,19 +170,20 @@ fn apply_at(info: &ModelInfo, paths: &ClaudeDesktopLayout, relay: &Path) -> Resu
     Ok(())
 }
 
-pub(super) fn restore_claudedesktop_to_official() -> ApplyResult {
-    let Some(paths) = resolve_claudedesktop_paths() else {
-        return result(Err(
-            "Cannot resolve Claude Desktop configuration directory.".into(),
-        ));
-    };
-    result(restore_at(
-        &paths,
-        &echobird_dir().join("claudedesktop.json"),
-    ))
+pub(crate) fn relay_path() -> PathBuf {
+    echobird_dir().join("claudedesktop.json")
 }
 
+#[cfg(test)]
 fn restore_at(paths: &ClaudeDesktopLayout, relay: &Path) -> Result<(), String> {
+    restore_with(paths, relay, |_| Ok(()))
+}
+
+pub(crate) fn restore_with<T>(
+    paths: &ClaudeDesktopLayout,
+    relay: &Path,
+    finish: impl FnOnce(&mut Transaction) -> Result<T, String>,
+) -> Result<T, String> {
     let _lock = native_account_files::DirectoryLock::acquire(relay)?;
     let mut official = native_account_files::object(&paths.cfg_official)?;
     let mut threep = native_account_files::object(&paths.cfg_threep)?;
@@ -218,12 +220,26 @@ fn restore_at(paths: &ClaudeDesktopLayout, relay: &Path) -> Result<(), String> {
     }
     transaction.remove(&library.join(format!("{CLAUDE_DESKTOP_PROFILE_ID}.json")))?;
     transaction.remove(relay)?;
-    if backup.exists() {
+    let moved_library = backup.exists();
+    if moved_library {
         fs::rename(&backup, &paths.lib_dir)
             .map_err(|error| format!("Cannot restore Claude profiles: {error}"))?;
     }
-    transaction.commit();
-    Ok(())
+    match finish(&mut transaction) {
+        Ok(value) => {
+            transaction.commit();
+            Ok(value)
+        }
+        Err(error) => {
+            // The transaction's recorded profile paths are in the backup.
+            if moved_library {
+                fs::rename(&paths.lib_dir, &backup).map_err(|rollback| {
+                    format!("{error}. Cannot roll back Claude profiles: {rollback}")
+                })?;
+            }
+            Err(error)
+        }
+    }
 }
 
 pub(super) fn read_claudedesktop() -> Option<ModelInfo> {

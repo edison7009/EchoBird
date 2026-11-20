@@ -14,8 +14,9 @@ pub async fn start_tool(
     tool_id: String,
     start_command: Option<String>,
     cwd: Option<String>,
-) -> Result<(), String> {
-    process_manager::start_tool(&tool_id, start_command.as_deref(), cwd.as_deref()).await?;
+) -> Result<Option<crate::services::codex_session_merge::HistoryMergeNotice>, String> {
+    let history_notice =
+        process_manager::start_tool(&tool_id, start_command.as_deref(), cwd.as_deref()).await?;
     if tool_id == "claudescience" {
         use tauri_plugin_shell::ShellExt;
         let url = process_manager::claude_science_url().await?;
@@ -24,7 +25,7 @@ pub async fn start_tool(
             .open(url.as_str(), None)
             .map_err(|e| format!("Failed to open Claude Science: {e}"))?;
     }
-    Ok(())
+    Ok(history_notice)
 }
 
 // ─── CLI launch settings ───
