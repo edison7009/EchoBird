@@ -730,17 +730,9 @@ it('anchors three curved routes to the preview and remeasures or hides them as s
   });
   const previewArea = {};
   const island = { getBoundingClientRect: () => rect(100, 50 + previewY - 22, 176, 44) };
-  let cardGeneration = 0;
-  const createCards = () => {
-    const generation = cardGeneration;
-    return Array.from({ length: 3 }, (_, index) => ({
-      getBoundingClientRect: () =>
-        generation === cardGeneration
-          ? rect(40 + width - 280, 58 + index * 116, 254, 80)
-          : rect(0, 0, 0, 0),
-    }));
-  };
-  let cards = createCards();
+  const cards = Array.from({ length: 3 }, (_, index) => ({
+    getBoundingClientRect: () => rect(40 + width - 280, 58 + index * 116, 254, 80),
+  }));
   act(() => {
     renderer = create(<VoiceInputMain />, {
       createNodeMock: (element) =>
@@ -768,8 +760,9 @@ it('anchors three curved routes to the preview and remeasures or hides them as s
     'M 510 280',
   ]);
   expect(paths().every((path) => path.includes(' C ') && path.endsWith('254 140'))).toBe(true);
-  expect(observe).toHaveBeenCalledTimes(5);
+  expect(observe).toHaveBeenCalledTimes(6);
   expect(observe).toHaveBeenCalledWith(previewArea);
+  expect(observe).toHaveBeenCalledWith(island);
   const routes = renderer.root.findAllByProps({ className: 'free-model-route-path' });
   expect(routes.map((path) => path.parent!.props.className)).toEqual([
     undefined,
@@ -779,30 +772,18 @@ it('anchors three curved routes to the preview and remeasures or hides them as s
   const glow = () => renderer.root.findAllByProps({ className: 'free-model-route-glow' });
   expect(glow()).toHaveLength(0);
   const idlePaths = paths();
-  // Entering or leaving a recording recreates the sortable cards to cancel dragging.
-  cardGeneration++;
-  cards = createCards();
   for (const [revision, phase, activeChannel] of [
     [2, 'recording', 0],
     [3, 'transcribing', 1],
   ] as const) {
     act(() => voice.getState().accept(voiceSnapshot({ config, phase, activeChannel, revision })));
-    act(() => {
-      frame(0);
-      resize();
-    });
     expect(paths()).toEqual(idlePaths);
     expect(glow()).toHaveLength(1);
     expect(glow()[0].props.d).toBe(paths()[activeChannel]);
     expect(glow()[0].props.pathLength).toBe('1');
   }
-  cardGeneration++;
-  cards = createCards();
   act(() => voice.getState().accept(voiceSnapshot({ config, phase: 'done', revision: 4 })));
-  act(() => {
-    frame(0);
-    resize();
-  });
+  expect(observe).toHaveBeenCalledTimes(6);
   expect(paths()).toEqual(idlePaths);
   expect(glow()).toHaveLength(0);
   act(() =>

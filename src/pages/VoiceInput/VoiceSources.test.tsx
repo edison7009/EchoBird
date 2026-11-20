@@ -332,8 +332,8 @@ it.each([
       void toggle.props.onClick();
     });
     expect(voice.getState().saving).toBe(true);
-    expect(main.props['data-saving']).toBe(true);
-    expect(panel.props['data-saving']).toBe(true);
+    expect(main.props['data-busy']).toBe(true);
+    expect(panel.props['data-busy']).toBe(true);
     expect(toggle.props['aria-checked']).toBe(shortcutEnabled);
     expect(route.props.className).toBe(
       `voice-routing-lines${shortcutEnabled ? '' : ' is-disabled'}`
@@ -357,8 +357,8 @@ it.each([
     if (failed)
       expect(renderer.root.findByProps({ role: 'alert' }).children).toContain('Error: save failed');
     expect(toggle.props.disabled).toBe(false);
-    expect(main.props['data-saving']).toBe(false);
-    expect(panel.props['data-saving']).toBe(false);
+    expect(main.props['data-busy']).toBe(false);
+    expect(panel.props['data-busy']).toBe(false);
     expect(renderer.root.findAllByType('section')).toEqual(sections);
     expect(renderer.root.findAllByProps({ role: 'listitem' })).toEqual(channels);
     expect(renderer.root.findByType(VoiceInputPanel).findByType(ViewModeTabs)).toBe(tabs);
@@ -382,7 +382,7 @@ it.each([
 );
 
 it.each(['recording', 'pending'] as const)(
-  'preserves unavailable panel feedback for %s even while saving',
+  'keeps panel actions locked without dimming during %s',
   async (reason) => {
     voice.setState({
       saving: true,
@@ -402,7 +402,7 @@ it.each(['recording', 'pending'] as const)(
     const panel = renderer.root.findByProps({
       className: 'voice-input-panel flex h-full flex-col overflow-hidden',
     });
-    expect(panel.props['data-saving']).toBe(false);
+    expect(panel.props['data-busy']).toBe(true);
     expect(
       renderer.root.findByProps({ 'aria-label': 'voice.accountInput: WorkBuddy' }).props.disabled
     ).toBe(true);
@@ -485,6 +485,36 @@ describe('voice source card ordering', () => {
       renderer = create(<VoiceInputMain />);
     });
   };
+
+  it('keeps the source cards mounted while a microphone test starts and stops', () => {
+    mountSources();
+    const context = drag();
+    const cards = renderer.root.findAllByProps({ role: 'listitem' });
+    const config = voice.getState().snapshot!.config;
+    for (const [pending, phase] of [
+      [true, 'idle'],
+      [false, 'testing'],
+      [true, 'testing'],
+      [false, 'idle'],
+    ] as const) {
+      act(() => voice.setState({ pending, snapshot: voiceSnapshot({ phase, config }) }));
+      expect(drag()).toBe(context);
+      expect(renderer.root.findAllByProps({ role: 'listitem' })).toEqual(cards);
+    }
+    expect(voiceApi.saveVoiceConfig).not.toHaveBeenCalled();
+  });
+
+  it('resets a drag interrupted by microphone activity once', () => {
+    mountSources();
+    const context = drag();
+    act(() => context.props.onDragStart({ active: { id: key(0) } }));
+    act(() => voice.setState({ pending: true }));
+    expect(drag()).not.toBe(context);
+    const resetContext = drag();
+    act(() => voice.setState({ pending: false }));
+    expect(drag()).toBe(resetContext);
+    expect(voiceApi.saveVoiceConfig).not.toHaveBeenCalled();
+  });
 
   it('keeps drag ordering and removal while omitting the old upward shortcut', () => {
     mountSources();

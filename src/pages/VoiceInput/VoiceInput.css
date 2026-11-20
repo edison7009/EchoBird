@@ -358,12 +358,14 @@
   font-family: inherit;
   font-size: inherit;
 }
-/* Brief config saves keep their interaction lock without flashing the settings. */
-.voice-grid[data-saving='true'] .voice-card button:disabled,
-.voice-grid[data-saving='true'] .voice-routing-stage button:disabled,
-.voice-grid[data-saving='true'] .voice-device-select > button,
-.voice-input-panel[data-saving='true'] button:disabled,
-.voice-input-panel[data-saving='true'] span.opacity-40 {
+/* Lock actions during saves and microphone use without dimming the page. */
+.voice-grid[data-busy='true'] .voice-card button:disabled,
+.voice-grid[data-busy='true'] .voice-routing-stage button:disabled,
+.voice-grid[data-busy='true'] :is(.voice-device-select, .voice-language-select) > button {
+  opacity: 1;
+}
+.voice-input-panel[data-busy='true'] button.brand-deck-card:disabled {
+  filter: none;
   opacity: 1;
 }
 .voice-error {

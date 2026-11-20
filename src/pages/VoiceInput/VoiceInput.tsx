@@ -74,6 +74,7 @@ export function VoiceInputMain() {
   const [copyState, setCopyState] = useState<{ text: string; success: boolean } | null>(null);
   const [replayErrorId, setReplayErrorId] = useState<number | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [dragReset, setDragReset] = useState(0);
   const [orderedChannels, setOrderedChannels] = useState<VoiceChannel[] | null>(null);
   // Keep the thumb responsive while asynchronous saves apply the latest desktop size.
   const [scaleDraft, setScaleDraft] = useState<number | null>(null);
@@ -127,7 +128,12 @@ export function VoiceInputMain() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
   const voiceActive = pending || voiceBusy(snapshot?.phase);
-  useEffect(() => () => setActiveDragId(null), [active, voiceActive]);
+  useEffect(() => {
+    if (activeDragId === null || (active && !voiceActive)) return;
+    setActiveDragId(null);
+    // Reset the drag sensors only when an actual drag is interrupted.
+    if (active) setDragReset((revision) => revision + 1);
+  }, [active, activeDragId, voiceActive]);
   const copyTimer = useRef<ReturnType<typeof setTimeout>>();
   const routingStage = useRef<HTMLDivElement>(null);
   useEffect(() => () => clearTimeout(copyTimer.current), []);
@@ -139,7 +145,7 @@ export function VoiceInputMain() {
     );
   const config = snapshot.config;
   const busy = saving || voiceActive;
-  const channelLayoutKey = active && !voiceActive ? 'active' : 'hidden';
+  const channelLayoutKey = `${active}:${dragReset}`;
   const channels = orderedChannels ?? config.channels;
   const result = state.lastResult ?? snapshot;
   const resultText = result.text;
@@ -236,7 +242,7 @@ export function VoiceInputMain() {
   const dragIndex = channels.findIndex((channel) => channelKey(channel) === activeDragId);
   return (
     <div className="flex-1 overflow-y-auto pr-1 pb-3">
-      <div className="voice-grid" data-saving={saving && !voiceActive}>
+      <div className="voice-grid" data-busy={busy}>
         <div ref={routingStage} className="voice-routing-stage">
           <VoiceRoutingLines
             stageRef={routingStage}
@@ -508,6 +514,7 @@ export function VoiceInputMain() {
                 />
               </fieldset>
               <MiniSelect
+                className={selectionModel ? 'voice-language-select' : undefined}
                 value={config.selectionTranslationLanguage ?? 'zh-Hans'}
                 disabled={busy || !selectionModel}
                 dropUp
@@ -607,7 +614,7 @@ function VoiceRoutingLines({
     };
     const frame = requestAnimationFrame(measure);
     const observer = new ResizeObserver(measure);
-    [stage, previewArea, ...cards].forEach((element) => observer.observe(element));
+    [stage, previewArea, island, ...cards].forEach((element) => observer.observe(element));
     window.addEventListener('resize', measure);
     stage.addEventListener('transitionend', measure);
     return () => {
@@ -660,8 +667,8 @@ export function VoiceInputPanel() {
   const accounts = useVoiceAccounts();
   const models = useModelNexus();
   const active = useNavigationStore((navigation) => navigation.activePage === 'voice');
-  const unavailable = !state.snapshot || state.pending || voiceBusy(state.snapshot?.phase);
-  const disabled = unavailable || state.saving;
+  const busy = state.saving || state.pending || voiceBusy(state.snapshot?.phase);
+  const disabled = !state.snapshot || busy;
   useEffect(() => {
     if (!active) return;
     let disposed = false;
@@ -721,7 +728,7 @@ export function VoiceInputPanel() {
   return (
     <div
       className="voice-input-panel flex h-full flex-col overflow-hidden"
-      data-saving={state.saving && !unavailable}
+      data-busy={!!state.snapshot && busy}
     >
       <div className="h-10 shrink-0 px-2 mb-2 flex items-center justify-between gap-2">
         <div className="min-w-0 flex-1">

@@ -115,7 +115,7 @@ export function ShortcutRecorder({
     <button
       ref={recorder}
       type="button"
-      className="voice-shortcut-listening"
+      className="voice-key voice-shortcut-listening"
       onBlur={() => void finish()}
       onKeyDown={(event) => {
         if (event.key === 'Tab') {
