@@ -60,7 +60,7 @@ export function BrandDeckCard({
   return (
     <Root
       aria-label={region}
-      className={`brand-deck-card${busy ? ' is-busy' : ''}${off ? ' is-off' : ''}${picked ? ' is-picked' : ''}${addMark ? ' is-repeat' : ''}`}
+      className={`brand-deck-card${busy ? ' is-busy' : ''}${off ? ' is-off' : ''}${picked ? ' is-picked' : ''}`}
       style={style}
     >
       <button

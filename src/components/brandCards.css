@@ -54,15 +54,6 @@
 .brand-deck-card:hover {
   transform: translateY(-3px);
 }
-.brand-deck-card:has(> .brand-deck-hit:active) {
-  transform: translateY(-1px);
-  transition-duration: 0.08s;
-}
-/* Cards that add one more per click stay lifted while pressed: no dip and
-   spring back on every click. */
-.brand-deck-card.is-repeat:has(> .brand-deck-hit:active) {
-  transform: translateY(-3px);
-}
 /* The whole card is the main action; the controls on it sit above. */
 .brand-deck-hit {
   position: absolute;
@@ -463,11 +454,6 @@ div.brand-card {
   }
 }
 
-/* A deck card that is itself the button (account access lists). */
-button.brand-deck-card:active:enabled {
-  transform: translateY(-1px);
-  transition-duration: 0.08s;
-}
 button.brand-deck-card:disabled {
   filter: saturate(0.4);
   opacity: 0.6;

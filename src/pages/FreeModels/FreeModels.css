@@ -576,6 +576,3 @@
   --router-tint: 34%;
   transform: translateY(calc(-50% - 1px));
 }
-.free-model-router-page-arrow:active:enabled {
-  transform: translateY(-50%) scale(0.96);
-}
