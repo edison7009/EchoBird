@@ -1798,8 +1798,8 @@ function SavedKeyCard({
       iconSrc={getModelIcon('', model.modelId || '') || getModelIcon(model.name, '')}
       label={label}
       onClick={onAdd}
-      disabled={disabled}
-      busy={adding}
+      // While a click is being added the card only waits; the plus stays still.
+      disabled={disabled || adding}
       addMark
       extra={
         usage && (
