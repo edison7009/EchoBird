@@ -16,7 +16,7 @@ export function PageActionButton({
       {...props}
       disabled={disabled || pending}
       aria-busy={pending || props['aria-busy'] || undefined}
-      className={`page-action-button flex h-9 shrink-0 items-center justify-center rounded-button text-sm outline-none ${disabled && !pending ? 'disabled:text-cyber-text-muted disabled:opacity-50' : ''} ${children ? 'gap-1.5 px-3' : 'w-9'} ${className}`}
+      className={`page-action-button cjk-btn flex h-9 shrink-0 items-center justify-center rounded-button text-sm outline-none ${disabled && !pending ? 'disabled:text-cyber-text-muted disabled:opacity-50' : ''} ${children ? 'gap-1.5 px-3' : 'w-9'} ${className}`}
     >
       {Icon && (
         <Icon

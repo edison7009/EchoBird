@@ -232,13 +232,13 @@ export function FreeModelsTitleActions() {
           <PageActionButton
             onClick={() => setSmartAccessTab('statistics')}
             aria-pressed={smartAccessTab === 'statistics'}
-            className="view-mode-tab font-mono"
+            className="view-mode-tab"
             style={{ borderWidth: 0, height: '100%' }}
           >
             {t('developer.statistics')}
           </PageActionButton>
         </ViewModeTabGroup>
-        <PageActionButton onClick={() => setShowHelp(true)} className="font-mono">
+        <PageActionButton onClick={() => setShowHelp(true)}>
           {t('freeModels.help')}
         </PageActionButton>
       </div>

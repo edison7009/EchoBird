@@ -854,7 +854,8 @@ html.is-macos .usage-island.usage-island-theme-auto {
 
 /* Microsoft YaHei has no medium face, so 700 lands on its heavy bold. Regular
    is closer to the macOS PingFang tab labels. */
-html.is-windows .view-mode-tab.cjk-btn {
+html.is-windows .view-mode-tab.cjk-btn,
+html.is-windows .page-action-button.cjk-btn {
   font-weight: 400;
 }
 

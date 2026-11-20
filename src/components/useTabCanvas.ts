@@ -68,6 +68,10 @@ export function mountTabCanvas(
       for (const key of ['x', 'y', 'width', 'height'] as const)
         current[key] = from[key] + (target[key] - from[key]) * ease;
     }
+    // Remember where the key really is on screen. A parent re-render can
+    // replace this canvas several times before a frame is painted; each new
+    // canvas then slides on from here, never from the end of the slide.
+    if (remembered && current && !independent) remembered.current = { ...current };
     paintTabCanvas(
       canvas,
       width,
@@ -151,7 +155,6 @@ export function mountTabCanvas(
       target = next;
       started = performance.now();
     }
-    if (remembered) remembered.current = next;
     readColors();
     requestPaint();
   };
@@ -184,6 +187,10 @@ export function mountTabCanvas(
   return () => {
     disposed = true;
     if (frame) cancelFlowFrame(frame);
+    // A parent re-render can replace this canvas mid-slide. Hand the key's
+    // position as last painted to the next canvas, so it carries on from
+    // there instead of appearing at the end.
+    if (remembered && current && !independent) remembered.current = { ...current };
     resize.disconnect();
     attributes.disconnect();
     theme.disconnect();

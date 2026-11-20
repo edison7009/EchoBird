@@ -597,7 +597,6 @@ export function AccountCenterTitleActions() {
         pending={blocked || running !== null}
         disabled={blocked || running !== null}
         onClick={() => run('refresh')}
-        className="font-mono"
       >
         {t('accountCenter.refreshAll')}
       </PageActionButton>

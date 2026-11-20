@@ -99,7 +99,6 @@ export function ModelNexusTitleActions() {
           spinning={isTesting}
           onClick={pingAllModels}
           disabled={isTesting}
-          className="font-mono"
         >
           {t('btn.pingAll')}
         </PageActionButton>
@@ -110,7 +109,6 @@ export function ModelNexusTitleActions() {
           onClick={refreshAllUsage}
           pending={isRefreshingUsage}
           disabled={isRefreshingUsage}
-          className="font-mono"
         >
           {t('btn.refreshUsage')}
         </PageActionButton>
