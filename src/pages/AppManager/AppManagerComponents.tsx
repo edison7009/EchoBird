@@ -53,6 +53,7 @@ import { ClaudeCodeAccountSection } from './ClaudeCodeAccountSection';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CapabilityToggles, type CapabilityToggle } from './CapabilityToggles';
 import { ModelListCard } from '../../components/ModelListCard';
+import { BrandRow } from '../../components/BrandRow';
 import { ViewModeTabs } from '../../components/ViewModeTabs';
 import { ViewModeTabGroup } from '../../components/ViewModeTabGroup';
 import { PageActionButton } from '../../components/PageActionButton';
@@ -859,11 +860,11 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
     const iconSrc = getModelIcon(ep.name, ep.modelId);
 
     return (
-      <div
-        className={`relative overflow-hidden h-14 px-[11px] py-1 rounded-card cursor-default transition-colors flex items-center gap-3 border-2 ${
-          isOfficialPending
-            ? 'border-cyber-accent/70 bg-cyber-accent/10'
-            : 'bg-cyber-surface border-transparent hover:bg-cyber-elevated'
+      <BrandRow
+        iconSrc={iconSrc}
+        disabled={false}
+        className={`h-14 px-[11px] py-1 rounded-card cursor-default flex items-center gap-3 border-2 ${
+          isOfficialPending ? 'is-selected' : 'border-transparent'
         }`}
         onClick={() => selectedTool && handleSelectModel(selectedTool, officialSentinel)}
       >
@@ -872,7 +873,7 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
             <img
               src={iconSrc}
               alt=""
-              className="w-8 h-8"
+              className="brand-row-logo w-8 h-8 object-contain"
               onError={(e) => {
                 (e.target as HTMLImageElement).style.display = 'none';
               }}
@@ -894,7 +895,7 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
             {apiPath}
           </div>
         </div>
-      </div>
+      </BrandRow>
     );
   };
 

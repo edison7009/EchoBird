@@ -242,6 +242,10 @@ div.brand-card {
   border-radius: 12px;
 }
 .brand-card {
+  /* overflow alone is dropped by WebKit while a child animates on its own
+     layer, so the turning logo would spill out and the card seem to move.
+     A rounded clip path holds in every engine. */
+  clip-path: inset(0 round 12px);
   --brand-tint: 65%;
   --brand-mark: 0.2;
   --brand-pill: 0 0 0 / 0.2;
@@ -252,7 +256,7 @@ div.brand-card {
   background-color: rgb(var(--bg-surface-rgb));
   background-image: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--brand) 16%, rgb(var(--bg-surface-rgb))) 0%,
+    color-mix(in srgb, var(--brand) 6%, rgb(var(--bg-surface-rgb))) 0%,
     color-mix(in srgb, var(--brand) var(--brand-tint), rgb(var(--bg-surface-rgb))) 100%
   );
   box-shadow:
@@ -276,6 +280,28 @@ div.brand-card {
   pointer-events: none;
   user-select: none;
   transform: rotate(-10deg);
+  transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.3, 1);
+  /* Its own layer from the start: WebKit does not promote it (and redraw the
+     card) at the moment the hover begins. */
+  will-change: transform;
+  backface-visibility: hidden;
+}
+/* Everything on the card keeps a fixed layer too: the title row with its logo
+   and action icons, the rows and the bars. Otherwise WebKit redraws them at a
+   sub-pixel offset while the faded logo turns beside them, and they seem to
+   slide on hover. */
+.brand-card > :not(.brand-card-mark) {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+/* On hover the faded logo turns upright and grows a little. */
+.brand-card:hover .brand-card-mark {
+  transform: rotate(0deg) scale(1.06);
+}
+@media (prefers-reduced-motion: reduce) {
+  .brand-card-mark {
+    transition: none;
+  }
 }
 /* Black-and-white logos follow the theme: white in dark, black in light. */
 .brand-card .is-neutral-logo {
@@ -407,28 +433,350 @@ div.brand-card {
 .brand-add-slot:hover {
   background: rgb(var(--accent-rgb) / 0.12);
 }
-.brand-add-slot-plus {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 999px;
-  color: #fff;
-  background: rgb(var(--accent-rgb));
-  box-shadow: 0 4px 14px rgb(var(--accent-rgb) / 0.45);
-  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.3, 1);
-}
-.brand-add-slot:hover .brand-add-slot-plus {
-  transform: rotate(90deg);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .brand-deck-card,
-  .brand-deck-plus,
-  .brand-add-slot-plus {
+  .brand-deck-plus {
     transition: none;
   }
   .brand-deck-card.is-busy::before {
     animation: none;
   }
+}
+
+/* A deck card that is itself the button (account access lists). */
+button.brand-deck-card:active:enabled {
+  transform: translateY(-1px);
+  transition-duration: 0.08s;
+}
+button.brand-deck-card:disabled {
+  filter: saturate(0.4);
+  opacity: 0.6;
+}
+button.brand-deck-card:disabled:hover {
+  transform: none;
+}
+.brand-deck-note.is-empty {
+  background: rgb(0 0 0 / 0.16);
+  color: rgb(255 255 255 / 0.7);
+}
+
+/* ---------- Brand row (lists of models to pick) ---------- */
+/*
+ * A model in a pick list: its colour runs in from the left behind the logo
+ * and fades out to the right, with the logo faded into the right edge, the
+ * same language as the brand cards. Selected: a ring in its own colour.
+ */
+.brand-row {
+  --row-tint: 20%;
+  isolation: isolate;
+  /* The tint fills the transparent border too, so no edge of a deeper colour
+     shows around the row. */
+  background-origin: border-box;
+  background-color: rgb(var(--bg-surface-rgb));
+  background-image: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--brand) var(--row-tint), rgb(var(--bg-surface-rgb))) 0%,
+    color-mix(in srgb, var(--brand) 5%, rgb(var(--bg-surface-rgb))) 78%
+  );
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.04),
+    inset 0 1px 0 rgb(255 255 255 / 0.05);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+:root[data-theme='light'] .brand-row {
+  --row-tint: 12%;
+}
+/* Black-and-white logos: a quieter slate, so the coloured rows lead. */
+.brand-row.is-neutral {
+  --row-tint: 14%;
+}
+:root[data-theme='light'] .brand-row.is-selected {
+  --row-tint: 30%;
+}
+:root[data-theme='light'] .brand-row.is-neutral {
+  --row-tint: 8%;
+}
+/* Pick lists are lists first: the details under each name stay close to the
+   text colour, in both themes, rather than fading into the tint. */
+.brand-row [class*='text-cyber-text-secondary'] {
+  color: rgb(var(--text-primary-rgb) / 0.8);
+  font-weight: 500;
+}
+.brand-row [class*='text-cyber-text-muted'] {
+  color: rgb(var(--text-primary-rgb) / 0.62);
+}
+/* Hover lightens with a wash over the tint; a filter here would make WebKit
+   redraw the row's text and icons and nudge them. */
+.brand-row:not([aria-disabled='true']):hover {
+  box-shadow: inset 0 0 0 999px rgb(255 255 255 / 0.04);
+}
+:root[data-theme='light'] .brand-row:not([aria-disabled='true']):hover {
+  box-shadow: inset 0 0 0 999px rgb(0 0 0 / 0.03);
+}
+/* Chosen: a clearly stronger tint, no outline, so several chosen rows in a
+   row stay calm. */
+.brand-row.is-selected {
+  --row-tint: 46%;
+  border-color: transparent;
+  /* The whole row lights evenly, instead of fading out to the right. */
+  background-image: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--brand) var(--row-tint), rgb(var(--bg-surface-rgb))) 0%,
+    color-mix(in srgb, var(--brand) calc(var(--row-tint) - 12%), rgb(var(--bg-surface-rgb))) 100%
+  );
+}
+.brand-row[aria-disabled='true'] {
+  filter: saturate(0.35);
+  opacity: 0.7;
+}
+.brand-row.is-glyph .brand-row-logo {
+  filter: brightness(0) invert(1);
+}
+:root[data-theme='light'] .brand-row.is-glyph .brand-row-logo {
+  filter: brightness(0);
+}
+
+/* ---------- Empty list ---------- */
+.brand-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+.brand-empty-stack {
+  position: relative;
+  width: 132px;
+  height: 92px;
+  margin-bottom: 14px;
+}
+.brand-empty-stack > span {
+  position: absolute;
+  left: 18px;
+  top: 10px;
+  width: 96px;
+  height: 70px;
+  border-radius: 12px;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.06),
+    0 8px 18px -10px rgb(0 0 0 / 0.6);
+}
+.brand-empty-stack > span:nth-child(1) {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, #3b82f6 22%, rgb(var(--bg-surface-rgb))),
+    color-mix(in srgb, #3b82f6 48%, rgb(var(--bg-surface-rgb)))
+  );
+  transform: translateX(-22px) rotate(-12deg);
+  opacity: 0.75;
+}
+.brand-empty-stack > span:nth-child(2) {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, #10b981 22%, rgb(var(--bg-surface-rgb))),
+    color-mix(in srgb, #10b981 48%, rgb(var(--bg-surface-rgb)))
+  );
+  transform: translateX(22px) rotate(12deg);
+  opacity: 0.75;
+}
+.brand-empty-front {
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, rgb(var(--accent-rgb)) 55%, rgb(var(--bg-surface-rgb))),
+    rgb(var(--accent-rgb))
+  );
+  animation: brand-empty-float 4s ease-in-out infinite;
+}
+@keyframes brand-empty-float {
+  50% {
+    transform: translateY(-4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brand-empty-front {
+    animation: none;
+  }
+}
+.brand-empty-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgb(var(--text-primary-rgb));
+}
+.brand-empty-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: rgb(var(--text-secondary-rgb));
+}
+.brand-empty-hint svg {
+  color: rgb(var(--accent-rgb));
+  animation: brand-empty-nudge 1.8s ease-in-out infinite;
+}
+@keyframes brand-empty-nudge {
+  50% {
+    transform: translateX(3px);
+  }
+}
+
+/* ---------- New-item row (conversation list) ---------- */
+/* The light card with the accent plus, as at the top of the decks. */
+.brand-new-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 44px;
+  padding: 0 10px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #3b2c22;
+  background: linear-gradient(180deg, #fbf7f1, #ece4d8);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.6),
+    0 2px 8px rgb(0 0 0 / 0.25);
+  transition: opacity 0.2s ease;
+}
+:root[data-theme='light'] .brand-new-row {
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.08),
+    0 2px 8px rgb(0 0 0 / 0.1);
+}
+.brand-new-row:hover:enabled .brand-deck-plus {
+  transform: rotate(90deg);
+}
+.brand-new-row:disabled {
+  opacity: 0.45;
+}
+/* Rows in the page's own colour: quieter until chosen. */
+.brand-row.is-quiet:not(.is-selected) {
+  --row-tint: 10%;
+}
+:root[data-theme='light'] .brand-row.is-quiet:not(.is-selected) {
+  --row-tint: 8%;
+}
+.brand-slot.is-filled {
+  --brand-tint: 24%;
+  isolation: isolate;
+  background-origin: border-box;
+  background-color: rgb(var(--bg-surface-rgb));
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--brand) 16%, rgb(var(--bg-surface-rgb))) 0%,
+    color-mix(in srgb, var(--brand) var(--brand-tint), rgb(var(--bg-surface-rgb))) 100%
+  );
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.05);
+}
+:root[data-theme='light'] .brand-slot.is-filled {
+  --brand-tint: 14%;
+}
+.brand-slot.is-filled.is-neutral {
+  --brand-tint: 14%;
+}
+:root[data-theme='light'] .brand-slot.is-filled.is-neutral {
+  --brand-tint: 8%;
+}
+.brand-slot.is-empty {
+  background: rgb(var(--bg-surface-rgb) / 0.25);
+  border: 1.5px dashed rgb(var(--border-rgb));
+}
+.brand-slot-empty {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 4px;
+}
+.brand-slot-empty b {
+  font-size: 13px;
+  color: rgb(var(--text-secondary-rgb));
+}
+.brand-slot-empty span {
+  font-size: 11px;
+  color: rgb(var(--text-muted-rgb));
+}
+
+.brand-slot.is-neutral .brand-slot-logo {
+  filter: brightness(0) invert(1);
+}
+:root[data-theme='light'] .brand-slot.is-neutral .brand-slot-logo {
+  filter: brightness(0);
+}
+
+/* A directory entry already added: a white check on the card. */
+.brand-deck-check {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--deck-to);
+}
+.brand-deck-note .text-cyber-accent {
+  color: inherit;
+}
+
+/* Accent words ("no key") on a coloured card: a small dark chip, readable on any brand. */
+.brand-slot.is-filled .text-cyber-accent {
+  padding: 0 6px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgb(0 0 0 / 0.28);
+}
+
+/* Accounts keep their dark (or light) pill. The chosen one has no outline:
+   a soft light shows through from its top edge, over the pill's own colour. */
+.account-pill.is-selected {
+  border-color: transparent;
+  background-origin: border-box;
+  /* The light from the top, over a pill lifted a touch overall so its lower
+     edge stays clear of the panel too. */
+  background-image:
+    radial-gradient(120% 90% at 50% 0%, rgb(255 255 255 / 0.16), transparent 70%),
+    linear-gradient(rgb(255 255 255 / 0.05), rgb(255 255 255 / 0.05));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.14),
+    inset 0 -1px 0 rgb(255 255 255 / 0.06),
+    0 6px 14px -8px rgb(0 0 0 / 0.8);
+}
+[data-theme='light'] .account-pill.is-selected {
+  background-image:
+    radial-gradient(120% 90% at 50% 0%, rgb(255 255 255 / 0.95), transparent 75%),
+    linear-gradient(rgb(0 0 0 / 0.05), rgb(0 0 0 / 0.05));
+  box-shadow:
+    inset 0 1px 0 #fff,
+    inset 0 -1px 0 rgb(0 0 0 / 0.06),
+    0 6px 14px -10px rgb(0 0 0 / 0.25);
+}
+
+/* The sign-in or snapshot button lights the same way when hovered. */
+.account-pill:not([role='radio']):not(:disabled):hover {
+  opacity: 1;
+  background-origin: border-box;
+  /* The light from the top, over a pill lifted a touch overall so its lower
+     edge stays clear of the panel too. */
+  background-image:
+    radial-gradient(120% 90% at 50% 0%, rgb(255 255 255 / 0.16), transparent 70%),
+    linear-gradient(rgb(255 255 255 / 0.05), rgb(255 255 255 / 0.05));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.14),
+    inset 0 -1px 0 rgb(255 255 255 / 0.06),
+    0 6px 14px -8px rgb(0 0 0 / 0.8);
+}
+[data-theme='light'] .account-pill:not([role='radio']):not(:disabled):hover {
+  background-image:
+    radial-gradient(120% 90% at 50% 0%, rgb(255 255 255 / 0.95), transparent 75%),
+    linear-gradient(rgb(0 0 0 / 0.05), rgb(0 0 0 / 0.05));
+  box-shadow:
+    inset 0 1px 0 #fff,
+    inset 0 -1px 0 rgb(0 0 0 / 0.06),
+    0 6px 14px -10px rgb(0 0 0 / 0.25);
 }

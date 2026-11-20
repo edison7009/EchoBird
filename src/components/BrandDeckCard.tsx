@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { Box, ExternalLink, LoaderCircle, Plus, X } from 'lucide-react';
+import { Box, Check, ExternalLink, LoaderCircle, Plus, X } from 'lucide-react';
 import { useBrandColour } from '../utils/brandColour';
 import './brandCards.css';
 
@@ -24,6 +24,8 @@ export function BrandDeckCard({
   disabled,
   busy,
   off,
+  picked,
+  pressed,
   extra,
   open,
   cancel,
@@ -41,6 +43,10 @@ export function BrandDeckCard({
   busy?: boolean;
   /** Not installed: the card loses its colour. */
   off?: boolean;
+  /** Already added: a white check on the card. */
+  picked?: boolean;
+  /** The main action is a toggle; its state for assistive tech. */
+  pressed?: boolean;
   extra?: ReactNode;
   open?: { onClick: () => void; label: string; disabled?: boolean };
   cancel?: { onClick: () => void; label: string };
@@ -51,7 +57,7 @@ export function BrandDeckCard({
   return (
     <Root
       aria-label={region}
-      className={`brand-deck-card${busy ? ' is-busy' : ''}${off ? ' is-off' : ''}`}
+      className={`brand-deck-card${busy ? ' is-busy' : ''}${off ? ' is-off' : ''}${picked ? ' is-picked' : ''}`}
       style={style}
     >
       <button
@@ -59,6 +65,7 @@ export function BrandDeckCard({
         className="brand-deck-hit"
         aria-label={label}
         aria-busy={busy || undefined}
+        aria-pressed={pressed}
         disabled={disabled || busy}
         onClick={onClick}
       />
@@ -83,6 +90,11 @@ export function BrandDeckCard({
         <span className="brand-deck-extra">
           {busy && <LoaderCircle size={13} className="animate-spin" aria-hidden="true" />}
           {extra}
+        </span>
+      )}
+      {picked && !busy && (
+        <span className="brand-deck-check" aria-hidden="true">
+          <Check size={12} strokeWidth={3} />
         </span>
       )}
       {cancel && busy && (

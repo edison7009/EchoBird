@@ -1,8 +1,12 @@
+import type { CSSProperties } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useI18n } from '../../hooks/useI18n';
 import { useUsageClock } from '../../hooks/useUsageClock';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { useMotherAgent } from './context';
+import '../../components/brandCards.css';
+
+const accent = { '--brand': 'rgb(var(--accent-rgb))' } as CSSProperties;
 
 export function ConversationList() {
   const { t, locale } = useI18n();
@@ -37,9 +41,11 @@ export function ConversationList() {
         type="button"
         onClick={() => !isProcessing && createConversation()}
         disabled={isProcessing}
-        className="w-full h-12 px-3 text-[14px] font-semibold border border-cyber-border rounded-card transition-colors flex items-center justify-center gap-2 text-cyber-text-secondary hover:text-cyber-text hover:bg-cyber-elevated disabled:opacity-40"
+        className="brand-new-row"
       >
-        <Plus size={14} />
+        <span className="brand-deck-plus" aria-hidden="true">
+          <Plus size={14} strokeWidth={3} />
+        </span>
         {t('mother.newConversation')}
       </button>
       <div className="mt-2 space-y-2">
@@ -53,7 +59,8 @@ export function ConversationList() {
           return (
             <div
               key={conversation.id}
-              className={`relative flex w-full h-14 shrink-0 items-center gap-3 px-[11px] py-1 pr-10 rounded-card border-2 text-left transition-colors ${active ? 'border-cyber-accent/70 bg-cyber-accent/10' : 'border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70'} ${isProcessing ? 'opacity-40' : ''}`}
+              style={accent}
+              className={`brand-row is-quiet relative flex w-full h-14 shrink-0 items-center gap-3 px-[11px] py-1 pr-10 rounded-card border-2 text-left ${active ? 'is-selected' : 'border-transparent'} ${isProcessing ? 'opacity-40' : ''}`}
             >
               <button
                 type="button"

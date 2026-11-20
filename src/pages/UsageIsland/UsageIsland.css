@@ -45,95 +45,104 @@
   grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
+.usage-island-shapes {
+  min-width: 0;
+  padding: 8px;
+}
 .usage-island-styles {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
+  gap: 8px;
 }
-.usage-island-style-card {
-  position: relative;
-  display: grid;
-  min-width: 0;
-}
-.usage-island-direction {
-  position: absolute;
-  top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  width: min(100px, calc(100% - 16px));
-  gap: 2px;
-  padding: 2px;
-  border-radius: 10px;
-  background: rgb(var(--bg-elevated-rgb) / 0.6);
-}
-.usage-island-direction::before {
-  content: '';
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: calc((100% - 6px) / 2);
-  height: 30px;
-  border-radius: 8px;
-  background: rgb(var(--accent-rgb) / 0.2);
-  transition: transform 0.22s cubic-bezier(0.2, 0.75, 0.25, 1);
-}
-.usage-island-direction[data-reversed='false']::before {
-  transform: translateX(calc(100% + 2px));
-}
-.usage-island-direction button {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 100%;
-  min-width: 0;
-  height: 30px;
-  border-radius: 8px;
-  color: rgb(var(--text-muted-rgb));
-  transition: color 0.15s ease;
-}
-.usage-island-direction button:hover {
-  color: rgb(var(--text-primary-rgb));
-}
-.usage-island-direction button[aria-pressed='true'] {
-  color: rgb(var(--accent-rgb));
-}
-.usage-island-direction button:focus-visible {
-  outline: 1px solid rgb(var(--accent-rgb));
-}
+/* A layout tile: its preview and its name. Chosen: a soft tint, no outline,
+   and its two directions as arrows on either side of the preview. */
 .usage-island-style {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   min-width: 0;
-  min-height: 136px;
-  padding: 50px 11px 12px;
-  border: 2px solid transparent;
-  background: rgb(var(--bg-surface-rgb) / 0.6);
+  height: 132px;
+  padding: 14px 8px 10px;
   color: rgb(var(--text-secondary-rgb));
-  font-size: 13px;
-  transition: background-color 0.15s ease;
+  font-size: 12px;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+.usage-island-style-hit {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.usage-island-style > :not(.usage-island-style-hit) {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
 }
 .usage-island-style svg {
   display: block;
   width: 100%;
-  max-width: 132px;
-  height: 64px;
+  max-width: 156px;
+  height: 76px;
+}
+.usage-island-style > span {
+  font-size: 13px;
+  line-height: 16px;
+  white-space: nowrap;
 }
 .usage-island-style:hover {
-  background: rgb(var(--bg-elevated-rgb) / 0.7);
+  background: rgb(var(--text-primary-rgb) / 0.04);
   color: rgb(var(--text-primary-rgb));
 }
-.usage-island-style[aria-pressed='true'] {
-  border-color: rgb(var(--accent-rgb));
+.usage-island-style[data-chosen='true'] {
   background: rgb(var(--accent-rgb) / 0.12);
   color: rgb(var(--text-primary-rgb));
+  font-weight: 600;
 }
-.usage-island-style:focus-visible {
+.usage-island-style-hit:focus-visible {
   outline: 1px solid rgb(var(--accent-rgb));
   outline-offset: 2px;
+}
+/* Direction: a small symmetrical pair of arrows in the preview's bottom-left
+   corner, clear of the island; the lit one is the current direction. */
+.usage-island-stage {
+  position: relative;
+}
+.usage-island-direction {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgb(var(--bg-surface-rgb) / 0.8);
+  box-shadow: inset 0 0 0 1px rgb(var(--border-rgb) / 0.6);
+}
+.usage-island-direction button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 24px;
+  border-radius: 999px;
+  color: rgb(var(--text-muted-rgb));
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+.usage-island-direction button:hover {
+  color: rgb(var(--text-primary-rgb));
+  background: rgb(var(--text-primary-rgb) / 0.08);
+}
+.usage-island-direction button[aria-pressed='true'] {
+  color: rgb(var(--accent-rgb));
+  background: rgb(var(--accent-rgb) / 0.14);
+}
+.usage-island-direction button:focus-visible {
+  outline: 1px solid rgb(var(--accent-rgb));
 }
 .usage-island-settings {
   display: grid;
@@ -906,8 +915,7 @@
   .usage-island[data-layout='list'],
   .usage-island-tools,
   .usage-island-dial,
-  .usage-island-dial-item,
-  .usage-island-direction::before {
+  .usage-island-dial-item {
     transition: none;
   }
   .usage-island-logo {

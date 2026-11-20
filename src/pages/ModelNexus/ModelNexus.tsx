@@ -28,7 +28,7 @@ import {
   sortableKeyboardCoordinates,
   arrayMove,
 } from '@dnd-kit/sortable';
-import { X, Lock, Unlock, RefreshCw, GripVertical, ExternalLink, Plus } from 'lucide-react';
+import { X, Lock, Unlock, RefreshCw, GripVertical, ExternalLink } from 'lucide-react';
 import { BrandDeck, BrandDeckAddCard, BrandDeckCard } from '../../components/BrandDeckCard';
 import { SortableCard } from '../../components/SortableCard';
 import { ModelCard, ModelCardSkeleton, getModelIcon } from '../../components';
@@ -282,10 +282,7 @@ export function ModelNexusMain() {
                     setShowAddModelModal(true);
                   }}
                 >
-                  <span className="brand-add-slot-plus" aria-hidden="true">
-                    <Plus size={20} strokeWidth={2.5} />
-                  </span>
-                  <span className="text-sm font-bold tracking-wider">{t('btn.addModel')}</span>
+                  <span className="text-base font-bold tracking-wider">{t('btn.addModel')}</span>
                   <span className="-mt-1 text-[10.5px] text-cyber-text-secondary/80">
                     OpenAI / Anthropic API
                   </span>

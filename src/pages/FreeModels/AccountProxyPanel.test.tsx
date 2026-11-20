@@ -353,7 +353,7 @@ it('reuses the speech-capable provider rows and supplied counts without a second
   expect(count('workBuddyAi')).toBe('0 个账号');
   expect(count('claudeCode')).toBe('2 个账号');
   expect(count('minimax')).toBe('3 个账号');
-  expect(renderer.root.findAllByType('div')[0].props.className).toBe('space-y-2');
+  expect(renderer.root.findAllByType('div')[0].props.className).toBe('brand-deck');
   expect(api.listProxyAccounts).not.toHaveBeenCalled();
   expect(api.getAccountProxyModels).not.toHaveBeenCalled();
   expect(invoke).not.toHaveBeenCalled();

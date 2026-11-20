@@ -32,6 +32,7 @@ import { ViewModeTabs } from '../../components/ViewModeTabs';
 import { ModelListCard } from '../../components/ModelListCard';
 import { SortableCard } from '../../components/SortableCard';
 import { DirectoryRow } from '../../components/DirectoryRow';
+import { BrandDeck } from '../../components/BrandDeckCard';
 import { getModelIcon } from '../../components/cards';
 import { AccountProxyPanel } from '../FreeModels/AccountProxyPanel';
 import { accountSpeechProviders, speechSourceFromSelector } from '../../api/accountProxy';
@@ -207,6 +208,8 @@ export function VoiceInputMain() {
         handle={channel ? handle : undefined}
         overlay={overlay}
         removeLabel={t('voice.removeChannel')}
+        emptyHint={t('freeModels.router.emptyDesc')}
+        emptyTitle={index === 0 ? t('voice.primary') : t('voice.backup') + ' ' + index}
         onRemove={() =>
           update(
             'channels',
@@ -769,24 +772,26 @@ export function VoiceInputPanel() {
                   }}
                 />
               ))}
-            {directory.map((entry) => (
-              <DirectoryRow
-                key={entry.name}
-                name={entry.name}
-                url={entry.url}
-                iconSrc={getModelIcon(entry.name, '')}
-                secondary={entry.modelId}
-                onOpen={() =>
-                  void shellOpen(entry.url).catch(() => window.open(entry.url, '_blank'))
-                }
-                openLabel={`Open ${entry.name} website`}
-                add={{
-                  onClick: () => openModel(entry),
-                  label: `${t('btn.addModel')}: ${entry.name}`,
-                  disabled,
-                }}
-              />
-            ))}
+            <BrandDeck>
+              {directory.map((entry) => (
+                <DirectoryRow
+                  key={entry.name}
+                  name={entry.name}
+                  url={entry.url}
+                  iconSrc={getModelIcon(entry.name, '')}
+                  secondary={entry.modelId}
+                  onOpen={() =>
+                    void shellOpen(entry.url).catch(() => window.open(entry.url, '_blank'))
+                  }
+                  openLabel={`Open ${entry.name} website`}
+                  add={{
+                    onClick: () => openModel(entry),
+                    label: `${t('btn.addModel')}: ${entry.name}`,
+                    disabled,
+                  }}
+                />
+              ))}
+            </BrandDeck>
           </>
         )}
       </div>

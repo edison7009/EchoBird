@@ -101,6 +101,7 @@ const zhHans: Partial<Translations> = {
   'usageIsland.style.list': '列表',
   'usageIsland.style.dial': '圆盘',
   'usageIsland.style.line': '线条',
+  'usageIsland.layout': '形态',
   'settings.developerMode': '开发者预览',
   'settings.developerModeHint':
     '开发者预览主要用于开发与测试，部分功能未必适合日常使用。关闭后，将暂停开发者页面的所有功能，减少资源开销。预览中的功能可能在后续版本中调整或移除，未来也会加入更多有趣的功能。',

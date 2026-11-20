@@ -2,6 +2,7 @@
 // Layout restored from Electron v1.0.8 LocalModelPlayer.tsx
 // Architecture: Provider + Main + Panel (consistent with other pages)
 import { useState, useEffect, useRef } from 'react';
+import { BrandRow } from '../../components/BrandRow';
 import {
   Play,
   Square,
@@ -1437,16 +1438,17 @@ export const LocalServerPanel: React.FC = () => {
                   const isGroupSelected = isDeleteMode && deleteSelection.has(group.sourceDir);
 
                   return (
-                    <div
+                    <BrandRow
                       key={groupKey}
-                      className={`p-3 rounded transition-colors border bg-cyber-surface/60 ${
+                      iconSrc={group.icon ? `./icons/models/${group.icon}.svg` : null}
+                      className={`p-3 rounded-card border-2 ${
                         isDeleteMode
                           ? isGroupSelected
                             ? 'border-red-500'
-                            : 'border-transparent hover:bg-cyber-elevated/70'
+                            : 'border-transparent'
                           : selected
-                            ? 'border-cyber-accent'
-                            : 'border-transparent hover:bg-cyber-elevated/70'
+                            ? 'is-selected'
+                            : 'border-transparent'
                       }`}
                     >
                       {/* Card Header */}
@@ -1584,7 +1586,7 @@ export const LocalServerPanel: React.FC = () => {
                           })}
                         </div>
                       )}
-                    </div>
+                    </BrandRow>
                   );
                 })}
               </div>
@@ -1642,12 +1644,11 @@ export const LocalServerPanel: React.FC = () => {
                   const icon = model.icon || guessIconFromFileName(model.name);
 
                   return (
-                    <div
+                    <BrandRow
                       key={model.id}
-                      className={`p-[11px] rounded transition-colors border-2 ${
-                        isExpanded
-                          ? 'border-cyber-accent/70 bg-cyber-accent/10'
-                          : 'border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70'
+                      iconSrc={icon ? `./icons/models/${icon}.svg` : null}
+                      className={`p-[11px] rounded-card border-2 ${
+                        isExpanded ? 'is-selected' : 'border-transparent'
                       }`}
                       onClick={() => setExpandedModelId(isExpanded ? null : model.id)}
                     >
@@ -1746,7 +1747,7 @@ export const LocalServerPanel: React.FC = () => {
                           })}
                         </div>
                       )}
-                    </div>
+                    </BrandRow>
                   );
                 })}
                 {filteredStoreModels.length === 0 && !isLoadingStore && (

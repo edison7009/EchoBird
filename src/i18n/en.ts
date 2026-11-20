@@ -102,6 +102,7 @@ const en: Translations = {
   'usageIsland.style.list': 'List',
   'usageIsland.style.dial': 'Dial',
   'usageIsland.style.line': 'Lines',
+  'usageIsland.layout': 'Layout',
   'settings.developerMode': 'Developer preview',
   'settings.developerModeHint':
     'Developer preview is primarily for development and testing. Some features may not suit everyday use. Turning it off pauses all features on the developer page and reduces resource overhead. Preview features may change or be removed in future versions, and more fun features will be added over time.',

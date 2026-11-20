@@ -1,10 +1,13 @@
-import { ExternalLink } from 'lucide-react';
+import type { CSSProperties } from 'react';
+import { ExternalLink, RotateCcw } from 'lucide-react';
 import { useI18n } from '../../hooks/useI18n';
 import { useToast } from '../../components/Toast';
 import { useAiCareerStore } from '../../stores/aiCareerStore';
 import { useToolsStore } from '../../stores/toolsStore';
 import { openExternal } from '../../api/tauri';
+import { BrandRow } from '../../components/BrandRow';
 import { CAREER_FAMILIES, FamilyIcon } from './familyIcons';
+import '../../components/brandCards.css';
 
 export function AiCareerFamilyPanel() {
   const { t } = useI18n();
@@ -13,10 +16,8 @@ export function AiCareerFamilyPanel() {
   const selectedFamily = useAiCareerStore((s) => s.selectedFamily);
   const setSelectedFamily = useAiCareerStore((s) => s.setSelectedFamily);
   const cardClass = (selected: boolean) =>
-    'w-full h-14 shrink-0 flex border-2 rounded-card transition-colors ' +
-    (selected
-      ? 'border-cyber-accent/70 bg-cyber-accent/10'
-      : 'border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70');
+    'w-full h-14 shrink-0 flex border-2 rounded-card ' +
+    (selected ? 'is-selected' : 'border-transparent');
   const openWebsite = async (url: string) => {
     try {
       await openExternal(url);
@@ -32,41 +33,82 @@ export function AiCareerFamilyPanel() {
     >
       <button
         type="button"
+        aria-pressed={selectedFamily === null}
         onClick={() => setSelectedFamily(null)}
-        className={cardClass(false) + ' items-center justify-center px-3 text-center'}
+        style={{ '--brand': 'rgb(var(--accent-rgb))' } as CSSProperties}
+        className={`brand-row relative overflow-hidden ${cardClass(selectedFamily === null)} items-center gap-3 px-[11px] text-left`}
       >
+        <RotateCcw
+          size={24}
+          strokeWidth={2.25}
+          className="flex-shrink-0 text-cyber-text"
+          aria-hidden="true"
+        />
         <span className="text-base font-bold text-cyber-text truncate">
           {t('aiCareer.overview')}
         </span>
       </button>
-      {CAREER_FAMILIES.map((family) => {
-        const website = tools.find((tool) => tool.id === family.toolId)?.website;
-        return (
-          <div key={family.id} className={cardClass(selectedFamily === family.id)}>
-            <button
-              type="button"
-              aria-pressed={selectedFamily === family.id}
-              onClick={() => setSelectedFamily(family.id)}
-              className="flex-1 min-w-0 flex items-center gap-3 px-[11px] text-left"
-            >
-              <FamilyIcon family={family.id} className="w-8 h-8" />
-              <span className="text-base font-bold text-cyber-text truncate">
-                {family.name} {t('aiCareer.familySuffix')}
-              </span>
-            </button>
-            {website && (
-              <button
-                type="button"
-                aria-label={t('accountCenter.website').replace('{name}', family.name)}
-                onClick={() => void openWebsite(website)}
-                className="flex-shrink-0 px-3 text-cyber-text-muted hover:text-cyber-text"
-              >
-                <ExternalLink size={20} />
-              </button>
-            )}
-          </div>
-        );
-      })}
+      {CAREER_FAMILIES.map((family) => (
+        <FamilyRow
+          key={family.id}
+          family={family}
+          className={cardClass(selectedFamily === family.id)}
+          selected={selectedFamily === family.id}
+          onSelect={() => setSelectedFamily(family.id)}
+          label={`${family.name} ${t('aiCareer.familySuffix')}`}
+          website={tools.find((tool) => tool.id === family.toolId)?.website}
+          websiteLabel={t('accountCenter.website').replace('{name}', family.name)}
+          onOpenWebsite={(url) => void openWebsite(url)}
+        />
+      ))}
     </nav>
+  );
+}
+
+/** A family as a list row in its own colour, read from its icon. */
+function FamilyRow({
+  family,
+  className,
+  selected,
+  onSelect,
+  label,
+  website,
+  websiteLabel,
+  onOpenWebsite,
+}: {
+  family: (typeof CAREER_FAMILIES)[number];
+  className: string;
+  selected: boolean;
+  onSelect: () => void;
+  label: string;
+  website?: string;
+  websiteLabel: string;
+  onOpenWebsite: (url: string) => void;
+}) {
+  return (
+    <BrandRow
+      iconSrc={'./icons/tools/' + family.toolId + '.' + family.format}
+      className={className}
+    >
+      <button
+        type="button"
+        aria-pressed={selected}
+        onClick={onSelect}
+        className="flex-1 min-w-0 flex items-center gap-3 px-[11px] text-left"
+      >
+        <FamilyIcon family={family.id} className="w-8 h-8" />
+        <span className="text-base font-bold text-cyber-text truncate">{label}</span>
+      </button>
+      {website && (
+        <button
+          type="button"
+          aria-label={websiteLabel}
+          onClick={() => onOpenWebsite(website)}
+          className="flex-shrink-0 px-3 text-cyber-text-secondary hover:text-cyber-text"
+        >
+          <ExternalLink size={20} />
+        </button>
+      )}
+    </BrandRow>
   );
 }

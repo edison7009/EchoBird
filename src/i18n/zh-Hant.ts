@@ -102,6 +102,7 @@ const zhHant: Partial<Translations> = {
   'usageIsland.style.list': '列表',
   'usageIsland.style.dial': '圓盤',
   'usageIsland.style.line': '線條',
+  'usageIsland.layout': '形態',
   'settings.developerMode': '開發者預覽',
   'settings.developerModeHint':
     '開發者預覽主要用於開發與測試，部分功能未必適合日常使用。關閉後，將暫停開發者頁面的所有功能，減少資源開銷。預覽中的功能可能在後續版本中調整或移除，未來也會加入更多有趣的功能。',

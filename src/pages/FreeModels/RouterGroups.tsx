@@ -1,4 +1,5 @@
 import { SmartRouterIconPicker } from '../../components/SmartRouterIconPicker';
+import { SmartRouterIcon } from '../../components/SmartRouterIcon';
 import {
   useCallback,
   useEffect,
@@ -618,8 +619,15 @@ export function RouterGroups({
         key={list ? router.id : 'card'}
         ref={hubRef}
         data-router-id={list ? router.id : undefined}
+        data-on={routerEnabled && router.groupEnabled ? 'true' : undefined}
         className={`free-model-router-hub relative z-10 rounded-xl ${list ? 'free-model-router-hub-bar' : 'free-model-router-group'}`}
       >
+        {!list && (
+          // The router's own icon, faded into the corner as on the brand cards.
+          <span className="free-model-router-mark" aria-hidden="true">
+            <SmartRouterIcon name={router.icon} size={150} />
+          </span>
+        )}
         {list ? (
           details
         ) : (
@@ -689,12 +697,12 @@ export function RouterGroups({
                   const next = (index + direction + routers.length) % routers.length;
                   selectTab(routers[next].id);
                 }}
-                className={`free-model-router-page-arrow absolute top-1/2 -translate-y-1/2 flex h-20 w-16 items-center justify-center text-cyber-accent ${direction < 0 ? 'right-full mr-4' : 'left-full ml-4'}`}
+                className={`free-model-router-page-arrow absolute top-1/2 -translate-y-1/2 flex h-16 w-10 items-center justify-center rounded-xl text-cyber-accent ${direction < 0 ? 'right-full mr-5' : 'left-full ml-5'}`}
               >
                 <svg
                   aria-hidden="true"
-                  width="48"
-                  height="48"
+                  width="20"
+                  height="20"
                   viewBox="0 0 48 48"
                   fill="none"
                   className="free-model-router-page-chevron"

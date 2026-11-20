@@ -1,5 +1,7 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { Box, Trash2 } from 'lucide-react';
+import { useBrandColour } from '../../utils/brandColour';
+import '../../components/brandCards.css';
 
 export function VoiceChannelCard({
   index,
@@ -14,6 +16,8 @@ export function VoiceChannelCard({
   overlay,
   removeLabel,
   onRemove,
+  emptyHint,
+  emptyTitle,
 }: {
   index: number;
   label: string;
@@ -27,14 +31,25 @@ export function VoiceChannelCard({
   overlay: boolean;
   removeLabel: string;
   onRemove: () => void;
+  /** Shown in an empty slot: where sources are added. */
+  emptyHint?: string;
+  /** The slot's own name in an empty slot (the number alone needs none). */
+  emptyTitle?: string;
 }) {
+  const colour = useBrandColour(filled ? icon : null);
+  const style = (
+    filled ? { '--brand': icon ? colour.from : 'rgb(var(--accent-rgb))' } : undefined
+  ) as CSSProperties | undefined;
   return (
     <div
       role={overlay ? undefined : 'listitem'}
       aria-label={label}
       aria-hidden={overlay || undefined}
+      style={style}
       className={
-        'free-model-route-node voice-channel relative min-h-[80px] rounded-card flex items-center' +
+        'free-model-route-node voice-channel brand-slot relative min-h-[80px] rounded-card flex items-center' +
+        (filled ? ' is-filled' : ' is-empty') +
+        (filled && icon && colour.neutral ? ' is-neutral' : '') +
         (active ? ' is-active' : '') +
         (overlay ? ' is-dragging shadow-2xl' : '')
       }
@@ -52,10 +67,20 @@ export function VoiceChannelCard({
           {handle}
         </span>
       )}
+      {!filled && (
+        <div className="brand-slot-empty pointer-events-none">
+          {emptyTitle && <b>{emptyTitle}</b>}
+          {emptyHint && <span>{emptyHint}</span>}
+        </div>
+      )}
       {filled && (
         <div className="relative z-10 pointer-events-none flex w-full items-center gap-2.5">
           {icon ? (
-            <img src={icon} alt="" className="h-12 w-12 shrink-0 object-contain" />
+            <img
+              src={icon}
+              alt=""
+              className={`h-12 w-12 shrink-0 object-contain drop-shadow${colour.neutral && colour.glyph ? ' brand-slot-logo' : ''}`}
+            />
           ) : (
             <Box size={48} className="shrink-0 text-cyber-text-secondary" />
           )}

@@ -395,7 +395,7 @@ export function AiPulsePanel() {
                             onClick={() => selectDate(d)}
                             className={`w-full flex items-center px-[7px] py-[5px] rounded border-2 text-[14px] font-mono transition-colors ${
                               isActive
-                                ? 'bg-cyber-accent/10 text-cyber-text border-cyber-accent/70'
+                                ? 'bg-cyber-accent/20 text-cyber-text border-transparent'
                                 : 'text-cyber-text-secondary hover:bg-cyber-elevated hover:text-cyber-text border-transparent'
                             }`}
                           >

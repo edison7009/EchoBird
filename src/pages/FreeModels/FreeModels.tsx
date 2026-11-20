@@ -1,3 +1,12 @@
+import { BrandEmpty } from '../../components/BrandEmpty';
+import { BrandDeckCard } from '../../components/BrandDeckCard';
+import { useBrandColour } from '../../utils/brandColour';
+import { groupSavedModels, savedSiblings } from './savedModelGroups';
+import { ModelQuotaSummary } from '../../components/ModelQuotaSummary';
+import type { ModelConfig } from '../../api/types';
+import type { ModelUsageData } from '../../api/models';
+import type { TKey } from '../../i18n';
+import '../../components/brandCards.css';
 import { QuickAddAccounts } from './QuickAddAccounts';
 import { ScanProgress } from '../../components/ScanProgress';
 import {
@@ -11,6 +20,7 @@ import {
   type ComponentPropsWithRef,
   type RefObject,
   type PointerEventHandler,
+  type CSSProperties,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { accountProxySources } from '../../hooks/useAccountCapability';
@@ -41,14 +51,11 @@ import { CSS } from '@dnd-kit/utilities';
 import { open as shellOpen } from '@tauri-apps/plugin-shell';
 import {
   Box,
-  Check,
-  ExternalLink,
   KeyRound,
   GripVertical,
   LayoutGrid,
   List,
   Terminal,
-  Plus,
   RefreshCw,
   SquarePen,
   Waypoints,
@@ -69,7 +76,6 @@ import {
 import type { AccountSource } from '../../api/types';
 import type { FreeModelEntry } from '../../api/freeModels';
 import { getModelIcon } from '../../components';
-import { ModelListCard } from '../../components/ModelListCard';
 import { LatencyIndicator } from '../../components/LatencyIndicator';
 import { RoutingToggle } from '../../components/RoutingToggle';
 import { ModelIdCombobox } from '../../components/ModelIdCombobox';
@@ -453,6 +459,13 @@ function RouteModelCard({
     />
   );
 
+  // Cards on the route take their model's colour, as on the model page.
+  const colour = useBrandColour(iconSrc);
+  const brandStyle = {
+    '--brand': iconSrc ? colour.from : 'rgb(var(--accent-rgb))',
+  } as CSSProperties;
+  const neutral = !!iconSrc && colour.neutral;
+
   if (list) {
     return (
       <div
@@ -585,7 +598,8 @@ function RouteModelCard({
     <div
       ref={cardRef}
       aria-hidden={overlay || undefined}
-      className={`free-model-route-node relative min-h-[80px] rounded-card flex items-center ${hasModelPicker ? 'has-model-picker' : ''} ${active ? 'is-active' : ''} ${paused ? 'is-paused' : ''} ${overlay ? 'is-dragging shadow-2xl' : ''}`}
+      style={brandStyle}
+      className={`free-model-route-node brand-slot is-filled${neutral ? ' is-neutral' : ''} relative min-h-[80px] rounded-card flex items-center ${hasModelPicker ? 'has-model-picker' : ''} ${active ? 'is-active' : ''} ${paused ? 'is-paused' : ''} ${overlay ? 'is-dragging shadow-2xl' : ''}`}
     >
       <div
         aria-hidden="true"
@@ -600,7 +614,11 @@ function RouteModelCard({
       {activator}
       <div className="relative z-10 pointer-events-none flex w-full items-center gap-2.5">
         {iconSrc ? (
-          <img src={iconSrc} alt="" className="h-12 w-12 shrink-0 object-contain" />
+          <img
+            src={iconSrc}
+            alt=""
+            className={`h-12 w-12 shrink-0 object-contain${neutral && colour.glyph ? ' brand-slot-logo' : ''}`}
+          />
         ) : (
           <Box size={48} className="shrink-0 text-cyber-text-secondary" aria-hidden="true" />
         )}
@@ -788,7 +806,7 @@ function FreeModelsContent({
   const docVisible = useDocumentVisible();
   const { showToast } = useToast();
   const confirm = useConfirm();
-  const { updateUserModel, handleCardEdit } = useModelNexus();
+  const { updateUserModel, handleCardEdit, userModels = [] } = useModelNexus();
   const {
     layout,
     activeDragId,
@@ -803,6 +821,7 @@ function FreeModelsContent({
     removeSelectedModel,
     reorderSelectedModel,
     changeSelectedModel,
+    replaceSelectedModel,
     savingModelIds,
     pausedIds,
     candidateTogglePending,
@@ -1046,8 +1065,19 @@ function FreeModelsContent({
     const provider = freeModels.find((entry) => entry.baseUrl === model.baseUrl);
     return provider ? getModelIcon(provider.provider, '') : undefined;
   };
+  // Saved models of the same key that are not on the route yet: the route card
+  // switches to one of them instead of rewriting the saved model.
+  const keySiblingsFor = (model: RouteModelNode) =>
+    savedSiblings(userModels, model.id).filter(
+      (sibling) => !selectedIds.has(sibling.internalId) && sibling.modelId
+    );
   const modelIdOptionsFor = (model: RouteModelNode) => {
     if (model.id === 'local-server') return [];
+    const siblings = keySiblingsFor(model);
+    if (siblings.length)
+      return [
+        ...new Set([model.modelId, ...siblings.map((sibling) => sibling.modelId ?? '')]),
+      ].filter(Boolean);
     if (model.accountSource) {
       const cached = getCachedAccountProxyModels(model.accountSource);
       const catalog = routeCatalogFor(model);
@@ -1086,6 +1116,25 @@ function FreeModelsContent({
       !modelIdOptionsFor(model).includes(modelId)
     )
       return;
+    const sibling = keySiblingsFor(model).find((entry) => entry.modelId === modelId);
+    if (sibling) {
+      try {
+        await replaceSelectedModel(id, {
+          internalId: sibling.internalId,
+          name: sibling.name,
+          baseUrl: sibling.baseUrl,
+          anthropicUrl: sibling.anthropicUrl,
+          apiKey: sibling.apiKey,
+          modelId: sibling.modelId ?? modelId,
+          accountSource: sibling.accountSource,
+          scope: sibling.scope,
+        });
+      } catch (error) {
+        console.error('Switch smart router model failed:', error);
+        showToast('error', t('error.requestFailed'));
+      }
+      return;
+    }
     try {
       const updated = await changeSelectedModel(id, modelId);
       if (!updated) return;
@@ -1512,14 +1561,11 @@ function FreeModelsContent({
           <div
             className={`absolute inset-x-0 bottom-0 ${layout === 'cards' ? 'top-[196px]' : 'top-24'} z-10 flex items-center justify-center text-center pointer-events-none`}
           >
-            <div>
-              <div className="font-medium text-sm text-cyber-text">
-                {t('freeModels.router.emptyTitle')}
-              </div>
-              <div className="mt-2 text-xs text-cyber-text-muted">
-                {t('freeModels.router.emptyDesc')}
-              </div>
-            </div>
+            <BrandEmpty
+              icon={<Waypoints size={30} aria-hidden="true" />}
+              title={t('freeModels.router.emptyTitle')}
+              hint={t('freeModels.router.emptyDesc')}
+            />
           </div>
         ) : (
           <>
@@ -1697,80 +1743,74 @@ function FreeModelProviderRow({
   const { t } = useI18n();
   const iconSrc = getModelIcon(group.name, '');
   const keyless = group.models.every(isKeylessFreeModel);
-  const hostname = (() => {
-    try {
-      return new URL(group.baseUrl).hostname;
-    } catch {
-      return group.baseUrl;
-    }
-  })();
   const websiteUrl = group.models[0]?.websiteUrl || group.docsUrl;
   const openDocs = () => shellOpen(websiteUrl).catch(() => window.open(websiteUrl, '_blank'));
 
   return (
-    <div
-      className={`relative flex h-14 shrink-0 items-stretch rounded-card overflow-hidden border-2 ${selected ? 'border-cyber-accent/70 bg-cyber-accent/10' : 'border-transparent bg-cyber-surface/60'}`}
-    >
-      <button
-        type="button"
-        onClick={onAdd}
-        aria-label={`${t('freeModels.addToRouter')}: ${group.name}`}
-        aria-pressed={selected}
-        className="group/left flex-1 min-h-0 bg-gradient-to-r from-transparent to-transparent hover:from-cyber-text/15 hover:to-transparent transition-[background-image] duration-200"
-      />
-      <button
-        type="button"
-        onClick={openDocs}
-        aria-label={`${t('freeModels.docs')}: ${group.name}`}
-        className="group/right flex-1 min-h-0 bg-gradient-to-l from-transparent to-transparent hover:from-cyber-text/15 hover:to-transparent transition-[background-image] duration-200"
-      />
+    <BrandDeckCard
+      name={group.name}
+      iconSrc={iconSrc}
+      label={`${t('freeModels.addToRouter')}: ${group.name}`}
+      onClick={onAdd}
+      pressed={selected}
+      picked={selected}
+      extra={
+        keyless && (
+          <span className="brand-deck-note">
+            <KeylessModelLabel />
+          </span>
+        )
+      }
+      open={{ onClick: () => void openDocs(), label: `${t('freeModels.docs')}: ${group.name}` }}
+    />
+  );
+}
 
-      <div className="pointer-events-none absolute inset-0 flex items-center gap-3 px-3">
-        {selected ? (
-          <Check
-            size={22}
-            strokeWidth={2.5}
-            className="flex-shrink-0 text-cyber-accent group-hover/left:scale-110 transition-all"
-          />
-        ) : (
-          <Plus
-            size={22}
-            strokeWidth={2.5}
-            className="flex-shrink-0 text-cyber-text-muted group-hover/left:text-cyber-text group-hover/left:scale-110 transition-all"
-          />
-        )}
-        <div className="flex-shrink-0">
-          {iconSrc ? (
-            <img
-              src={iconSrc}
-              alt=""
-              className="w-8 h-8"
-              onError={(event) => {
-                (event.target as HTMLImageElement).style.display = 'none';
-              }}
-            />
-          ) : (
-            <div className="w-8 h-8 flex items-center justify-center text-cyber-text">
-              <Box size={32} />
-            </div>
-          )}
-        </div>
-        <div className="flex-1 min-w-0 grid grid-cols-[minmax(0,1fr)] auto-rows-[16px] items-center">
-          <div className="flex min-w-0 items-center gap-2 text-sm font-bold leading-none">
-            <span className="min-w-0 truncate">{group.name}</span>
-            {keyless && <KeylessModelLabel />}
-          </div>
-          <div className="text-[10px] text-cyber-text-secondary truncate leading-tight opacity-70">
-            {hostname}
-          </div>
-        </div>
-        <ExternalLink
-          size={18}
-          strokeWidth={2.25}
-          className="flex-shrink-0 text-cyber-text-muted group-hover/right:text-cyber-text group-hover/right:scale-110 transition-all"
-        />
-      </div>
-    </div>
+/** A saved key as a deck card: its name, its model ID (+N more of the same key). */
+function SavedKeyCard({
+  model,
+  extraModels,
+  added,
+  adding,
+  disabled,
+  label,
+  usage,
+  onAdd,
+  t,
+}: {
+  model: ModelConfig;
+  extraModels: number;
+  added: boolean;
+  adding: boolean;
+  disabled: boolean;
+  label: string;
+  usage?: ModelUsageData;
+  onAdd: () => void;
+  t: (key: TKey) => string;
+}) {
+  return (
+    <BrandDeckCard
+      name={model.name}
+      detail={model.modelId}
+      iconSrc={getModelIcon('', model.modelId || '') || getModelIcon(model.name, '')}
+      label={label}
+      onClick={onAdd}
+      disabled={added || disabled}
+      busy={adding}
+      picked={added}
+      extra={
+        (usage || extraModels > 0) && (
+          <>
+            {usage && (
+              <span className="brand-deck-note">
+                <ModelQuotaSummary usage={usage} t={t} />
+              </span>
+            )}
+            {extraModels > 0 && <span className="brand-deck-note">+{extraModels}</span>}
+          </>
+        )
+      }
+    />
   );
 }
 
@@ -1778,7 +1818,6 @@ export function FreeModelsPanel() {
   const { t, locale } = useI18n();
   const compactTabs = locale === 'en' || locale === 'ja';
   const { showToast } = useToast();
-  const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState<'saved' | 'account' | 'free'>('saved');
   const [addingId, setAddingId] = useState<string | null>(null);
   const setActivePage = useNavigationStore((state) => state.setActivePage);
@@ -1792,24 +1831,17 @@ export function FreeModelsPanel() {
     scanProgress,
     refresh,
     addSelectedModel,
-    removeSelectedModel,
   } = useFreeModels();
   const {
     userModels,
     isLoadingModels,
     modelUsageData,
-    refreshingUsageIds,
-    isRefreshingUsage,
-    refreshSingleUsage,
-    volcAkSkMissingIds,
-    openAkskModal,
-    handleCardEdit,
-    handleCardDelete,
     setNewModelForm,
     setEditingModelId,
     setModelModalDestination,
     setShowAddModelModal,
   } = modelContext;
+  const savedGroups = useMemo(() => groupSavedModels(userModels), [userModels]);
   const providerGroups = useMemo(() => {
     const groups = new Map<string, FreeModelProviderGroup>();
     models.forEach((model) => {
@@ -1950,64 +1982,23 @@ export function FreeModelsPanel() {
                 </button>
               </div>
             ) : (
-              <div className="space-y-2">
-                {userModels.map((model) => {
-                  const selected = selectedIds.has(model.internalId);
-                  const adding = addingId === model.internalId;
+              // One card per key: model IDs saved with the same key share a card,
+              // and the route card picks among them.
+              <div className="brand-deck">
+                {savedGroups.map((group) => {
+                  const routed = group.models.find((model) => selectedIds.has(model.internalId));
+                  const shown = routed ?? group.models[0];
                   return (
-                    <ModelListCard
-                      compact
-                      selected={selected}
-                      key={model.internalId}
-                      model={model}
-                      onSelect={() => void addSavedModel(model)}
-                      selectionDisabled={selected || Boolean(addingId)}
-                      selectionLabel={`${t(selected ? 'freeModels.saved.added' : 'freeModels.addToRouter')}: ${model.name} — ${model.modelId ?? ''}`}
-                      selection={
-                        adding ? (
-                          <RefreshCw
-                            size={22}
-                            className="shrink-0 animate-spin text-cyber-text-muted"
-                          />
-                        ) : selected ? (
-                          <Check
-                            size={22}
-                            strokeWidth={2.5}
-                            className="shrink-0 text-cyber-accent"
-                          />
-                        ) : (
-                          <Plus
-                            size={22}
-                            strokeWidth={2.5}
-                            className="shrink-0 text-cyber-text-muted"
-                          />
-                        )
-                      }
-                      usage={modelUsageData[model.internalId]}
-                      refreshing={isRefreshingUsage || refreshingUsageIds.has(model.internalId)}
-                      onRefreshUsage={(modelId) =>
-                        volcAkSkMissingIds.has(modelId)
-                          ? openAkskModal(modelId)
-                          : refreshSingleUsage(modelId)
-                      }
-                      onEditModel={handleCardEdit}
-                      onDeleteModel={async (modelId) => {
-                        const ok = await confirm({
-                          title: t('model.deleteTitle'),
-                          message: t('model.deleteConfirm'),
-                          confirmText: t('btn.delete'),
-                          cancelText: t('btn.cancel'),
-                          type: 'danger',
-                        });
-                        if (!ok) return;
-                        try {
-                          await handleCardDelete(modelId);
-                          if (selectedIds.has(modelId)) await removeSelectedModel(modelId);
-                        } catch (error) {
-                          console.error('Delete saved router model failed:', error);
-                          showToast('error', t('error.requestFailed'));
-                        }
-                      }}
+                    <SavedKeyCard
+                      key={group.key}
+                      model={shown}
+                      extraModels={group.models.length - 1}
+                      added={!!routed}
+                      adding={group.models.some((model) => addingId === model.internalId)}
+                      disabled={Boolean(addingId)}
+                      label={`${t(routed ? 'freeModels.saved.added' : 'freeModels.addToRouter')}: ${shown.name} — ${shown.modelId ?? ''}`}
+                      usage={modelUsageData[shown.internalId]}
+                      onAdd={() => void addSavedModel(shown)}
                       t={t}
                     />
                   );
@@ -2061,7 +2052,7 @@ export function FreeModelsPanel() {
                   )}
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="brand-deck">
                   {providerGroups.map((group) => (
                     <FreeModelProviderRow
                       key={group.id}

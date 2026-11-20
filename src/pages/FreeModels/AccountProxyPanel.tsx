@@ -1,5 +1,5 @@
 import { accountProxySources, useAccountProviderFilter } from '../../hooks/useAccountCapability';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import {
   accountProviderIconSrc,
   accountSpeechProviders,
@@ -10,6 +10,8 @@ import type { AccountProvider } from '../../api/types';
 import { useI18n } from '../../hooks/useI18n';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { useModelNexus } from '../ModelNexus/context';
+import { useBrandColour } from '../../utils/brandColour';
+import '../../components/brandCards.css';
 
 export function openAccountModelForm(
   provider: AccountProvider,
@@ -90,38 +92,70 @@ export function AccountProxyPanel({
   const sortedProviders = [...providers].sort((a, b) => (counts[b.id] ?? 0) - (counts[a.id] ?? 0));
 
   return (
-    <div className={voice ? 'space-y-2' : 'flex-1 px-2 pt-0.5 pb-2 overflow-y-auto space-y-2'}>
+    <div className={voice ? 'brand-deck' : 'brand-deck flex-1 px-2 pt-1 pb-2 overflow-y-auto'}>
       {sortedProviders.map((provider) => (
-        <button
+        <AccountProxyCard
           key={provider.id}
-          type="button"
+          iconSrc={accountProviderIconSrc(provider.icon)}
+          name={provider.name}
           disabled={disabled}
+          label={`${t(voice ? 'voice.accountInput' : 'freeModels.addToRouter')}: ${provider.name}`}
           onClick={() => {
             if (!disabled)
               openAccountModelForm(provider.id, context, voice ? 'voiceInput' : 'freeRouter');
           }}
-          aria-label={`${t(voice ? 'voice.accountInput' : 'freeModels.addToRouter')}: ${provider.name}`}
-          className="w-full h-14 shrink-0 flex items-center gap-3 px-[11px] border-2 border-transparent bg-cyber-surface/60 rounded-card text-left enabled:hover:bg-cyber-elevated/70 transition-colors"
-        >
-          <img
-            src={accountProviderIconSrc(provider.icon)}
-            alt=""
-            className="w-8 h-8 shrink-0 object-contain"
-          />
-          <span className="flex-1 min-w-0 text-base font-bold text-cyber-text truncate">
-            {provider.name}
-          </span>
-          <span className="shrink-0 text-xs text-cyber-text-secondary tabular-nums whitespace-nowrap">
-            {counts[provider.id] === undefined
+          count={
+            counts[provider.id] === undefined
               ? '—'
               : t(
                   counts[provider.id] === 1
                     ? 'accountProxy.accountCountOne'
                     : 'accountProxy.accountCountOther'
-                ).replace('{count}', String(counts[provider.id]))}
-          </span>
-        </button>
+                ).replace('{count}', String(counts[provider.id]))
+          }
+          empty={!counts[provider.id]}
+        />
       ))}
     </div>
+  );
+}
+
+/** One provider as a deck card; the whole card opens the account form. */
+function AccountProxyCard({
+  iconSrc,
+  name,
+  label,
+  count,
+  empty,
+  disabled,
+  onClick,
+}: {
+  iconSrc: string;
+  name: string;
+  label: string;
+  count: string;
+  empty: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  const colour = useBrandColour(iconSrc);
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      aria-label={label}
+      className="brand-deck-card w-full text-left"
+      style={{ '--deck-from': colour.from, '--deck-to': colour.to } as CSSProperties}
+    >
+      <img
+        src={iconSrc}
+        alt=""
+        draggable={false}
+        className={`brand-deck-icon${colour.glyph ? ' is-glyph' : ''}`}
+      />
+      <span className="brand-deck-name">{name}</span>
+      <span className={`brand-deck-note tabular-nums${empty ? ' is-empty' : ''}`}>{count}</span>
+    </button>
   );
 }

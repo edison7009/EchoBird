@@ -55,6 +55,8 @@ interface FreeModelsContextValue {
   setRouterEnabled: (enabled: boolean) => Promise<void>;
   refresh: () => Promise<void>;
   addSelectedModel: (model: RouteModelInput) => Promise<void>;
+  /** Puts another saved model (same key, other model ID) in a route slot, in its place. */
+  replaceSelectedModel: (id: string, model: RouteModelInput) => Promise<void>;
   updateSelectedModel: (model: RouteModelInput) => void;
   changeSelectedModel: (id: string, modelId: string) => Promise<ModelConfig | undefined>;
   savingModelIds: Set<string>;
@@ -521,6 +523,55 @@ export function FreeModelsProvider({ children }: { children: ReactNode }) {
     [loadRouter]
   );
 
+  const replaceSelectedModel = useCallback(
+    async (id: string, model: RouteModelInput) => {
+      if (groupTransition.current) throw new Error('Smart router selection is changing');
+      const routerId = activeRouterRef.current;
+      const next = model.internalId;
+      const replacement = routerMutationRef.current
+        .catch(() => undefined)
+        .then(async () => {
+          if (!routerLoadedRef.current) await loadRouter();
+          if (activeRouterRef.current !== routerId)
+            throw new Error('Smart router selection changed');
+          const current = [...selectedIdsRef.current];
+          if (!current.includes(id)) throw new Error(`Smart router model not found: ${id}`);
+          if (current.includes(next)) throw new Error(`Smart router model already added: ${next}`);
+          // Same position in the route; the saved models themselves are not changed.
+          const candidateIds = current.map((entry) => (entry === id ? next : entry));
+          const router = await api.setSmartRouterCandidates(candidateIds, ...routerArgs());
+          if (!router.candidateIds.includes(next)) {
+            throw new Error(`Smart Router rejected candidate: ${next}`);
+          }
+          const nextIds = new Set(router.candidateIds);
+          selectedIdsRef.current = nextIds;
+          setSelectedIds(nextIds);
+          setPausedIds(new Set(router.disabledCandidateIds ?? []));
+          setCustomModels((models) => [
+            ...models.filter((entry) => entry.id !== id && entry.id !== next),
+            {
+              id: next,
+              internalId: next,
+              provider: model.name,
+              modelId: model.modelId,
+              baseUrl: model.baseUrl,
+              anthropicUrl: model.anthropicUrl,
+              apiKey: model.apiKey,
+              accountSource: model.accountSource,
+              scope: model.scope,
+            },
+          ]);
+          setRouterBaseUrl(router.baseUrl.replace(/^https?:\/\//, ''));
+        });
+      routerMutationRef.current = replacement.then(
+        () => undefined,
+        () => undefined
+      );
+      await replacement;
+    },
+    [loadRouter]
+  );
+
   const updateSelectedModel = useCallback(
     (model: RouteModelInput) => {
       if (groupTransition.current) return;
@@ -690,6 +741,7 @@ export function FreeModelsProvider({ children }: { children: ReactNode }) {
         setRouterEnabled,
         refresh,
         addSelectedModel,
+        replaceSelectedModel,
         updateSelectedModel,
         changeSelectedModel,
         savingModelIds,

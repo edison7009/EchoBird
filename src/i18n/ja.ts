@@ -103,6 +103,7 @@ const ja: Partial<Translations> = {
   'usageIsland.style.list': 'リスト',
   'usageIsland.style.dial': 'ダイヤル',
   'usageIsland.style.line': 'ライン',
+  'usageIsland.layout': 'レイアウト',
   'settings.developerMode': '開発者プレビュー',
   'settings.developerModeHint':
     '開発者プレビューは主に開発・テスト向けで、一部の機能は日常利用に適さない場合があります。オフにすると開発者ページのすべての機能が一時停止し、リソース消費を抑えられます。プレビュー機能は今後のバージョンで変更・削除される場合があり、より楽しい機能も順次追加されます。',

@@ -1,3 +1,4 @@
+import { BrandRow } from '../../components/BrandRow';
 import { useMemo, useState } from 'react';
 import {
   ArrowDown,
@@ -105,51 +106,62 @@ export function UsageIslandMain() {
               onAction={(action) => void run(action)}
             />
           </div>
+          {/* The chosen layout's two directions, in the preview's bottom-left corner:
+              left arrow reversed (left, up, counter-clockwise), right arrow forward. */}
+          <div
+            className="usage-island-direction"
+            role="group"
+            aria-label={t(`usageIsland.style.${config.style}` as TKey)}
+          >
+            {(
+              [
+                [directions[config.style][1], true],
+                [directions[config.style][0], false],
+              ] as const
+            ).map(([{ icon: Icon, label }, option]) => (
+              <button
+                key={label}
+                type="button"
+                aria-label={t(label)}
+                aria-pressed={config.reversed.includes(config.style) === option}
+                onClick={() => {
+                  if (config.reversed.includes(config.style) !== option)
+                    config.toggleReversed(config.style);
+                }}
+              >
+                <Icon size={15} strokeWidth={2.5} aria-hidden="true" />
+              </button>
+            ))}
+          </div>
         </section>
         <UsageIslandSlots sources={sources} />
         <div className="usage-island-lower">
-          <div className="usage-island-styles">
-            {usageIslandStyles.map((style) => {
-              const reversed = config.reversed.includes(style);
-              const styleLabel = t(`usageIsland.style.${style}` as TKey);
-              return (
-                <div key={style} className="usage-island-style-card">
-                  <button
-                    type="button"
-                    className="usage-island-style rounded-card"
-                    aria-label={styleLabel}
-                    aria-pressed={config.style === style}
-                    onClick={() => update({ style })}
-                  >
+          {/* Layout: five tiles; the direction is switched in the preview above. */}
+          <section
+            className="voice-card rounded-card usage-island-shapes"
+            aria-label={t('usageIsland.layout')}
+          >
+            <div className="usage-island-styles">
+              {usageIslandStyles.map((style) => {
+                const styleLabel = t(`usageIsland.style.${style}` as TKey);
+                const chosen = config.style === style;
+                const reversed = config.reversed.includes(style);
+                return (
+                  <div key={style} className="usage-island-style rounded-card" data-chosen={chosen}>
+                    <button
+                      type="button"
+                      className="usage-island-style-hit rounded-card"
+                      aria-label={styleLabel}
+                      aria-pressed={chosen}
+                      onClick={() => update({ style })}
+                    />
                     <UsageIslandThumbnail style={style} reversed={reversed} />
-                  </button>
-                  <div
-                    className="usage-island-direction"
-                    role="group"
-                    aria-label={styleLabel}
-                    data-reversed={reversed}
-                  >
-                    {[true, false].map((option) => {
-                      const { icon: Icon, label } = directions[style][option ? 1 : 0];
-                      return (
-                        <button
-                          key={label}
-                          type="button"
-                          aria-label={t(label)}
-                          aria-pressed={reversed === option}
-                          onClick={() => {
-                            if (reversed !== option) config.toggleReversed(style);
-                          }}
-                        >
-                          <Icon size={18} aria-hidden="true" />
-                        </button>
-                      );
-                    })}
+                    <span>{styleLabel}</span>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          </section>
           <div className="usage-island-settings">
             <div className="voice-card rounded-card usage-island-settings-group">
               <div className="voice-row">
@@ -255,11 +267,11 @@ function UsageSourceRow({
   onToggle: () => void;
 }) {
   return (
-    <div
-      className={`relative overflow-hidden h-14 shrink-0 px-[11px] py-1 rounded-card transition-colors flex items-center gap-3 border-2 ${
-        selected
-          ? 'border-cyber-accent/70 bg-cyber-accent/10'
-          : 'border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70'
+    <BrandRow
+      iconSrc={missing ? null : icon}
+      disabled={false}
+      className={`h-14 shrink-0 px-[11px] py-1 rounded-card flex items-center gap-3 border-2 ${
+        selected ? 'is-selected' : 'border-transparent'
       }`}
     >
       <button
@@ -279,7 +291,7 @@ function UsageSourceRow({
         {missing ? (
           <TriangleAlert size={32} className="text-cyber-text-muted" />
         ) : icon ? (
-          <img src={icon} alt="" className="w-8 h-8 object-contain" />
+          <img src={icon} alt="" className="brand-row-logo w-8 h-8 object-contain" />
         ) : (
           <Box size={32} className="text-cyber-text" />
         )}
@@ -297,7 +309,7 @@ function UsageSourceRow({
           {detail}
         </div>
       </div>
-    </div>
+    </BrandRow>
   );
 }
 

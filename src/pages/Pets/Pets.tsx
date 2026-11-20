@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+  type PointerEvent,
+} from 'react';
 import { Egg, Plus } from 'lucide-react';
 import { useI18n } from '../../hooks/useI18n';
 import { useDocumentVisible } from '../../hooks/useDocumentVisible';
@@ -11,6 +18,7 @@ import { EGG_COST, MAX_PET_LEVEL, isPetMilestone, petUpgradeCost } from './petPr
 import { createPetAudio } from './petAudio';
 import type { PetScene } from './petScene';
 import { PetRewards } from './PetRewards';
+import '../../components/brandCards.css';
 import './Pets.css';
 
 function usePetsActive() {
@@ -339,7 +347,9 @@ function PetCard({ pet }: { pet: PreviewPet }) {
   return (
     <button
       type="button"
-      className="pets-card"
+      // A list row in the pet's own colour, like the other right-hand lists.
+      className={`pets-card brand-row is-quiet${selected ? ' is-selected' : ''}`}
+      style={{ '--brand': PET_TINTS[pet.color].hex } as CSSProperties}
       aria-pressed={selected}
       onClick={() => usePetsStore.getState().select(pet.id)}
       aria-label={`${name} #${pet.id} · Lv.${pet.level} · ${stage}`}
@@ -370,14 +380,13 @@ export function PetsPanel() {
         <PetCard key={pet.id} pet={pet} />
       ))}
       <button
-        className="pets-card pets-acquire"
+        className="pets-acquire brand-new-row"
         type="button"
         disabled={balance < EGG_COST}
         onClick={() => usePetsStore.getState().acquire()}
       >
-        <Plus size={18} />
-        <span className="pets-thumbnail">
-          <Egg size={24} />
+        <span className="brand-deck-plus" aria-hidden="true">
+          <Plus size={14} strokeWidth={3} />
         </span>
         <span className="pets-identity">
           <strong>{t('pets.acquire')}</strong>

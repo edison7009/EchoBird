@@ -408,31 +408,33 @@ export const ModelCard = React.memo(
             )}
           </div>
         ) : (
-          // Config: model, source and latency on labelled rows; the protocols below.
+          // Config: model, source and latency centred between the header and the protocols.
           <>
-            <div className="mt-[0.7rem] flex min-w-0 items-baseline gap-1.5 font-mono text-[13.5px] font-semibold text-cyber-text/90">
-              <span className="brand-card-label">{t('model.label')}</span>
-              <span className="truncate">{modelId || '-'}</span>
+            <div className="flex min-h-0 flex-1 flex-col justify-center gap-0.5">
+              <div className="flex min-w-0 items-baseline gap-1.5 font-mono text-[13.5px] font-semibold text-cyber-text/90">
+                <span className="brand-card-label">{t('model.label')}</span>
+                <span className="truncate">{modelId || '-'}</span>
+              </div>
+              <div className="flex min-w-0 items-baseline gap-1.5 text-xs text-cyber-text-secondary/90">
+                <span className="brand-card-label">{t('model.source')}</span>
+                <span className="truncate">{hostname}</span>
+              </div>
+              <div className="brand-card-latency flex min-w-0 items-center gap-1.5 text-xs">
+                <span className="brand-card-label">{t('model.latency')}</span>
+                {isPinging ? (
+                  <LatencyIndicator />
+                ) : latency === -2 ? (
+                  <span className="font-bold text-red-500">{t('model.timedOut')}</span>
+                ) : latency === -1 ? (
+                  <span className="font-bold text-red-500">Error</span>
+                ) : latency !== undefined ? (
+                  <span className={`font-bold ${modelLatencyColor(latency)}`}>{latency}ms</span>
+                ) : (
+                  <span className="text-cyber-text-muted">{t('model.notTested')}</span>
+                )}
+              </div>
             </div>
-            <div className="mt-0.5 flex min-w-0 items-baseline gap-1.5 text-xs text-cyber-text-secondary/90">
-              <span className="brand-card-label">{t('model.source')}</span>
-              <span className="truncate">{hostname}</span>
-            </div>
-            <div className="brand-card-latency mt-0.5 flex min-w-0 items-center gap-1.5 text-xs">
-              <span className="brand-card-label">{t('model.latency')}</span>
-              {isPinging ? (
-                <LatencyIndicator />
-              ) : latency === -2 ? (
-                <span className="font-bold text-red-500">{t('model.timedOut')}</span>
-              ) : latency === -1 ? (
-                <span className="font-bold text-red-500">Error</span>
-              ) : latency !== undefined ? (
-                <span className={`font-bold ${modelLatencyColor(latency)}`}>{latency}ms</span>
-              ) : (
-                <span className="text-cyber-text-muted">{t('model.notTested')}</span>
-              )}
-            </div>
-            <div className="mt-auto flex min-w-0 items-center gap-1.5 overflow-hidden">
+            <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
               {protocols.includes('openai') && (
                 <span className={`brand-pill${openaiTested ? '' : ' is-untested'}`}>OpenAI</span>
               )}

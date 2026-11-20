@@ -7,6 +7,7 @@ import type { TKey } from '../i18n';
 import { getModelIcon } from './cards';
 import { ModelQuotaSummary } from './ModelQuotaSummary';
 import { isSmartRouterId } from '../utils/smartRouter';
+import { BrandRow } from './BrandRow';
 
 interface ModelListCardProps {
   model: ModelConfig;
@@ -51,11 +52,11 @@ export function ModelListCard({
   const isLocalModel = model.internalId === 'local-server' || isSmartRouter;
   const canManage = !isLocalModel && model.modelType !== 'DEMO';
   const iconSrc = isSmartRouter ? null : getModelIcon('', model.modelId || '');
-
   return (
-    <div
-      aria-disabled={disabled || undefined}
-      className={`relative overflow-hidden ${compact ? 'h-14 px-[11px] py-1' : 'p-[11px]'} rounded-card transition-colors flex items-center gap-3 border-2 ${selected ? 'border-cyber-accent/70 bg-cyber-accent/10' : 'border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70'}`}
+    <BrandRow
+      iconSrc={iconSrc}
+      disabled={disabled}
+      className={`${compact ? 'h-14 px-[11px] py-1' : 'p-[11px]'} rounded-card flex items-center gap-3 border-2 ${selected ? 'is-selected' : 'border-transparent'}`}
     >
       <button
         type="button"
@@ -70,7 +71,7 @@ export function ModelListCard({
           <img
             src={iconSrc}
             alt=""
-            className={compact ? 'w-8 h-8' : 'w-6 h-6'}
+            className={`brand-row-logo ${compact ? 'w-8 h-8' : 'w-6 h-6'} object-contain`}
             onError={(event) => {
               event.currentTarget.style.display = 'none';
             }}
@@ -102,7 +103,7 @@ export function ModelListCard({
         <div
           className={`flex items-center gap-2 ${compact ? 'h-[16px]' : 'mt-1'} text-[10px] leading-tight`}
         >
-          <span className="flex-1 min-w-0 truncate text-cyber-text-secondary/70">{subtitle}</span>
+          <span className="flex-1 min-w-0 truncate text-cyber-text-secondary/90">{subtitle}</span>
           {secondaryBadge}
           {!isLocalModel && (onRefreshUsage || (canManage && (onDeleteModel || onEditModel))) && (
             <div className="pointer-events-auto flex items-center gap-1 shrink-0">
@@ -150,6 +151,6 @@ export function ModelListCard({
           )}
         </div>
       </div>
-    </div>
+    </BrandRow>
   );
 }

@@ -536,25 +536,31 @@ it('turns the logo into the picked ring in every style', async () => {
   view = undefined;
 });
 
-it('reverses one style at a time without changing the selected style', async () => {
+it("reverses only the chosen style from one direction switch, keeping each style's own direction", async () => {
   await render();
-  const direction = (name: string, label: string) =>
+  // Only the chosen layout's tile carries the direction arrows.
+  const direction = (label: string) =>
     view!.root
-      .findByProps({ 'aria-label': `usageIsland.style.${name}`, role: 'group' })
-      .findByProps({ 'aria-label': `usageIsland.direction.${label}` });
-  await act(async () => direction('column', 'up').props.onClick());
-  expect(island.getState()).toMatchObject({ style: 'row', reversed: ['column'] });
-  expect(direction('column', 'up').props['aria-pressed']).toBe(true);
-  expect(direction('column', 'down').props['aria-pressed']).toBe(false);
-  expect(direction('row', 'right').props['aria-pressed']).toBe(true);
-  await act(async () => direction('column', 'up').props.onClick());
-  expect(island.getState().reversed).toEqual(['column']);
+      .findAllByType('button')
+      .find((button) => button.props['aria-label'] === `usageIsland.direction.${label}`)!;
+  expect(view!.root.findAllByProps({ role: 'group' }).length).toBeGreaterThan(0);
   const flags = () =>
     view!.root.findByProps({ className: 'usage-island-fit' }).props['data-reversed'];
+  expect(direction('right').props['aria-pressed']).toBe(true);
+  await act(async () => island.getState().update({ style: 'column' }));
+  await act(async () => direction('up').props.onClick());
+  expect(island.getState()).toMatchObject({ style: 'column', reversed: ['column'] });
+  expect(direction('up').props['aria-pressed']).toBe(true);
+  expect(direction('down').props['aria-pressed']).toBe(false);
+  expect(flags()).toBe(true);
+  await act(async () => direction('up').props.onClick());
+  expect(island.getState().reversed).toEqual(['column']);
+  // Other layouts keep their own direction.
+  await act(async () => island.getState().update({ style: 'row' }));
+  expect(direction('right').props['aria-pressed']).toBe(true);
   expect(flags()).toBe(false);
   await act(async () => island.getState().update({ style: 'column' }));
-  expect(flags()).toBe(true);
-  await act(async () => direction('column', 'down').props.onClick());
+  await act(async () => direction('down').props.onClick());
   expect(island.getState().reversed).toEqual([]);
 });
 

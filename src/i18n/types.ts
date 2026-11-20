@@ -38,6 +38,7 @@ export type TKey =
   | 'usageIsland.style.list'
   | 'usageIsland.style.dial'
   | 'usageIsland.style.line'
+  | 'usageIsland.layout'
   | 'nav.developer'
   | 'page.developer'
   | 'plugins.accountCodePermission'

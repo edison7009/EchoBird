@@ -51,6 +51,7 @@ export function UsageIslandSlots({ sources }: { sources: UsageSource[] }) {
         handle={key ? handle : undefined}
         overlay={overlay}
         removeLabel={t('usageIsland.removeSource')}
+        emptyHint={t('freeModels.router.emptyDesc')}
         onRemove={() => toggleSource(key)}
       />
     );

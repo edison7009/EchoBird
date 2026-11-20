@@ -1,3 +1,4 @@
+import { BrandEmpty } from '../../components/BrandEmpty';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   DndContext,
@@ -442,10 +443,12 @@ export function AccountCenterMain() {
       ))}
     </div>
   ) : (
-    <div className="flex h-full min-h-52 flex-col items-center justify-center gap-3 text-cyber-text-secondary">
-      <Users size={28} aria-hidden="true" />
-      <span className="text-sm">{t('accountCenter.empty')}</span>
-    </div>
+    <BrandEmpty
+      className="h-full min-h-52 justify-center"
+      icon={<Users size={30} aria-hidden="true" />}
+      title={t('accountCenter.empty')}
+      hint={t('freeModels.router.emptyDesc')}
+    />
   );
 }
 

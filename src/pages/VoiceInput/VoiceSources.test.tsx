@@ -494,14 +494,17 @@ describe('voice source card ordering', () => {
     expect(voiceApi.saveVoiceConfig).not.toHaveBeenCalled();
   });
 
-  it('keeps empty cards blank except for their numbers and disables empty-slot dragging', () => {
+  it('shows empty cards as numbered slots pointing to the directory, with dragging disabled', () => {
     mountSources(0);
     const cards = renderer.root.findAllByProps({ role: 'listitem' });
     expect(cards).toHaveLength(3);
     cards.forEach((card, index) => {
+      // The number, then the slot's own name and where sources are added.
       expect(card.findAllByType('span').flatMap((span) => span.children)).toEqual([
         String(index + 1),
+        expect.any(String),
       ]);
+      expect(card.findByType('b').children).toEqual([card.props['aria-label']]);
       expect(card.findAllByType('svg')).toHaveLength(0);
       expect(card.findAllByType('button')).toHaveLength(0);
     });

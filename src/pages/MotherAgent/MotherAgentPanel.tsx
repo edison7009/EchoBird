@@ -1,12 +1,15 @@
 import { useToast } from '../../components/Toast';
-import { useState } from 'react';
-import { X, ChevronDown } from 'lucide-react';
+import { useState, type CSSProperties } from 'react';
+import { X, ChevronDown, Plus, SquarePen, Trash2 } from 'lucide-react';
 import { useConfirm } from '../../components/ConfirmDialog';
 import { ViewModeTabs } from '../../components/ViewModeTabs';
 import { useI18n } from '../../hooks/useI18n';
 import * as api from '../../api/tauri';
 import { useMotherAgent } from './context';
 import { ConversationList } from './ConversationList';
+import '../../components/brandCards.css';
+
+const accentRow = { '--brand': 'rgb(var(--accent-rgb))' } as CSSProperties;
 
 // ===== Right Panel (aside area) — SERVERS =====
 export function MotherAgentPanel() {
@@ -348,13 +351,34 @@ export function MotherAgentPanel() {
             className={parasiteLocked ? 'pointer-events-none opacity-40 space-y-2' : 'space-y-2'}
             aria-disabled={parasiteLocked}
           >
+            {/* Add: the light card, as at the top of the conversation list */}
+            <button
+              onClick={() => {
+                setSSHForm({
+                  host: '',
+                  port: '22',
+                  username: '',
+                  password: '',
+                  alias: '',
+                  showPassword: false,
+                });
+                setSSHTestResult(null);
+                setShowSSHModal(true);
+              }}
+              type="button"
+              className="brand-new-row"
+            >
+              <span className="brand-deck-plus" aria-hidden="true">
+                <Plus size={14} strokeWidth={3} />
+              </span>
+              {t('mother.addServer')}
+            </button>
             {/* Local server — always first */}
             <div
               onClick={() => !isProcessing && selectServer('local')}
-              className={`h-14 shrink-0 px-[11px] py-1 rounded-card transition-colors select-none flex items-center border-2 ${isProcessing && selectedServerId !== 'local' ? 'opacity-40' : 'cursor-default'} ${
-                selectedServerId === 'local'
-                  ? 'border-cyber-accent/70 bg-cyber-accent/10'
-                  : 'border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70'
+              style={accentRow}
+              className={`brand-row is-quiet h-14 shrink-0 px-[11px] py-1 rounded-card select-none flex items-center border-2 ${isProcessing && selectedServerId !== 'local' ? 'opacity-40' : 'cursor-default'} ${
+                selectedServerId === 'local' ? 'is-selected' : 'border-transparent'
               }`}
             >
               <div className="flex-1 min-w-0 grid grid-cols-[minmax(0,1fr)] auto-rows-[16px] items-center">
@@ -371,10 +395,9 @@ export function MotherAgentPanel() {
               <div
                 key={server.id}
                 onClick={() => !isProcessing && selectServer(server.id)}
-                className={`h-14 shrink-0 px-[11px] py-1 rounded-card transition-colors select-none flex items-center border-2 ${isProcessing && selectedServerId !== server.id ? 'opacity-40' : 'cursor-default'} ${
-                  selectedServerId === server.id
-                    ? 'border-cyber-accent/70 bg-cyber-accent/10'
-                    : 'border-transparent bg-cyber-surface/60 hover:bg-cyber-elevated/70'
+                style={accentRow}
+                className={`brand-row is-quiet h-14 shrink-0 px-[11px] py-1 rounded-card select-none flex items-center border-2 ${isProcessing && selectedServerId !== server.id ? 'opacity-40' : 'cursor-default'} ${
+                  selectedServerId === server.id ? 'is-selected' : 'border-transparent'
                 }`}
               >
                 <div className="flex-1 min-w-0 grid grid-cols-[minmax(0,1fr)] auto-rows-[16px] items-center">
@@ -394,9 +417,11 @@ export function MotherAgentPanel() {
                         });
                         if (ok) removeSSHServer(server.id);
                       }}
-                      className="text-xs font-mono text-cyber-text-muted/50 hover:text-red-500 transition-colors flex-shrink-0"
+                      type="button"
+                      aria-label={t('btn.delete')}
+                      className="flex h-5 w-5 flex-shrink-0 items-center justify-center text-cyber-text-muted transition-colors hover:text-red-500"
                     >
-                      [{t('btn.delete')}]
+                      <Trash2 size={13} aria-hidden="true" />
                     </button>
                     <button
                       onClick={async (e) => {
@@ -421,9 +446,11 @@ export function MotherAgentPanel() {
                         setSSHTestResult(null);
                         setShowSSHModal(true);
                       }}
-                      className="text-xs font-mono text-cyber-text-muted/50 hover:text-cyber-text transition-colors flex-shrink-0"
+                      type="button"
+                      aria-label={t('btn.edit')}
+                      className="flex h-5 w-5 flex-shrink-0 items-center justify-center text-cyber-text-muted transition-colors hover:text-cyber-text"
                     >
-                      [{t('btn.edit')}]
+                      <SquarePen size={13} aria-hidden="true" />
                     </button>
                   </div>
                   <div className="text-sm leading-[16px] font-bold truncate text-cyber-text font-mono">
@@ -434,24 +461,6 @@ export function MotherAgentPanel() {
                 </div>
               </div>
             ))}
-            {/* Add button card */}
-            <button
-              onClick={() => {
-                setSSHForm({
-                  host: '',
-                  port: '22',
-                  username: '',
-                  password: '',
-                  alias: '',
-                  showPassword: false,
-                });
-                setSSHTestResult(null);
-                setShowSSHModal(true);
-              }}
-              className="w-full h-12 px-[11px] border border-dashed border-cyber-border/30 rounded-card hover:border-cyber-border/60 hover:bg-cyber-text/5 transition-all text-cyber-text/60 hover:text-cyber-text text-[14px] font-semibold"
-            >
-              + {t('mother.addServer')}
-            </button>
           </div>
         ) : (
           /* ── SSH GUIDE tab (accordion) ── */
