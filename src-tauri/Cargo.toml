@@ -130,7 +130,9 @@ uuid = { version = "1", features = ["v4"] }
 base64 = "0.22"
 
 # Desktop UX
-rfd = "0.17"
+# Share the Linux GTK backend with tauri-plugin-dialog. rfd's default
+# xdg-portal backend cannot be enabled alongside GTK.
+rfd = { version = "0.17", default-features = false, features = ["gtk3"] }
 which = "8"
 # Zstandard decode — DeepSeek Harness persists sessions as `session.jsonl.zstd`
 # (concatenated checksummed frames) by default; the "我的AI生涯" scanner
