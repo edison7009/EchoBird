@@ -1852,7 +1852,7 @@ dependencies = [
 
 [[package]]
 name = "echobird"
-version = "6.4.1"
+version = "6.4.2"
 dependencies = [
  "aes 0.8.4",
  "aes-gcm 0.10.3",
