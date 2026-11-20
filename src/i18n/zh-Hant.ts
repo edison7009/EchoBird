@@ -829,6 +829,7 @@ const zhHant: Partial<Translations> = {
   'mother.waitThinking': '正在思考',
   'mother.waitElapsed': '用時 {duration}',
   'mother.command': '執行命令',
+  'mother.commandUnavailable': '命令內容無法取得',
   'mother.replyCopy': '複製',
   'mother.replyCopied': '已複製',
   'mother.replyCopyFailed': '複製失敗',

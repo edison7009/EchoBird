@@ -792,6 +792,7 @@ export type TKey =
   | 'mother.waitThinking'
   | 'mother.waitElapsed'
   | 'mother.command'
+  | 'mother.commandUnavailable'
   | 'mother.replyCopy'
   | 'mother.replyCopied'
   | 'mother.replyCopyFailed'

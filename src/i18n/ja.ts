@@ -876,6 +876,7 @@ const ja: Partial<Translations> = {
   'mother.waitThinking': '考えています',
   'mother.waitElapsed': '経過 {duration}',
   'mother.command': 'コマンドを実行',
+  'mother.commandUnavailable': 'コマンドの内容を取得できません',
   'mother.replyCopy': 'コピー',
   'mother.replyCopied': 'コピー済み',
   'mother.replyCopyFailed': 'コピーできませんでした',

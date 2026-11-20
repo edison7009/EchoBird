@@ -793,6 +793,7 @@ const zhHans: Partial<Translations> = {
   'mother.waitThinking': '正在思考',
   'mother.waitElapsed': '用时 {duration}',
   'mother.command': '执行命令',
+  'mother.commandUnavailable': '命令内容不可用',
   'mother.replyCopy': '复制',
   'mother.replyCopied': '已复制',
   'mother.replyCopyFailed': '复制失败',

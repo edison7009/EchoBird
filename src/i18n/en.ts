@@ -860,6 +860,7 @@ const en: Translations = {
   'mother.waitThinking': 'Thinking',
   'mother.waitElapsed': 'Elapsed {duration}',
   'mother.command': 'Run command',
+  'mother.commandUnavailable': 'Command unavailable',
   'mother.replyCopy': 'Copy',
   'mother.replyCopied': 'Copied',
   'mother.replyCopyFailed': 'Copy failed',

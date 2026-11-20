@@ -51,6 +51,25 @@ function previewFor(toolName: string, args: string): string {
   return '';
 }
 
+// Close an unfinished string for display only. JSON.parse verifies the prefix
+// belongs to the outer object and decodes only complete JSON escapes.
+function streamedCommand(args: string): string {
+  for (const field of args.matchAll(
+    /"command"\s*:\s*("(?:[^"\\]|\\(?:["\\/bfnrt]|u[\da-fA-F]{4}))*)(")?/g
+  )) {
+    try {
+      const value = JSON.parse(
+        args.slice(0, field.index + field[0].length) + (field[2] ? '}' : '"}')
+      );
+      if (typeof value.command === 'string') return value.command.replace(/[\uD800-\uDBFF]$/, '');
+    } catch {
+      // A nested field or malformed prefix is not a previewable command.
+    }
+  }
+  return '';
+}
+
+const commandEncoder = new TextEncoder();
 const OUTPUT_PREVIEW_LIMIT = 4000;
 
 export const ToolCallCard = memo(function ToolCallCard({
@@ -60,17 +79,21 @@ export const ToolCallCard = memo(function ToolCallCard({
   output,
 }: ToolCallCardProps) {
   const [open, setOpen] = useState(false);
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const meta = TOOL_META[name] || { icon: Wrench, label: name };
   const Icon = meta.icon;
   const preview = previewFor(name, args);
   const isCommand = name === 'shell_exec' || name === 'ssh_shell';
-  const command = isCommand ? preview.trim() : '';
+  const runningCommand = isCommand && status === 'running';
+  const command = isCommand ? (preview || streamedCommand(args)).trim() : '';
+  if (runningCommand && !command) return null;
+
+  const argumentBytes = runningCommand ? commandEncoder.encode(args).byteLength : 0;
 
   const statusIcon =
     status === 'running' ? (
-      <Loader2 size={11} className="animate-spin text-cyber-accent" />
+      <Loader2 size={11} className="motion-safe:animate-spin text-cyber-accent" />
     ) : status === 'failed' ? (
       <XIcon size={11} className="text-red-400" />
     ) : (
@@ -93,6 +116,7 @@ export const ToolCallCard = memo(function ToolCallCard({
       <button
         type="button"
         aria-expanded={open}
+        aria-busy={runningCommand || undefined}
         onClick={() => setOpen((o) => !o)}
         className={
           isCommand
@@ -108,15 +132,25 @@ export const ToolCallCard = memo(function ToolCallCard({
         {isCommand ? (
           <>
             <span className="shrink-0">{t('mother.command')}</span>
-            {command && (
-              <>
-                <span className="shrink-0 text-cyber-text-muted" aria-hidden="true">
-                  ·
+            <span className="shrink-0 text-cyber-text-muted" aria-hidden="true">
+              ·
+            </span>
+            <span className="min-w-0 flex-1 truncate font-mono text-xs">
+              {command || t('mother.commandUnavailable')}
+            </span>
+            {runningCommand ? (
+              <span
+                className="ml-auto flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs text-cyber-text-muted"
+                aria-hidden="true"
+              >
+                <span className="w-16 text-right font-mono tabular-nums">
+                  {argumentBytes.toLocaleString(locale)} B
                 </span>
-                <span className="min-w-0 flex-1 truncate font-mono text-xs">{command}</span>
-              </>
-            )}
-            {status === 'failed' && <span className="shrink-0">{statusIcon}</span>}
+                {statusIcon}
+              </span>
+            ) : status === 'failed' ? (
+              <span className="shrink-0">{statusIcon}</span>
+            ) : null}
           </>
         ) : (
           <>
