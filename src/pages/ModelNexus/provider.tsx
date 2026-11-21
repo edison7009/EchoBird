@@ -49,8 +49,6 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
   const [selectedModel, setSelectedModel] = useState<string | null>('gpt4o');
   const [pingingModelIds, setPingingModelIds] = useState<Set<string>>(new Set());
 
-  // View mode state
-  const [viewMode, setViewMode] = useState<'config' | 'usage'>('config');
   const [modelUsageData, setModelUsageData] = useState<Record<string, ModelUsageData>>({});
   const usageAccessRevision = useRef<Record<string, number>>({});
   const editingUsageModel = useRef<ModelConfig | null>(null);
@@ -536,8 +534,6 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
         selectedModel,
         setSelectedModel,
         selectedModelData,
-        viewMode,
-        setViewMode,
         modelUsageData,
         isRefreshingUsage,
         refreshingUsageIds,

@@ -631,8 +631,6 @@ const zhHans: Partial<Translations> = {
   'download.location': '下载位置：',
   'model.providers': '模型供应商',
   'model.relays': '特别鸣谢：中转站',
-  'model.config': '配置',
-  'model.usage': '用量',
   'model.noUsageData': '暂无用量数据',
   'model.accessKey': '访问权限',
   'model.akSkRequired': '需要配置访问权限',

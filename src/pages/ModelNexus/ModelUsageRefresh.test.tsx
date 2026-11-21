@@ -150,12 +150,10 @@ describe('Model usage refresh and credential changes', () => {
     expect(showToast).toHaveBeenCalledOnce();
     expect(context.isRefreshingUsage).toBe(false);
   });
-  it('preserves quota for a name-only edit and passive view switching', async () => {
+  it('preserves quota for a name-only edit', async () => {
     await open();
     act(() => context.setModelUsageData({ model: balance(17) }));
     await edit({ name: 'Renamed' });
-    act(() => context.setViewMode('usage'));
-    act(() => context.setViewMode('config'));
     expect(context.userModels[0].name).toBe('Renamed');
     expect(context.modelUsageData.model.quotas[0].balance).toBe(17);
     expect(api.queryModelUsage).not.toHaveBeenCalled();

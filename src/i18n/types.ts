@@ -486,8 +486,6 @@ export type TKey =
   | 'model.timedOut'
   | 'model.providers'
   | 'model.relays'
-  | 'model.config'
-  | 'model.usage'
   | 'model.noUsageData'
   | 'model.accessKey'
   | 'model.akSkRequired'

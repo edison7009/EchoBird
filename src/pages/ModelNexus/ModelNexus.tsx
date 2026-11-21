@@ -73,46 +73,31 @@ const isValidModelBaseUrl = (value: string) => {
   }
 };
 
-// ===== Title Actions (view mode tabs + ping/refresh button) =====
+// ===== Title Actions (test all speeds, refresh all usage) =====
 
 export function ModelNexusTitleActions() {
   const { t } = useI18n();
-  const { viewMode, setViewMode, pingAllModels, refreshAllUsage, isTesting, isRefreshingUsage } =
-    useModelNexus();
+  const { pingAllModels, refreshAllUsage, isTesting, isRefreshingUsage } = useModelNexus();
 
   return (
     <div className="ml-auto flex-shrink-0 flex items-center gap-3">
-      {/* View mode tabs */}
-      <ViewModeTabs
-        value={viewMode}
-        onChange={setViewMode}
-        options={[
-          { value: 'config', label: t('model.config') },
-          { value: 'usage', label: t('model.usage') },
-        ]}
-      />
-
-      {/* Action button - same height and style as tabs */}
-      {viewMode === 'config' ? (
-        <PageActionButton
-          icon={RefreshCw}
-          spinning={isTesting}
-          onClick={pingAllModels}
-          disabled={isTesting}
-        >
-          {t('btn.pingAll')}
-        </PageActionButton>
-      ) : (
-        <PageActionButton
-          icon={RefreshCw}
-          spinning={isRefreshingUsage}
-          onClick={refreshAllUsage}
-          pending={isRefreshingUsage}
-          disabled={isRefreshingUsage}
-        >
-          {t('btn.refreshUsage')}
-        </PageActionButton>
-      )}
+      <PageActionButton
+        icon={RefreshCw}
+        spinning={isTesting}
+        onClick={pingAllModels}
+        disabled={isTesting}
+      >
+        {t('btn.pingAll')}
+      </PageActionButton>
+      <PageActionButton
+        icon={RefreshCw}
+        spinning={isRefreshingUsage}
+        onClick={refreshAllUsage}
+        pending={isRefreshingUsage}
+        disabled={isRefreshingUsage}
+      >
+        {t('btn.refreshUsage')}
+      </PageActionButton>
     </div>
   );
 }
@@ -124,7 +109,6 @@ export function ModelNexusMain() {
   const {
     userModels,
     isLoadingModels,
-    viewMode,
     modelUsageData,
     setTestOutput: _setTestOutput,
     testProtocol: _testProtocol,
@@ -197,9 +181,6 @@ export function ModelNexusMain() {
   // Model card body, shared by the grid item and the DragOverlay ghost (the
   // ghost is wrapped in pointer-events-none so its interactions are inert).
   const renderModelCard = (model: (typeof userModels)[0], dragHandle?: ReactNode) => {
-    const protocols: ('openai' | 'anthropic')[] = [];
-    if (model.baseUrl) protocols.push('openai');
-    if (model.anthropicUrl) protocols.push('anthropic');
     const isDemo = model.modelType === 'DEMO';
     return (
       <ModelCard
@@ -209,17 +190,19 @@ export function ModelNexusMain() {
         baseUrl={model.baseUrl}
         anthropicUrl={model.anthropicUrl}
         modelId={model.modelId || ''}
-        protocols={protocols}
         latency={modelLatencies[model.internalId] ?? model.openaiLatency}
-        openaiTested={model.openaiTested}
-        anthropicTested={model.anthropicTested}
         isPinging={pingingModelIds.has(model.internalId)}
-        viewMode={viewMode}
         usageData={modelUsageData[model.internalId]}
         dragHandle={dragHandle}
         onEdit={isDemo ? undefined : () => handleCardEdit(model)}
         onDelete={isDemo ? undefined : () => handleCardDelete(model.internalId)}
-        onRefresh={() => refreshSingleUsage(model.internalId)}
+        // The page's refresh button reads every model; a card offers its own
+        // refresh once it has usage to show, keeping the name room elsewhere.
+        onRefresh={
+          modelUsageData[model.internalId]?.quotas.length
+            ? () => refreshSingleUsage(model.internalId)
+            : undefined
+        }
         isRefreshingUsage={refreshingUsageIds.has(model.internalId)}
         onAccessKey={
           isVolcengineUrl(model.baseUrl, model.anthropicUrl)

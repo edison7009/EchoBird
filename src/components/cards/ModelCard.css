@@ -1,0 +1,70 @@
+/* Model card: the model and its usage on one card. */
+
+/* The headline quota's bar runs along the card's bottom edge. */
+.model-card-edge {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: rgb(var(--text-primary-rgb) / 0.08);
+}
+
+/* What is left of the quota that runs out first, or the balance. */
+.model-card-hero {
+  flex: none;
+  font-size: 1.85rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.model-card-side,
+.model-card-others {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+  padding-bottom: 2px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: rgb(var(--text-secondary-rgb));
+  white-space: nowrap;
+}
+.model-card-side > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.model-card-side b,
+.model-card-others b:not([class]) {
+  font-weight: 700;
+  color: rgb(var(--text-primary-rgb));
+  font-variant-numeric: tabular-nums;
+}
+
+/* The other quotas, on the right of the headline. */
+.model-card-others {
+  flex: none;
+  margin-left: auto;
+  justify-items: end;
+}
+
+/* Each of the other quotas: its name, a short bar and what is left. */
+.model-card-others {
+  gap: 4px;
+}
+.model-card-other {
+  display: grid;
+  grid-template-columns: auto 26px 2.6em;
+  align-items: center;
+  gap: 5px;
+}
+.model-card-other > b {
+  text-align: right;
+}
+.model-card-mini {
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(var(--text-primary-rgb) / 0.12);
+}

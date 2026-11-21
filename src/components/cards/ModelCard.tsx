@@ -4,6 +4,7 @@ import React from 'react';
 import { KeyRound, Pencil, RefreshCw, Trash2 } from 'lucide-react';
 import { useBrandColour } from '../../utils/brandColour';
 import '../brandCards.css';
+import './ModelCard.css';
 import { useConfirm } from '../ConfirmDialog';
 import { useI18n } from '../../hooks/useI18n';
 import type { ModelUsageData } from '../../api/tauri';
@@ -11,9 +12,12 @@ import type { TKey } from '../../i18n/types';
 import { useUsageClock } from '../../hooks/useUsageClock';
 import { LatencyIndicator } from '../LatencyIndicator';
 import { modelLatencyColor } from '../../utils/modelLatency';
+import type { UsageQuota } from '../../api/models';
 import {
   balanceLabelKey,
+  compactCountdown,
   formatQuotaPercent,
+  primaryQuota,
   quotaPercent,
   quotaPeriodKeys,
 } from '../../utils/modelUsage';
@@ -149,41 +153,28 @@ export interface ModelCardProps {
   anthropicUrl?: string; // API endpoint (Anthropic)
   modelId?: string; // model ID (provider-defined)
   latency?: number; // ms; undefined = untested, -1 = failed, -2 = timed out
-  protocols?: ('openai' | 'anthropic')[]; // supported API protocols
-  openaiTested?: boolean; // OpenAI protocol tested
-  anthropicTested?: boolean; // Anthropic protocol tested
   isPinging?: boolean; // currently pinging
-  viewMode?: 'config' | 'usage'; // display mode
   usageData?: ModelUsageData; // usage quota data
   onEdit?: () => void; // edit callback
   onDelete?: () => void; // delete callback
-  onRefresh?: () => void; // refresh usage callback (usage mode only)
-  isRefreshingUsage?: boolean; // usage refresh in progress (usage mode only)
-  onAccessKey?: () => void; // open AK/SK config modal (Volcengine usage mode)
+  onRefresh?: () => void; // refresh usage callback
+  isRefreshingUsage?: boolean; // usage refresh in progress
+  onAccessKey?: () => void; // open the usage access modal (Volcengine AK/SK, Zhipu team)
   akSkMissing?: boolean; // AK/SK not yet configured -> show hint
   dragHandle?: React.ReactNode;
 }
 
-// Format countdown time (ms to human readable) - i18n aware
-const formatCountdown = (ms: number, t: (key: TKey) => string): string => {
-  const totalSeconds = Math.floor(Math.max(0, ms) / 1000);
-  const days = Math.floor(totalSeconds / 86400);
-  const hours = Math.floor((totalSeconds % 86400) / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
+/** A quota's own name: "5h", "7 days", or the balance label. */
+const quotaName = (quota: UsageQuota, t: (key: TKey) => string): string =>
+  quota.balance != null
+    ? t(balanceLabelKey(quota))
+    : quota.period
+      ? t(quotaPeriodKeys[quota.period])
+      : t('model.quota.used');
 
-  if (days > 0) {
-    return t('model.countdown.days')
-      .replace('{d}', String(days))
-      .replace('{h}', String(hours))
-      .replace('{m}', String(minutes));
-  } else if (hours > 0) {
-    return t('model.countdown.hours').replace('{h}', String(hours)).replace('{m}', String(minutes));
-  } else {
-    return t('model.countdown.minutes').replace('{m}', String(minutes));
-  }
-};
-
-// ModelCard component
+// ModelCard component: the model and its usage on one card. The quota that
+// runs out first is the headline, its bar is the card's bottom edge, and any
+// other quotas sit to the right of the headline.
 export const ModelCard = React.memo(
   ({
     name,
@@ -192,11 +183,7 @@ export const ModelCard = React.memo(
     anthropicUrl,
     modelId,
     latency,
-    protocols = [],
-    openaiTested = false,
-    anthropicTested = false,
     isPinging = false,
-    viewMode = 'config',
     usageData,
     onEdit,
     onDelete,
@@ -206,29 +193,26 @@ export const ModelCard = React.memo(
     akSkMissing,
     dragHandle,
   }: ModelCardProps) => {
-    // Config tab: resolve icon from the MODEL ID only (platform name must not
-    // leak in — otherwise a Qwen platform card configured with model id
-    // `glm-5.2` matches the「千问」platform rule and shows qianwen.png instead
-    // of glm.svg). The 用量 tab below resolves from baseUrl instead, so the
-    // two tabs use two separate icon lookups (model-id vs vendor) by design.
-    const iconPath = getModelIcon('', modelId);
     const confirm = useConfirm();
     const { t } = useI18n();
 
-    const now = useUsageClock(
-      viewMode === 'usage' &&
-        !!usageData?.quotas.some((quota) => quota.balance == null && quota.resetAt > 0)
-    );
+    const quotas = usageData?.quotas ?? [];
+    const primary = usageData ? primaryQuota(usageData) : undefined;
+    const heroBalance = primary ? undefined : quotas.find((quota) => quota.balance != null);
+    const others = quotas.filter((quota) => quota !== primary && quota !== heroBalance);
+    const remaining = primary ? quotaPercent(primary) : null;
+    const tone = quotaTone(remaining);
 
-    // Usage mode shows the provider's logo (from the address), config mode
-    // the model's; the card takes its colour from the logo it shows.
-    const usageIcon = viewMode === 'usage' ? getModelIcon('', baseUrl || anthropicUrl || '') : null;
-    const shownIcon = viewMode === 'usage' ? usageIcon : iconPath;
+    const now = useUsageClock(!!primary && primary.resetAt > 0);
+
+    // The model's logo (from its ID, so a reseller shows the model it serves),
+    // or the provider's, from the address, when the ID names no known brand.
+    const shownIcon = getModelIcon('', modelId) ?? getModelIcon('', baseUrl || anthropicUrl || '');
     const brand = useBrandColour(shownIcon);
     const logoClass = brand.neutral && brand.glyph ? ' is-neutral-logo' : '';
     const hostname = (() => {
       const url = baseUrl || anthropicUrl;
-      if (!url) return '-';
+      if (!url) return '';
       try {
         return new URL(url).hostname;
       } catch {
@@ -238,7 +222,7 @@ export const ModelCard = React.memo(
 
     return (
       <div
-        className="brand-card relative flex h-40 flex-col px-4 pb-[0.9rem] pt-[0.85rem] cursor-default"
+        className="brand-card model-card relative flex h-40 flex-col px-4 pb-[0.9rem] pt-[0.85rem] cursor-default"
         style={{ '--brand': brand.from } as React.CSSProperties}
       >
         {shownIcon && (
@@ -251,6 +235,22 @@ export const ModelCard = React.memo(
               event.currentTarget.style.display = 'none';
             }}
           />
+        )}
+        {/* The headline quota's bar is the card's bottom edge. */}
+        {primary && (
+          <div
+            role="progressbar"
+            aria-label={quotaName(primary, t)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={remaining ?? undefined}
+            className="model-card-edge"
+          >
+            <div
+              className={`quota-progress-fill h-full bg-gradient-to-r ${quotaColorClasses[tone].gradient}`}
+              style={{ width: `${remaining ?? 0}%` }}
+            />
+          </div>
         )}
         <div className="flex items-center gap-2">
           {dragHandle && <span className="-ml-1.5 flex">{dragHandle}</span>}
@@ -268,185 +268,178 @@ export const ModelCard = React.memo(
           <div className="h-7 min-w-0 flex-1 truncate text-base font-bold leading-7">
             {name || <span className="invisible">-</span>}
           </div>
-          {/* Actions as icons in one pill: edit / delete, or access key / refresh. */}
-          {viewMode === 'config'
-            ? (onEdit || onDelete) && (
-                <div className="brand-card-actions">
-                  {onEdit && (
-                    <button
-                      type="button"
-                      aria-label={t('btn.edit')}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEdit();
-                      }}
-                    >
-                      <Pencil size={14} aria-hidden="true" />
-                    </button>
-                  )}
-                  {onDelete && (
-                    <button
-                      type="button"
-                      data-danger
-                      aria-label={t('btn.delete')}
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        const ok = await confirm({
-                          title: t('model.deleteTitle'),
-                          message: t('model.deleteConfirm'),
-                          confirmText: t('btn.delete'),
-                          cancelText: t('btn.cancel'),
-                          type: 'danger',
-                        });
-                        if (ok) {
-                          onDelete();
-                        }
-                      }}
-                    >
-                      <Trash2 size={14} aria-hidden="true" />
-                    </button>
-                  )}
-                </div>
-              )
-            : (onAccessKey || onRefresh) && (
-                <div className="brand-card-actions">
-                  {onAccessKey && (
-                    <button
-                      type="button"
-                      aria-label={t('model.accessKey')}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onAccessKey();
-                      }}
-                    >
-                      <KeyRound size={14} aria-hidden="true" />
-                    </button>
-                  )}
-                  {onRefresh && (
-                    <button
-                      type="button"
-                      disabled={isRefreshingUsage}
-                      aria-busy={isRefreshingUsage}
-                      aria-label={t('btn.refresh')}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (!isRefreshingUsage) {
-                          onRefresh();
-                        }
-                      }}
-                    >
-                      <RefreshCw
-                        size={14}
-                        className={isRefreshingUsage ? 'animate-spin' : ''}
-                        aria-hidden="true"
-                      />
-                    </button>
-                  )}
-                </div>
+          {(onAccessKey || onRefresh || onEdit || onDelete) && (
+            <div className="brand-card-actions">
+              {onAccessKey && (
+                <button
+                  type="button"
+                  aria-label={t('model.accessKey')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAccessKey();
+                  }}
+                >
+                  <KeyRound size={14} aria-hidden="true" />
+                </button>
               )}
+              {onRefresh && (
+                <button
+                  type="button"
+                  disabled={isRefreshingUsage}
+                  aria-busy={isRefreshingUsage}
+                  aria-label={t('btn.refresh')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isRefreshingUsage) {
+                      onRefresh();
+                    }
+                  }}
+                >
+                  <RefreshCw
+                    size={14}
+                    className={isRefreshingUsage ? 'animate-spin' : ''}
+                    aria-hidden="true"
+                  />
+                </button>
+              )}
+              {onEdit && (
+                <button
+                  type="button"
+                  aria-label={t('btn.edit')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit();
+                  }}
+                >
+                  <Pencil size={14} aria-hidden="true" />
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  type="button"
+                  data-danger
+                  aria-label={t('btn.delete')}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const ok = await confirm({
+                      title: t('model.deleteTitle'),
+                      message: t('model.deleteConfirm'),
+                      confirmText: t('btn.delete'),
+                      cancelText: t('btn.cancel'),
+                      type: 'danger',
+                    });
+                    if (ok) {
+                      onDelete();
+                    }
+                  }}
+                >
+                  <Trash2 size={14} aria-hidden="true" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
-        {viewMode === 'usage' ? (
-          // Usage: quota bars, or one large balance.
-          <div className="flex flex-1 flex-col justify-end gap-2 pt-2">
-            {usageData?.quotas && usageData.quotas.length > 0 ? (
-              usageData.quotas.map((quota, idx) => {
-                const remaining = quotaPercent(quota);
-                const tone = quotaTone(remaining);
-                const colors = quotaColorClasses[tone];
-                return quota.balance !== undefined && quota.balance !== null ? (
-                  <div key={idx} className="m-auto flex items-baseline justify-center gap-2">
-                    <span className="text-xs text-cyber-text-secondary">
-                      {t(balanceLabelKey(quota))}
-                    </span>
-                    <span className="text-[1.75rem] font-extrabold tabular-nums text-cyber-text">
-                      {quota.balance.toFixed(2)}
-                    </span>
-                    <span className="text-xs font-bold text-cyber-text-secondary">
-                      {quota.balanceUnit || 'CNY'}
-                    </span>
-                  </div>
+        {/* Model ID, with the latency on the right, and its address under it. */}
+        <div className="brand-card-latency mt-1 flex h-5 min-w-0 items-center gap-2 text-xs">
+          <span className="min-w-0 flex-1 truncate font-mono text-[13px] font-semibold text-cyber-text/90">
+            {modelId || '-'}
+          </span>
+          {isPinging ? (
+            <LatencyIndicator />
+          ) : latency === -2 ? (
+            <span className="font-bold text-red-500">{t('model.timedOut')}</span>
+          ) : latency === -1 ? (
+            <span className="font-bold text-red-500">Error</span>
+          ) : latency !== undefined ? (
+            <span className={`font-bold tabular-nums ${modelLatencyColor(latency)}`}>
+              {latency}ms
+            </span>
+          ) : (
+            <span className="text-cyber-text-muted">{t('model.notTested')}</span>
+          )}
+        </div>
+
+        {/* Where the model is served from. */}
+        {hostname && (
+          <div className="truncate text-[11px] leading-4 text-cyber-text-muted">{hostname}</div>
+        )}
+
+        {/* The headline: what is left of the quota that runs out first, or the balance. */}
+        <div className="mt-auto flex min-w-0 items-end gap-2.5">
+          {primary ? (
+            <>
+              <span
+                className={`model-card-hero${tone === 'critical' ? ` ${quotaColorClasses.critical.text}` : ''}`}
+              >
+                {formatQuotaPercent(primary)}
+              </span>
+              <span className="model-card-side">
+                <span>
+                  {/* A quota without a period reports what was used, not what is left. */}
+                  {primary.period
+                    ? `${quotaName(primary, t)} ${t('model.quota.remaining')}`
+                    : quotaName(primary, t)}
+                </span>
+                {primary.resetAt > 0 && <span>{compactCountdown(primary.resetAt, now)}</span>}
+              </span>
+            </>
+          ) : heroBalance ? (
+            <>
+              <span className="model-card-hero">{heroBalance.balance!.toFixed(2)}</span>
+              <span className="model-card-side">
+                <span>{quotaName(heroBalance, t)}</span>
+                <b>{heroBalance.balanceUnit || 'CNY'}</b>
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="model-card-hero text-cyber-text-muted">—</span>
+              <span className="model-card-side">
+                <span>{akSkMissing ? t('model.akSkRequired') : t('model.noUsageData')}</span>
+              </span>
+            </>
+          )}
+          {/* The other quotas, on the right, each with a short bar. */}
+          {others.length > 0 && (
+            <span className="model-card-others">
+              {others.map((quota, idx) =>
+                quota.balance != null ? (
+                  <span key={idx}>
+                    {quotaName(quota, t)} <b>{quota.balance.toFixed(2)}</b>{' '}
+                    {quota.balanceUnit || 'CNY'}
+                  </span>
                 ) : (
-                  <div key={idx} className="space-y-1">
-                    <div className="flex items-baseline gap-2 text-xs">
-                      {quota.period && (
-                        <span className="flex-shrink-0 font-bold text-cyber-text">
-                          {`${t(quotaPeriodKeys[quota.period])} ${t('model.quota.remaining')}`}
-                        </span>
-                      )}
-                      <span className="min-w-0 flex-1 truncate text-[10.5px] text-cyber-text-secondary/85">
-                        {quota.resetAt > 0 ? formatCountdown(quota.resetAt - now, t) : '—'}
-                      </span>
-                      <span
-                        className={`brand-quota-value flex-shrink-0 font-extrabold tabular-nums${tone === 'critical' ? ' is-critical' : ''}`}
-                      >
-                        {formatQuotaPercent(quota)}
-                      </span>
-                    </div>
-                    <div
+                  <span key={idx} className="model-card-other">
+                    {quotaName(quota, t)}
+                    <span
                       role="progressbar"
-                      aria-label={
-                        quota.period ? t(quotaPeriodKeys[quota.period]) : t('model.quota.used')
-                      }
+                      aria-label={quotaName(quota, t)}
                       aria-valuemin={0}
                       aria-valuemax={100}
-                      aria-valuenow={remaining ?? undefined}
-                      className={`relative h-0 flex-shrink-0 rounded-full border-t-[6px] ${colors.track}`}
+                      aria-valuenow={quotaPercent(quota) ?? undefined}
+                      className="model-card-mini"
                     >
-                      <div
-                        className={`quota-progress-fill absolute bottom-0 left-0 h-0 rounded-full border-t-[length:inherit] border-transparent bg-origin-border bg-gradient-to-r ${colors.gradient}`}
-                        style={{ width: `${remaining ?? 0}%` }}
+                      <span
+                        className={`quota-progress-fill block h-full bg-gradient-to-r ${quotaColorClasses[quotaTone(quotaPercent(quota))].gradient}`}
+                        style={{ width: `${quotaPercent(quota) ?? 0}%` }}
                       />
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="m-auto text-center text-xs text-cyber-text-secondary">
-                {akSkMissing ? t('model.akSkRequired') : t('model.noUsageData')}
-              </div>
-            )}
-          </div>
-        ) : (
-          // Config: model, source and latency centred between the header and the protocols.
-          <>
-            <div className="flex min-h-0 flex-1 flex-col justify-center gap-0.5">
-              <div className="flex min-w-0 items-baseline gap-1.5 font-mono text-[13.5px] font-semibold text-cyber-text/90">
-                <span className="brand-card-label">{t('model.label')}</span>
-                <span className="truncate">{modelId || '-'}</span>
-              </div>
-              <div className="flex min-w-0 items-baseline gap-1.5 text-xs text-cyber-text-secondary/90">
-                <span className="brand-card-label">{t('model.source')}</span>
-                <span className="truncate">{hostname}</span>
-              </div>
-              <div className="brand-card-latency flex h-5 min-w-0 items-center gap-1.5 text-xs">
-                <span className="brand-card-label">{t('model.latency')}</span>
-                {isPinging ? (
-                  <LatencyIndicator />
-                ) : latency === -2 ? (
-                  <span className="font-bold text-red-500">{t('model.timedOut')}</span>
-                ) : latency === -1 ? (
-                  <span className="font-bold text-red-500">Error</span>
-                ) : latency !== undefined ? (
-                  <span className={`font-bold ${modelLatencyColor(latency)}`}>{latency}ms</span>
-                ) : (
-                  <span className="text-cyber-text-muted">{t('model.notTested')}</span>
-                )}
-              </div>
-            </div>
-            <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
-              {protocols.includes('openai') && (
-                <span className={`brand-pill${openaiTested ? '' : ' is-untested'}`}>OpenAI</span>
+                    </span>
+                    <b
+                      className={
+                        quotaTone(quotaPercent(quota)) === 'critical'
+                          ? quotaColorClasses.critical.text
+                          : undefined
+                      }
+                    >
+                      {formatQuotaPercent(quota)}
+                    </b>
+                  </span>
+                )
               )}
-              {protocols.includes('anthropic') && (
-                <span className={`brand-pill${anthropicTested ? '' : ' is-untested'}`}>
-                  Anthropic
-                </span>
-              )}
-              {protocols.length === 0 && <span className="text-xs text-cyber-text-muted">-</span>}
-            </div>
-          </>
-        )}
+            </span>
+          )}
+        </div>
       </div>
     );
   },
@@ -460,10 +453,7 @@ export const ModelCard = React.memo(
       'anthropicUrl',
       'modelId',
       'latency',
-      'openaiTested',
-      'anthropicTested',
       'isPinging',
-      'viewMode',
       'isRefreshingUsage',
       'akSkMissing',
       'dragHandle',
@@ -473,12 +463,12 @@ export const ModelCard = React.memo(
     for (const k of keys) {
       if (p[k] !== n[k]) return false;
     }
-    // Compare protocols array by value
-    const pp = prev.protocols || [],
-      np = next.protocols || [];
-    if (pp.length !== np.length || pp.some((v, i) => v !== np[i])) return false;
     // Compare usageData (shallow)
     if (p.usageData !== n.usageData) return false;
+    // An action shows only while its callback is given.
+    for (const k of ['onEdit', 'onDelete', 'onRefresh', 'onAccessKey'] as const) {
+      if (!prev[k] !== !next[k]) return false;
+    }
     return true;
   }
 );

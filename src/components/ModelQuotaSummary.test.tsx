@@ -60,7 +60,7 @@ describe('multi-window model quotas', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
-  it('renders three labeled bars and blocks repeated usage refreshes', () => {
+  it('heads the card with the quota that runs out first and labels every bar', () => {
     const onRefresh = vi.fn();
     act(() => {
       renderer = create(
@@ -68,7 +68,6 @@ describe('multi-window model quotas', () => {
           id="test"
           name="OpenCode Go"
           type="CLOUD"
-          viewMode="usage"
           usageData={usage}
           onRefresh={onRefresh}
           isRefreshingUsage
@@ -86,6 +85,11 @@ describe('multi-window model quotas', () => {
     expect(refresh.props.disabled).toBe(true);
     act(() => refresh.props.onClick({ stopPropagation: vi.fn() }));
     expect(onRefresh).not.toHaveBeenCalled();
-    expect(JSON.stringify(renderer.toJSON())).toContain('—');
+    const text = JSON.stringify(renderer.toJSON());
+    // The five-hour quota is the headline, with its countdown; the others sit beside it.
+    expect(text).toContain('1%');
+    expect(text).toContain('4h8m');
+    expect(text).toContain('80%');
+    expect(text).toContain('20%');
   });
 });

@@ -667,8 +667,6 @@ const zhHant: Partial<Translations> = {
   'model.providers': '模型供應商',
   'model.relays': '特別鳴謝：中轉站',
   'btn.refreshUsage': '重新整理用量',
-  'model.config': '設定',
-  'model.usage': '用量',
   'model.noUsageData': '暫無用量資料',
   'model.accessKey': '存取權限',
   'model.akSkRequired': '需要設定存取權限',

@@ -640,8 +640,6 @@ const en: Translations = {
     'This model configuration will be permanently removed. This action cannot be undone.',
   'model.providers': 'Providers',
   'model.relays': 'Special Thanks: Relay Stations',
-  'model.config': 'Config',
-  'model.usage': 'Usage',
   'model.noUsageData': 'No usage data available',
   'model.accessKey': 'Access Key',
   'model.akSkRequired': 'Access Key required',

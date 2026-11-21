@@ -50,9 +50,6 @@ export interface ModelNexusCtx {
   selectedModel: string | null;
   setSelectedModel: (id: string | null) => void;
   selectedModelData: ModelConfig | undefined;
-  // View mode
-  viewMode: 'config' | 'usage';
-  setViewMode: (mode: 'config' | 'usage') => void;
   // Usage data
   modelUsageData: Record<string, ModelUsageData>;
   setModelUsageData: React.Dispatch<React.SetStateAction<Record<string, ModelUsageData>>>;

@@ -701,8 +701,6 @@ const ja: Partial<Translations> = {
   'model.providers': 'プロバイダー',
   'model.relays': '特別謝辞：中継ステーション',
   'btn.refreshUsage': '使用量を更新',
-  'model.config': '設定',
-  'model.usage': '使用量',
   'model.noUsageData': '使用量データなし',
   'model.accessKey': 'アクセス権',
   'model.akSkRequired': 'アクセス権の設定が必要です',
