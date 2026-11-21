@@ -283,21 +283,6 @@ fn download_destination(dir: &Path, asset: &str) -> PathBuf {
     dir.join(format!("{stem}-{}.{ext}", uuid::Uuid::new_v4()))
 }
 
-#[cfg(any(target_os = "windows", all(test, unix)))]
-async fn run_windows_installer(path: &Path) -> Result<(), String> {
-    // Open the full wizard and let it close EchoBird when installation begins.
-    // Keep the update lock held until the wizard is closed or EchoBird exits.
-    let status = crate::utils::process::async_command(path)
-        .status()
-        .await
-        .map_err(|e| format!("Failed to launch installer: {e}"))?;
-    // NSIS exit code 1 means the user cancelled the wizard.
-    if !matches!(status.code(), Some(0 | 1)) {
-        return Err(format!("Installer stopped without completing: {status}"));
-    }
-    Ok(())
-}
-
 pub async fn download(app: AppHandle, version: String) -> Result<bool, String> {
     let _guard = DOWNLOAD_LOCK
         .try_lock()
@@ -351,11 +336,13 @@ pub async fn install(app: AppHandle, version: String) -> Result<bool, String> {
         };
         windows::remember(&asset, &package.fingerprint);
         emit(&app, "launching", 100);
-        if let Err(error) = run_windows_installer(&package.path).await {
+        if let Err(error) = package.launch_after_exit(std::process::id()).await {
             log::warn!("[SelfUpdate] {error}");
             return Err(error);
         }
-        Ok(true)
+        app.exit(0);
+        // Keep the handoff locked while the app runs its shutdown cleanup.
+        std::future::pending().await
     }
     #[cfg(not(windows))]
     {
@@ -481,42 +468,6 @@ mod tests {
         }
         assert!(platform("linux", "x86_64", false, false).is_err());
         assert!(platform("macos", "riscv64", false, false).is_err());
-    }
-    #[cfg(unix)]
-    #[tokio::test]
-    async fn launches_the_installer_directly_and_waits_for_its_result() {
-        use std::os::unix::fs::PermissionsExt;
-
-        let dir = tempfile::tempdir().unwrap();
-        let installer = dir.path().join("installer with spaces & percent %");
-        assert!(run_windows_installer(&installer)
-            .await
-            .unwrap_err()
-            .contains("Failed to launch installer"));
-
-        std::fs::write(
-            &installer,
-            r#"#!/bin/sh
-printf '%s\n' "$#" > "$0.args"
-if [ -e "$0.status" ]; then
-    exit "$(cat "$0.status")"
-fi
-"#,
-        )
-        .unwrap();
-        std::fs::set_permissions(&installer, std::fs::Permissions::from_mode(0o700)).unwrap();
-        assert!(run_windows_installer(&installer).await.is_ok());
-        assert_eq!(
-            std::fs::read_to_string(installer.with_extension("args")).unwrap(),
-            "0\n"
-        );
-        std::fs::write(installer.with_extension("status"), "1").unwrap();
-        assert!(run_windows_installer(&installer).await.is_ok());
-        std::fs::write(installer.with_extension("status"), "2").unwrap();
-        assert!(run_windows_installer(&installer)
-            .await
-            .unwrap_err()
-            .contains("exit status: 2"));
     }
     #[test]
     fn rejects_unsafe_versions_and_incomplete_or_corrupt_files() {

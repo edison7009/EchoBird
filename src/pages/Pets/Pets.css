@@ -166,6 +166,10 @@
   text-align: left;
   color: rgb(var(--text-primary-rgb));
 }
+/* Keep small text readable over the selected pet's tint in dark mode. */
+.pets-card.brand-row.is-selected {
+  --row-tint: 30%;
+}
 .pets-thumbnail {
   display: flex;
   width: 1.5rem;
@@ -204,7 +208,6 @@
   white-space: nowrap;
   line-height: 16px;
   font-size: 12px;
-  color: rgb(var(--text-muted-rgb));
 }
 .pets-status {
   display: flex;
@@ -213,7 +216,6 @@
   flex-shrink: 0;
   gap: 4px;
   font-size: 12px;
-  color: rgb(var(--text-secondary-rgb));
 }
 .pets-acquire .pets-identity small {
   color: rgb(59 44 34 / 0.65);

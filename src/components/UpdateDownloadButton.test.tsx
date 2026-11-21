@@ -1,6 +1,6 @@
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { PackageOpen, RotateCw } from 'lucide-react';
+import { PackageOpen } from 'lucide-react';
 import type { SelfUpdateProgress } from '../api/tauri';
 import { RoutingHint } from './RoutingToggle';
 import { UpdateDownloadButton } from './UpdateDownloadButton';
@@ -25,7 +25,7 @@ function render(progress: SelfUpdateProgress | null, collapsed = true, ready = f
 }
 
 describe('UpdateDownloadButton', () => {
-  it('labels each of the four states with a tip and no installer icon before launch', () => {
+  it('labels each of the four states with a tip and keeps the package icon during installation', () => {
     const cases: [SelfUpdateProgress | null, string][] = [
       [null, 'updates.download v4.2.0'],
       [{ status: 'speed_test', percent: 0 }, 'updates.connecting'],
@@ -33,12 +33,11 @@ describe('UpdateDownloadButton', () => {
       [{ status: 'launching', percent: 100 }, 'updates.openingInstaller'],
     ];
     for (const [progress, label] of cases) {
-      const { button } = render(progress);
+      const launching = progress?.status === 'launching';
+      const { button } = render(progress, true, launching);
       expect(button.props['aria-label']).toBe(label);
       expect(renderer.root.findByType(RoutingHint).props.hint).toBe(label);
-      expect(renderer.root.findAllByType(RotateCw)).toHaveLength(
-        progress?.status === 'launching' ? 1 : 0
-      );
+      expect(renderer.root.findAllByType(PackageOpen)).toHaveLength(launching ? 1 : 0);
       act(() => renderer.unmount());
     }
   });

@@ -167,16 +167,26 @@ it('ignores a version response after unmount without starting a download', async
   expect(stop).toHaveBeenCalledOnce();
 });
 
-it('keeps download and install as separate clicks and can reopen the installer', async () => {
+it('keeps download and install separate and ignores duplicate clicks during shutdown', async () => {
   vi.mocked(api.downloadUpdate).mockResolvedValueOnce(true);
   await mount();
   await act(async () => state.activate('6.2.1'));
   expect(state.ready).toBe(true);
   expect(api.installDownloadedUpdate).not.toHaveBeenCalled();
 
+  let finish!: (opened: boolean) => void;
+  vi.mocked(api.installDownloadedUpdate).mockReturnValueOnce(
+    new Promise((resolve) => {
+      finish = resolve;
+    })
+  );
+  await act(async () => {
+    void state.activate('6.2.1');
+  });
+  expect(state.progress?.status).toBe('launching');
   await act(async () => state.activate('6.2.1'));
-  await act(async () => state.activate('6.2.1'));
-  expect(api.installDownloadedUpdate).toHaveBeenCalledTimes(2);
+  expect(api.installDownloadedUpdate).toHaveBeenCalledExactlyOnceWith('6.2.1');
+  await act(async () => finish(true));
   expect(api.downloadUpdate).toHaveBeenCalledExactlyOnceWith('6.2.1');
   expect(state.ready).toBe(true);
 });

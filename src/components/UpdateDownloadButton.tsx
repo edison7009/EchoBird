@@ -1,4 +1,4 @@
-import { Download, PackageOpen, RotateCw } from 'lucide-react';
+import { Download, PackageOpen } from 'lucide-react';
 import type { SelfUpdateProgress } from '../api/tauri';
 import { useI18n } from '../hooks/useI18n';
 import { RoutingHint } from './RoutingToggle';
@@ -19,6 +19,7 @@ export function UpdateDownloadButton({
   const { t } = useI18n();
   const percent = Math.max(0, Math.min(100, progress?.percent ?? 0));
   const launching = progress?.status === 'launching';
+  const installing = ready || launching;
   const label = !progress
     ? `${t(ready ? 'updates.install' : 'updates.download')} v${version}`
     : progress.status === 'speed_test'
@@ -34,11 +35,9 @@ export function UpdateDownloadButton({
         aria-busy={!!progress}
         disabled={!!progress}
         onClick={onClick}
-        className={`relative mx-auto flex h-10 shrink-0 items-center justify-center rounded-lg text-red-400 transition-colors hover:bg-cyber-elevated/50 ${ready && !collapsed && !progress ? 'min-w-10 px-2 text-xs font-medium' : 'w-10'}`}
+        className={`relative mx-auto flex h-10 shrink-0 items-center justify-center rounded-lg text-red-400 transition-colors hover:bg-cyber-elevated/50 ${installing && !collapsed ? 'min-w-10 px-2 text-xs font-medium' : 'w-10'}`}
       >
-        {launching ? (
-          <RotateCw size={20} aria-hidden="true" />
-        ) : progress ? (
+        {progress && !launching ? (
           <svg
             aria-hidden="true"
             className={
@@ -76,7 +75,7 @@ export function UpdateDownloadButton({
               }
             />
           </svg>
-        ) : ready ? (
+        ) : installing ? (
           collapsed ? (
             <PackageOpen size={20} aria-hidden="true" />
           ) : (

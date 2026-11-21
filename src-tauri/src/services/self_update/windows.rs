@@ -7,10 +7,61 @@ use std::{
 use tokio::io::AsyncReadExt;
 
 pub(super) struct VerifiedInstaller {
-    pub path: PathBuf,
+    path: PathBuf,
     pub fingerprint: MirrorFile,
     // On Windows this also prevents modification or replacement before launch.
     _file: tokio::fs::File,
+}
+
+#[cfg(windows)]
+impl VerifiedInstaller {
+    pub(super) async fn launch_after_exit(&self, pid: u32) -> Result<(), String> {
+        use std::{process::Stdio, time::Duration};
+        use tokio::io::{AsyncBufReadExt, BufReader};
+
+        // Acquire the process handle and a second read lock before acknowledging
+        // the handoff. The old uninstaller must see that EchoBird has fully exited.
+        let script = r#"
+$ErrorActionPreference = 'Stop'
+$parent = [Diagnostics.Process]::GetProcessById([int]$env:ECHOBIRD_UPDATE_PID)
+$null = $parent.Handle
+$path = $env:ECHOBIRD_UPDATE_INSTALLER
+$file = [IO.File]::OpenRead($path)
+try {
+    [Console]::WriteLine('ready')
+    [Console]::Out.Flush()
+    $parent.WaitForExit()
+    Start-Process -FilePath $path
+} finally {
+    $file.Dispose()
+    $parent.Dispose()
+}
+"#;
+        let powershell = std::env::var_os("SystemRoot")
+            .map(PathBuf::from)
+            .ok_or("Could not locate Windows PowerShell")?
+            .join("System32/WindowsPowerShell/v1.0/powershell.exe");
+        let mut child = crate::utils::process::async_command(powershell)
+            .args(["-NoProfile", "-NonInteractive", "-Command", script])
+            .env("ECHOBIRD_UPDATE_PID", pid.to_string())
+            .env("ECHOBIRD_UPDATE_INSTALLER", &self.path)
+            .stdout(Stdio::piped())
+            .spawn()
+            .map_err(|error| format!("Failed to prepare installer launch: {error}"))?;
+        let stdout = child
+            .stdout
+            .take()
+            .expect("installer helper stdout is piped");
+        let mut lines = BufReader::new(stdout).lines();
+        if matches!(
+            tokio::time::timeout(Duration::from_secs(10), lines.next_line()).await,
+            Ok(Ok(Some(line))) if line == "ready"
+        ) {
+            return Ok(());
+        }
+        let _ = child.kill().await;
+        Err("Installer launcher did not confirm it was ready".into())
+    }
 }
 
 fn matches_asset(name: &str, asset: &str) -> bool {
@@ -241,6 +292,50 @@ mod tests {
                 .unwrap()
                 .is_none()
         );
+    }
+
+    #[cfg(windows)]
+    #[tokio::test]
+    async fn launches_the_wizard_only_after_the_old_process_exits() {
+        use std::{process::Stdio, time::Duration};
+
+        let dir = tempfile::tempdir().unwrap();
+        let installer = dir.path().join("installer with spaces & ampersand.cmd");
+        let launched = dir.path().join("launched");
+        let script = b"@echo off\r\necho launched>\"%~dp0launched\"\r\n";
+        tokio::fs::write(&installer, script).await.unwrap();
+        let expected = MirrorFile {
+            size: script.len() as u64,
+            sha256: format!("{:x}", Sha256::digest(script)),
+        };
+        let package = verify_local(vec![installer], expected)
+            .await
+            .unwrap()
+            .unwrap();
+
+        let mut old_app = crate::utils::process::async_command("cmd.exe")
+            .args(["/D", "/Q"])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .kill_on_drop(true)
+            .spawn()
+            .unwrap();
+        package
+            .launch_after_exit(old_app.id().unwrap())
+            .await
+            .unwrap();
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        assert!(old_app.try_wait().unwrap().is_none());
+        assert!(!launched.exists());
+
+        old_app.kill().await.unwrap();
+        tokio::time::timeout(Duration::from_secs(10), async {
+            while !launched.exists() {
+                tokio::time::sleep(Duration::from_millis(25)).await;
+            }
+        })
+        .await
+        .expect("the waiting launcher should start the installer");
     }
 
     #[cfg(windows)]
