@@ -455,7 +455,11 @@
   display: block;
   width: 100%;
   height: 100%;
-  color: rgb(var(--view-mode-accent-rgb));
+  color: #22c55e;
+}
+
+:root[data-theme='light'] .model-latency-threads {
+  color: #15803d;
 }
 
 .view-mode-tabs {

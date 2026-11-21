@@ -450,6 +450,7 @@ export type TKey =
   | 'btn.copy'
   | 'btn.copied'
   | 'btn.pingAll'
+  | 'btn.pingAllPending'
   | 'btn.refreshUsage'
   // Status
   | 'status.running'

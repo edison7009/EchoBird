@@ -27,7 +27,7 @@ import {
   sortableKeyboardCoordinates,
   arrayMove,
 } from '@dnd-kit/sortable';
-import { X, Lock, Unlock, RefreshCw, GripVertical, ExternalLink } from 'lucide-react';
+import { X, Lock, Unlock, RefreshCw, Gauge, GripVertical, ExternalLink } from 'lucide-react';
 import { BrandDeck, BrandDeckAddCard, BrandDeckCard } from '../../components/BrandDeckCard';
 import { SortableCard } from '../../components/SortableCard';
 import { ModelCard, ModelCardSkeleton, getModelIcon } from '../../components';
@@ -81,12 +81,19 @@ export function ModelNexusTitleActions() {
   return (
     <div className="ml-auto flex-shrink-0 flex items-center gap-3">
       <PageActionButton
-        icon={RefreshCw}
-        spinning={isTesting}
+        icon={Gauge}
+        className="model-nexus-speed-test"
+        pending={isTesting}
         onClick={pingAllModels}
-        disabled={isTesting}
       >
-        {t('btn.pingAll')}
+        <span className="grid">
+          <span className={`col-start-1 row-start-1 ${isTesting ? 'invisible' : ''}`}>
+            {t('btn.pingAll')}
+          </span>
+          <span className={`col-start-1 row-start-1 ${isTesting ? '' : 'invisible'}`}>
+            {t('btn.pingAllPending')}
+          </span>
+        </span>
       </PageActionButton>
       <PageActionButton
         icon={RefreshCw}

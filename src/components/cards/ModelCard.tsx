@@ -202,6 +202,9 @@ export const ModelCard = React.memo(
     const others = quotas.filter((quota) => quota !== primary && quota !== heroBalance);
     const remaining = primary ? quotaPercent(primary) : null;
     const tone = quotaTone(remaining);
+    const headline = primary
+      ? formatQuotaPercent(primary)
+      : (heroBalance?.balance?.toFixed(2) ?? '—');
 
     const now = useUsageClock(!!primary && primary.resetAt > 0);
 
@@ -367,14 +370,14 @@ export const ModelCard = React.memo(
 
         {/* The headline: what is left of the quota that runs out first, or the balance. */}
         <div className="mt-auto flex min-w-0 items-end gap-2.5">
-          {primary ? (
-            <>
-              <span
-                className={`model-card-hero${tone === 'critical' ? ` ${quotaColorClasses.critical.text}` : ''}`}
-              >
-                {formatQuotaPercent(primary)}
-              </span>
-              <span className="model-card-side">
+          <span
+            className={`model-card-hero${!primary && !heroBalance ? ' text-cyber-text-muted' : tone === 'critical' ? ` ${quotaColorClasses.critical.text}` : ''}`}
+          >
+            {headline}
+          </span>
+          <span className="model-card-side">
+            {primary ? (
+              <>
                 <span>
                   {/* A quota without a period reports what was used, not what is left. */}
                   {primary.period
@@ -382,36 +385,28 @@ export const ModelCard = React.memo(
                     : quotaName(primary, t)}
                 </span>
                 {primary.resetAt > 0 && <span>{compactCountdown(primary.resetAt, now)}</span>}
-              </span>
-            </>
-          ) : heroBalance ? (
-            <>
-              <span className="model-card-hero">{heroBalance.balance!.toFixed(2)}</span>
-              <span className="model-card-side">
+              </>
+            ) : heroBalance ? (
+              <>
                 <span>{quotaName(heroBalance, t)}</span>
                 <b>{heroBalance.balanceUnit || 'CNY'}</b>
-              </span>
-            </>
-          ) : (
-            <>
-              <span className="model-card-hero text-cyber-text-muted">—</span>
-              <span className="model-card-side">
-                <span>{akSkMissing ? t('model.akSkRequired') : t('model.noUsageData')}</span>
-              </span>
-            </>
-          )}
+              </>
+            ) : (
+              <span>{akSkMissing ? t('model.akSkRequired') : t('model.noUsageData')}</span>
+            )}
+          </span>
           {/* The other quotas, on the right, each with a short bar. */}
           {others.length > 0 && (
             <span className="model-card-others">
               {others.map((quota, idx) =>
                 quota.balance != null ? (
-                  <span key={idx}>
+                  <span key={idx} className="model-card-other-balance">
                     {quotaName(quota, t)} <b>{quota.balance.toFixed(2)}</b>{' '}
                     {quota.balanceUnit || 'CNY'}
                   </span>
                 ) : (
                   <span key={idx} className="model-card-other">
-                    {quotaName(quota, t)}
+                    <span className="model-card-other-name">{quotaName(quota, t)}</span>
                     <span
                       role="progressbar"
                       aria-label={quotaName(quota, t)}

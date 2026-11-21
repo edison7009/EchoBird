@@ -615,6 +615,7 @@ const en: Translations = {
   'btn.stop': 'STOP',
   'btn.remove': 'REMOVE',
   'btn.pingAll': 'Test Latency',
+  'btn.pingAllPending': 'Testing…',
   'btn.refreshUsage': 'Refresh Usage',
   // Model dialog
   'model.name': 'Name',

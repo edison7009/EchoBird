@@ -6,3 +6,25 @@
 .model-nexus-grid-fill {
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* The first path in Lucide's Gauge is the needle. Its pivot is at (12, 14). */
+  .model-nexus-speed-test[aria-busy='true'] .lucide-gauge path:first-child {
+    transform-box: view-box;
+    transform-origin: 50% 58.333%;
+    animation: model-nexus-gauge-sweep 1400ms ease-in-out;
+  }
+}
+
+@keyframes model-nexus-gauge-sweep {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  24% {
+    transform: rotate(-70deg);
+  }
+  62% {
+    transform: rotate(54deg);
+  }
+}

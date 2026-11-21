@@ -575,6 +575,7 @@ const zhHans: Partial<Translations> = {
   'btn.stop': '停止',
   'btn.remove': '移除',
   'btn.pingAll': '测试速度',
+  'btn.pingAllPending': '测试中…',
   'btn.refreshUsage': '刷新用量',
   'model.name': '名称',
   'model.apiKey': 'API 密钥',

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import * as api from '../../api/tauri';
 import { ModelCard } from '../../components/cards/ModelCard';
 import { ModelNexusProvider } from './provider';
+import { ModelNexusTitleActions } from './ModelNexus';
 import { useModelNexus } from './context';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { OnFirstVisit } from '../../components/OnFirstVisit';
@@ -12,6 +13,7 @@ vi.mock('../../hooks/useI18n', () => ({ useI18n: () => ({ t: (key: string) => ke
 vi.mock('../../components/Toast', () => ({ useToast: () => ({ showToast: vi.fn() }) }));
 vi.mock('../../components/ConfirmDialog', () => ({ useConfirm: () => vi.fn() }));
 vi.mock('../../components/LatencyIndicator', () => ({ LatencyIndicator: () => null }));
+vi.mock('../../components', () => import('../../components/cards'));
 vi.mock('../../api/tauri', () => ({
   getModels: vi.fn(),
   pingModel: vi.fn(),
@@ -28,7 +30,13 @@ function Harness() {
     context = state;
   });
   return (
-    <ModelCard id="fixture" name="Fixture" type="cloud" latency={state.modelLatencies.fixture} />
+    <ModelCard
+      id="fixture"
+      name="Fixture"
+      type="cloud"
+      latency={state.modelLatencies.fixture}
+      isPinging={state.pingingModelIds.has('fixture')}
+    />
   );
 }
 beforeEach(() => {
@@ -108,7 +116,12 @@ it('does not rerender the model tree on a timer while a request is pending and r
   function ModelTree() {
     useModelNexus();
     renders++;
-    return <Harness />;
+    return (
+      <>
+        <ModelNexusTitleActions />
+        <Harness />
+      </>
+    );
   }
   let finish!: (value: Awaited<ReturnType<typeof api.pingModel>>) => void;
   vi.mocked(api.pingModel).mockReturnValueOnce(new Promise((resolve) => (finish = resolve)));
@@ -119,10 +132,23 @@ it('does not rerender the model tree on a timer while a request is pending and r
       </ModelNexusProvider>
     );
   });
+  const speedButton = () =>
+    renderer!.root
+      .findAllByType('button')
+      .find((button) => button.props.className.includes('model-nexus-speed-test'))!;
+  expect(speedButton().findByType('svg').props.className).toContain('lucide-gauge');
+  expect(speedButton().props.disabled).toBe(false);
   let request!: Promise<void>;
   act(() => {
-    request = context.pingAllModels();
+    request = speedButton().props.onClick();
   });
+  expect(speedButton().props['aria-busy']).toBe(true);
+  expect(speedButton().props.disabled).toBe(true);
+  expect(
+    speedButton()
+      .findAllByType('span')
+      .find((span) => span.children[0] === 'btn.pingAllPending')?.props.className
+  ).not.toContain('invisible');
   const waiting = renders;
   await act(async () => {
     vi.advanceTimersByTime(2000);
@@ -137,12 +163,18 @@ it('does not rerender the model tree on a timer while a request is pending and r
   expect(context.isTesting).toBe(true);
   expect(api.pingModel).toHaveBeenCalledOnce();
   await act(async () => {
-    finish({ success: true, latency: 10, url: 'https://fixture.test' });
+    finish({ success: true, latency: 399, url: 'https://fixture.test' });
     await request;
   });
   await act(async () => useNavigationStore.getState().setActivePage('models'));
   expect(context.isTesting).toBe(false);
-  expect(context.modelLatencies.fixture).toBe(10);
+  expect(speedButton().props['aria-busy']).toBeUndefined();
+  expect(speedButton().props.disabled).toBe(false);
+  expect(context.modelLatencies.fixture).toBe(399);
+  const result = renderer!.root.find(
+    (node) => node.type === 'span' && node.children.join('') === '399ms'
+  );
+  expect(result.props.className).toContain('text-yellow-500');
   expect(vi.getTimerCount()).toBe(0);
   expect(api.queryModelUsage).not.toHaveBeenCalled();
   expect(api.updateModel).not.toHaveBeenCalled();

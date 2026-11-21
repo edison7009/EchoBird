@@ -30,7 +30,12 @@
   line-height: 1.35;
   color: rgb(var(--text-secondary-rgb));
   white-space: nowrap;
+  text-align: start;
 }
+.model-card-side {
+  line-height: 1;
+}
+
 .model-card-side > * {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -44,25 +49,33 @@
 
 /* The other quotas, on the right of the headline. */
 .model-card-others {
-  flex: none;
-  margin-left: auto;
-  justify-items: end;
+  margin-inline-start: auto;
+  grid-template-columns: minmax(0, max-content) auto auto;
+  align-items: center;
+  gap: 4px 5px;
 }
 
-/* Each of the other quotas: its name, a short bar and what is left. */
-.model-card-others {
-  gap: 4px;
+.model-card-other-balance {
+  grid-column: 1 / -1;
 }
+
 .model-card-other {
-  display: grid;
-  grid-template-columns: auto 26px 2.6em;
-  align-items: center;
-  gap: 5px;
+  display: contents;
 }
+
+.model-card-other-name,
+.model-card-other-balance {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .model-card-other > b {
-  text-align: right;
+  min-inline-size: 2.6em;
+  text-align: end;
 }
+
 .model-card-mini {
+  width: 26px;
   height: 3px;
   overflow: hidden;
   border-radius: 999px;

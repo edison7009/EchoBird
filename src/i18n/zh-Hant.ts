@@ -611,6 +611,7 @@ const zhHant: Partial<Translations> = {
   'btn.stop': '停止',
   'btn.remove': '移除',
   'btn.pingAll': '測試延遲',
+  'btn.pingAllPending': '測試中…',
   'model.name': '名稱',
   'model.apiKey': 'API 金鑰',
   'model.paste': '貼上',

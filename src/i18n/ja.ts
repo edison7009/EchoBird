@@ -642,6 +642,7 @@ const ja: Partial<Translations> = {
   'btn.stop': '停止',
   'btn.remove': '除去',
   'btn.pingAll': '速度テスト',
+  'btn.pingAllPending': 'テスト中…',
   'model.name': '名前',
   'model.apiKey': 'API キー',
   'model.paste': '貼り付け',
