@@ -5,6 +5,5 @@ Zip (haste), and Puff (super growth). Echo also illustrates the combo card. Each
 procedural shapes, one layer at a time (body, eyes, joy, wince, smile, open),
 then cut out by rendering every layer on black and on white.
 
-Nothing here is taken from third-party sites or packs. The reproducible generator
-is in `dev-tools/pet-supply-art/` (standalone pinned Bevy/Rust workspace and `matte.py`).
-See its README for rendering and layer extraction instructions.
+All layers are original EchoBird artwork. The packaged WebP files are
+produced by a standalone Bevy renderer and a matte extraction script.

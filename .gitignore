@@ -65,6 +65,7 @@ lint-output.txt
 .electron-cache
 
 # One-off / scratch files (do not commit)
+/dev-tools/pet-supply-art/
 tmp/
 .agent/
 # Local scratch scripts, except the scheduled free-model maintainer.

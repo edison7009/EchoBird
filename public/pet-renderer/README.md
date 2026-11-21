@@ -11,5 +11,3 @@ configuration/environment controls its build cache. No machine-specific paths
 are stored in the build script. `npm run pet-renderer:check` verifies that the
 packaged files match the recorded sources and hashes; it does not replace a
 WASM build or native WebView testing.
-
-The artwork generator is separate, in `dev-tools/pet-supply-art/`.
