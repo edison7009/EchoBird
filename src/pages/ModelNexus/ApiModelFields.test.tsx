@@ -23,7 +23,6 @@ vi.mock('../../api/models', async (original) => ({
   queryModelUsage: vi.fn(),
   addModel: vi.fn(),
   updateModel: vi.fn(),
-  testModel: vi.fn(),
   pingModel: vi.fn(),
 }));
 
@@ -180,7 +179,6 @@ it('uses the cached Edit options until explicitly refreshed', async () => {
   expect(api.queryModelUsage).not.toHaveBeenCalled();
   expect(api.addModel).not.toHaveBeenCalled();
   expect(api.updateModel).not.toHaveBeenCalled();
-  expect(api.testModel).not.toHaveBeenCalled();
   expect(api.pingModel).not.toHaveBeenCalled();
 });
 
@@ -523,7 +521,6 @@ it('passes an encrypted API key only to catalog commands without unlocking or ch
   expect(api.addModel).not.toHaveBeenCalled();
   expect(api.updateModel).not.toHaveBeenCalled();
   expect(api.queryModelUsage).not.toHaveBeenCalled();
-  expect(api.testModel).not.toHaveBeenCalled();
 });
 
 it('exposes refresh only for a valid HTTP endpoint and leaves manual IDs available', async () => {

@@ -31,7 +31,6 @@ export function openAccountModelForm(
   });
   context.setEditingModelId(null);
   context.setKeyDestroyed(false);
-  context.setShowApiKey(false);
   context.setModelModalDestination(destination);
   context.setShowAddModelModal(true);
 }

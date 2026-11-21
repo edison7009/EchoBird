@@ -1,7 +1,5 @@
 import { useModelRepository } from '../../hooks/useModelRepository';
 import { isSmartRouterId } from '../../utils/smartRouter';
-// Model Nexus Page — Model cards, debug console, add/edit modal
-// Extracted from App.tsx with Provider pattern for shared state
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { open as shellOpen } from '@tauri-apps/plugin-shell';
 import { readText as readClipboardText } from '@tauri-apps/plugin-clipboard-manager';
@@ -46,9 +44,9 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
   const repository = useModelRepository(visibleModelNexusModel);
   const { models: userModels, setModels: setUserModels } = repository;
   const isLoadingModels = repository.loading;
-  const [selectedModel, setSelectedModel] = useState<string | null>('gpt4o');
   const [pingingModelIds, setPingingModelIds] = useState<Set<string>>(new Set());
 
+  // Usage refresh state
   const [modelUsageData, setModelUsageData] = useState<Record<string, ModelUsageData>>({});
   const usageAccessRevision = useRef<Record<string, number>>({});
   const editingUsageModel = useRef<ModelConfig | null>(null);
@@ -102,7 +100,6 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
   >('modelNexus');
   const [modelModalAnimatingOut, setModelModalAnimatingOut] = useState(false);
   const [editingModelId, setEditingModelId] = useState<string | null>(null);
-  const [showApiKey, setShowApiKey] = useState(false);
   const [keyDestroyed, setKeyDestroyed] = useState(false);
   const [newModelForm, setNewModelForm] = useState<NewModelForm>({
     name: '',
@@ -204,28 +201,14 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
     [setUserModels, invalidateModelUsage, showToast]
   );
 
-  // Test state
-  const [testInput, setTestInput] = useState('');
-  const [testOutput, setTestOutput] = useState<string[]>([]);
-  const [isTesting, setIsTesting] = useState(false);
-  const [modelLatencies, setModelLatencies] = useState<Record<string, number>>({});
-  const [modelTerminals, setModelTerminals] = useState<
-    Record<string, { input: string; output: string[] }>
-  >({});
-  const [testProtocol, setTestProtocol] = useState<'openai' | 'anthropic'>('openai');
-  const testInputRef = useRef<HTMLInputElement>(null!);
-  const [inputFocused, setInputFocused] = useState(false);
-  const [cursorPos, setCursorPos] = useState(0);
-
-  // Derived
-  const selectedModelData = userModels.find((m) => m.internalId === selectedModel);
-
   // Auto-fill Model ID and API Key for local models
   useEffect(() => {
     const isLocal = (url: string) => url.includes('localhost') || url.includes('127.0.0.1');
     const hasLocalUrl = isLocal(newModelForm.baseUrl) || isLocal(newModelForm.anthropicUrl);
 
     if (hasLocalUrl) {
+      // Apply defaults only when an endpoint changes so either field can be cleared afterward.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setNewModelForm((prev) => {
         const updates: { modelId?: string; apiKey?: string } = {};
         if (!prev.modelId) updates.modelId = 'local-model';
@@ -235,28 +218,9 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
     }
   }, [newModelForm.baseUrl, newModelForm.anthropicUrl]);
 
-  // Listen for model selection change - auto restore terminal history and focus
-  useEffect(() => {
-    if (selectedModel && modelTerminals[selectedModel]) {
-      const saved = modelTerminals[selectedModel];
-      setTestInput(saved?.input || '');
-      setTestOutput(saved?.output || []);
-    } else {
-      setTestInput('');
-      setTestOutput([]);
-    }
-    testInputRef.current?.focus();
-    // Restore terminal history only when the selected model changes; reading the
-    // latest modelTerminals here is intentional (no re-run on map updates).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedModel]);
+  const [isTesting, setIsTesting] = useState(false);
+  const [modelLatencies, setModelLatencies] = useState<Record<string, number>>({});
 
-  // Listen for protocol change - focus input
-  useEffect(() => {
-    testInputRef.current?.focus();
-  }, [testProtocol]);
-
-  // ping --all
   const pingAllModels = async () => {
     if (isTesting) return;
     setIsTesting(true);
@@ -461,69 +425,6 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
     }
   };
 
-  // Model test function
-  const handleTestModel = async () => {
-    if (!testInput.trim() || !selectedModel || isTesting) return;
-
-    const prompt = testInput.trim();
-    setTestInput('');
-    setIsTesting(true);
-    testInputRef.current?.blur();
-
-    // Smart protocol selection
-    let effectiveProtocol = testProtocol;
-    if (selectedModelData) {
-      if (!selectedModelData.baseUrl && selectedModelData.anthropicUrl) {
-        effectiveProtocol = 'anthropic';
-      } else if (selectedModelData.baseUrl && !selectedModelData.anthropicUrl) {
-        effectiveProtocol = 'openai';
-      }
-    }
-
-    setTestOutput((prev) => [
-      ...prev,
-      `> ${prompt}`,
-      `Sending request via ${effectiveProtocol === 'openai' ? 'OpenAI' : 'Anthropic'}...`,
-    ]);
-
-    try {
-      if (!api.testModel) {
-        setTestOutput((prev) => [...prev, 'Test API not available']);
-        return;
-      }
-
-      const result = await api.testModel(selectedModel, prompt, effectiveProtocol);
-
-      if (result.success) {
-        setModelLatencies((prev) => ({ ...prev, [selectedModel]: result.latency }));
-        setTestOutput((prev) => [
-          ...prev,
-          `Response in ${result.latency}ms`,
-          result.response || 'No response',
-        ]);
-        // Reload model list to refresh test status
-        await repository.reload();
-      } else {
-        // Sentinel -1 so the model card shows "Error" instead of the
-        // pre-test "未测试" placeholder — see pingAllModels for the
-        // same reasoning.
-        setModelLatencies((prev) => ({ ...prev, [selectedModel]: -1 }));
-        setTestOutput((prev) =>
-          [
-            ...prev,
-            result.error || 'Unknown error',
-            result.latency > 0 ? `(failed after ${result.latency}ms)` : '',
-          ].filter(Boolean)
-        );
-      }
-    } catch (error) {
-      setModelLatencies((prev) => ({ ...prev, [selectedModel]: -1 }));
-      setTestOutput((prev) => [...prev, String(error)]);
-    } finally {
-      setIsTesting(false);
-    }
-  };
-
   return (
     <ModelNexusContext.Provider
       value={{
@@ -531,34 +432,15 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
         setUserModels,
         updateUserModel,
         isLoadingModels,
-        selectedModel,
-        setSelectedModel,
-        selectedModelData,
         modelUsageData,
         isRefreshingUsage,
         refreshingUsageIds,
         setModelUsageData,
         volcAkSkMissingIds,
-        setVolcAkSkMissingIds,
-        volcAkSkModelId,
-        setVolcAkSkModelId,
         saveVolcAksk,
-        testInput,
-        setTestInput,
-        testOutput,
-        setTestOutput,
         isTesting,
-        testProtocol,
-        setTestProtocol,
         modelLatencies,
         pingingModelIds,
-        modelTerminals,
-        setModelTerminals,
-        testInputRef,
-        inputFocused,
-        setInputFocused,
-        cursorPos,
-        setCursorPos,
         showAddModelModal,
         setShowAddModelModal,
         modelModalDestination,
@@ -568,15 +450,12 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
         setEditingModelId,
         newModelForm,
         setNewModelForm,
-        showApiKey,
-        setShowApiKey,
         keyDestroyed,
         setKeyDestroyed,
         closeModelModal,
         pingAllModels,
         refreshAllUsage,
         refreshSingleUsage,
-        handleTestModel,
         handleCardEdit,
         handleCardDelete,
         openAkskModal,

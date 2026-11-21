@@ -1,7 +1,7 @@
 import { modelRepository } from '../stores/modelRepository';
-// Model APIs — CRUD, test, ping, encryption
+// Model APIs — CRUD, ping, encryption
 import { invoke } from '@tauri-apps/api/core';
-import type { AccountSource, ModelConfig, ModelTestResult, PingResult } from './types';
+import type { AccountSource, ModelConfig, PingResult } from './types';
 import type { VoiceDirectoryEntry } from './voiceInput';
 
 // Scoped consumers such as Voice Input retain their own query projections.
@@ -86,14 +86,6 @@ export async function updateModel(
   modelRepository.invalidate();
   notifyScopedModels();
   return result;
-}
-
-export async function testModel(
-  internalId: string,
-  prompt: string,
-  protocol: string = 'openai'
-): Promise<ModelTestResult> {
-  return invoke('test_model', { internalId, prompt, protocol });
 }
 
 /** Persist a user-defined model display order (full visible list of

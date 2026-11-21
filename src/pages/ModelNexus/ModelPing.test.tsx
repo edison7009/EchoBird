@@ -16,7 +16,6 @@ vi.mock('../../api/tauri', () => ({
   getModels: vi.fn(),
   pingModel: vi.fn(),
   finishConnectionTestBatch: vi.fn().mockResolvedValue(undefined),
-  testModel: vi.fn(),
   queryModelUsage: vi.fn(),
   updateModel: vi.fn(),
 }));
@@ -94,7 +93,6 @@ it('continues queued model speed tests while another page is shown and retains r
   expect(context.pingingModelIds.size).toBe(0);
   expect(api.pingModel).toHaveBeenCalledTimes(2);
   expect(api.finishConnectionTestBatch).toHaveBeenCalledExactlyOnceWith(batch);
-  expect(api.testModel).not.toHaveBeenCalled();
   expect(api.queryModelUsage).not.toHaveBeenCalled();
   expect(api.updateModel).not.toHaveBeenCalled();
 });
@@ -112,8 +110,8 @@ it('does not rerender the model tree on a timer while a request is pending and r
     renders++;
     return <Harness />;
   }
-  let finish!: (value: Awaited<ReturnType<typeof api.testModel>>) => void;
-  vi.mocked(api.testModel).mockReturnValueOnce(new Promise((resolve) => (finish = resolve)));
+  let finish!: (value: Awaited<ReturnType<typeof api.pingModel>>) => void;
+  vi.mocked(api.pingModel).mockReturnValueOnce(new Promise((resolve) => (finish = resolve)));
   await act(async () => {
     renderer = create(
       <ModelNexusProvider>
@@ -121,10 +119,9 @@ it('does not rerender the model tree on a timer while a request is pending and r
       </ModelNexusProvider>
     );
   });
-  act(() => context.setTestInput('fixture prompt'));
   let request!: Promise<void>;
   act(() => {
-    request = context.handleTestModel();
+    request = context.pingAllModels();
   });
   const waiting = renders;
   await act(async () => {
@@ -138,14 +135,14 @@ it('does not rerender the model tree on a timer while a request is pending and r
   });
   expect(renders).toBe(hidden);
   expect(context.isTesting).toBe(true);
-  expect(api.testModel).toHaveBeenCalledOnce();
+  expect(api.pingModel).toHaveBeenCalledOnce();
   await act(async () => {
-    finish({ success: true, latency: 10, response: 'fixture result', protocol: 'openai' });
+    finish({ success: true, latency: 10, url: 'https://fixture.test' });
     await request;
   });
   await act(async () => useNavigationStore.getState().setActivePage('models'));
   expect(context.isTesting).toBe(false);
-  expect(context.testOutput).toContain('fixture result');
+  expect(context.modelLatencies.fixture).toBe(10);
   expect(vi.getTimerCount()).toBe(0);
   expect(api.queryModelUsage).not.toHaveBeenCalled();
   expect(api.updateModel).not.toHaveBeenCalled();
@@ -177,7 +174,6 @@ it.each([
   expect(api.finishConnectionTestBatch).toHaveBeenCalledExactlyOnceWith(
     vi.mocked(api.pingModel).mock.calls[0][1]
   );
-  expect(api.testModel).not.toHaveBeenCalled();
   expect(api.queryModelUsage).not.toHaveBeenCalled();
   expect(api.updateModel).not.toHaveBeenCalled();
 });
@@ -213,7 +209,6 @@ it('uses one round for all rows and starts a fresh round on the next click', asy
   expect(api.pingModel).toHaveBeenCalledTimes(4);
   expect(vi.mocked(api.pingModel).mock.calls[2][1]).not.toBe(batch);
   expect(api.finishConnectionTestBatch).toHaveBeenCalledTimes(2);
-  expect(api.testModel).not.toHaveBeenCalled();
   expect(api.queryModelUsage).not.toHaveBeenCalled();
   expect(api.updateModel).not.toHaveBeenCalled();
 });

@@ -88,14 +88,6 @@ export interface ModelConfig {
   scope?: 'modelCenter' | 'smartRouter' | 'voiceInput';
 }
 
-export interface ModelTestResult {
-  success: boolean;
-  latency: number;
-  response?: string;
-  error?: string;
-  protocol: 'openai' | 'anthropic';
-}
-
 export interface PingResult {
   success: boolean;
   latency: number;

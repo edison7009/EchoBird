@@ -33,7 +33,6 @@ const { confirm, showToast, nexus, startDrag, keyboardDrag, dragState, measure, 
       setModelModalDestination: vi.fn(),
       setShowAddModelModal: vi.fn(),
       setKeyDestroyed: vi.fn(),
-      setShowApiKey: vi.fn(),
     },
   }));
 vi.mock('../../hooks/useI18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));

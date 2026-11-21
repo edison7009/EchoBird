@@ -1,4 +1,3 @@
-// Model Nexus Page — Model cards, debug console, add/edit modal
 // Extracted from App.tsx with Provider pattern for shared state
 import {
   useState,
@@ -110,17 +109,11 @@ export function ModelNexusMain() {
     userModels,
     isLoadingModels,
     modelUsageData,
-    setTestOutput: _setTestOutput,
-    testProtocol: _testProtocol,
     modelLatencies,
     pingingModelIds,
-    modelTerminals: _modelTerminals,
-    isTesting: _isTesting,
-    editingModelId: _editingModelId,
     setEditingModelId,
     setNewModelForm,
     setShowAddModelModal,
-    keyDestroyed: _keyDestroyed,
     handleCardEdit,
     handleCardDelete,
     openAkskModal,

@@ -177,18 +177,6 @@ mod tests {
     }
 }
 
-/// Model test result (returned to frontend)
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TestResult {
-    pub success: bool,
-    pub latency: f64,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub response: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub error: Option<String>,
-    pub protocol: String,
-}
-
 /// Model ping result
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PingResult {

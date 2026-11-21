@@ -1133,7 +1133,6 @@ pub fn run() {
                 model_commands::delete_model,
                 model_commands::update_model,
                 model_commands::reorder_models,
-                model_commands::test_model,
                 model_commands::ping_model,
                 model_commands::finish_connection_test_batch,
                 model_commands::is_key_destroyed,

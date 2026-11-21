@@ -47,9 +47,6 @@ export interface ModelNexusCtx {
   setUserModels: React.Dispatch<React.SetStateAction<ModelConfig[]>>;
   updateUserModel: (model: ModelConfig, form: NewModelForm) => void;
   isLoadingModels: boolean;
-  selectedModel: string | null;
-  setSelectedModel: (id: string | null) => void;
-  selectedModelData: ModelConfig | undefined;
   // Usage data
   modelUsageData: Record<string, ModelUsageData>;
   setModelUsageData: React.Dispatch<React.SetStateAction<Record<string, ModelUsageData>>>;
@@ -57,29 +54,11 @@ export interface ModelNexusCtx {
   refreshingUsageIds: Set<string>;
   // Volcengine AK/SK (per-model: one account per model)
   volcAkSkMissingIds: Set<string>;
-  setVolcAkSkMissingIds: React.Dispatch<React.SetStateAction<Set<string>>>;
-  volcAkSkModelId: string | null;
-  setVolcAkSkModelId: (id: string | null) => void;
   saveVolcAksk: (internalId: string, accessKey: string, secretKey: string) => Promise<void>;
-  // Test
-  testInput: string;
-  setTestInput: (v: string) => void;
-  testOutput: string[];
-  setTestOutput: React.Dispatch<React.SetStateAction<string[]>>;
+  // Connection tests
   isTesting: boolean;
-  testProtocol: 'openai' | 'anthropic';
-  setTestProtocol: (v: 'openai' | 'anthropic') => void;
   modelLatencies: Record<string, number>;
   pingingModelIds: Set<string>;
-  modelTerminals: Record<string, { input: string; output: string[] }>;
-  setModelTerminals: React.Dispatch<
-    React.SetStateAction<Record<string, { input: string; output: string[] }>>
-  >;
-  testInputRef: React.RefObject<HTMLInputElement>;
-  inputFocused: boolean;
-  setInputFocused: (v: boolean) => void;
-  cursorPos: number;
-  setCursorPos: (v: number) => void;
   // Modal
   showAddModelModal: boolean;
   setShowAddModelModal: (v: boolean) => void;
@@ -90,8 +69,6 @@ export interface ModelNexusCtx {
   setEditingModelId: (v: string | null) => void;
   newModelForm: NewModelForm;
   setNewModelForm: React.Dispatch<React.SetStateAction<NewModelForm>>;
-  showApiKey: boolean;
-  setShowApiKey: (v: boolean) => void;
   keyDestroyed: boolean;
   setKeyDestroyed: (v: boolean) => void;
   closeModelModal: () => void;
@@ -103,7 +80,6 @@ export interface ModelNexusCtx {
   pingAllModels: () => Promise<void>;
   refreshAllUsage: () => Promise<void>;
   refreshSingleUsage: (modelId: string, options?: UsageRefreshOptions) => Promise<void>; // Single model refresh
-  handleTestModel: () => Promise<void>;
 }
 
 // ===== Context =====

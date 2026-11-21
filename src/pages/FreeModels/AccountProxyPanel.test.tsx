@@ -14,7 +14,6 @@ const { context, confirm } = vi.hoisted(() => ({
     setNewModelForm: vi.fn(),
     setEditingModelId: vi.fn(),
     setKeyDestroyed: vi.fn(),
-    setShowApiKey: vi.fn(),
     setModelModalDestination: vi.fn(),
     setShowAddModelModal: vi.fn(),
   },

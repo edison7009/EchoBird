@@ -721,7 +721,6 @@ export function VoiceInputPanel() {
     });
     models.setEditingModelId(null);
     models.setKeyDestroyed(false);
-    models.setShowApiKey(false);
     models.setShowAddModelModal(true);
   };
   return (

@@ -1,6 +1,6 @@
 // Tauri Commands for model operations �?exposed to frontend via invoke()
 
-use crate::models::model::{ModelConfig, ModelScope, PingResult, TestResult};
+use crate::models::model::{ModelConfig, ModelScope, PingResult};
 use crate::services::model_manager::{self, AddModelInput, UpdateModelInput};
 use crate::services::upstream_model_catalog::{self, CatalogInput, ModelCatalog};
 use crate::services::usage_providers::{self, UsageResult};
@@ -111,16 +111,6 @@ fn validate_model_update(existing: &ModelConfig, updates: &UpdateModelInput) -> 
 #[tauri::command]
 pub fn reorder_models(ordered_ids: Vec<String>) -> Result<bool, String> {
     model_manager::reorder_models(ordered_ids)
-}
-
-/// Test model with API request
-#[tauri::command]
-pub async fn test_model(
-    internal_id: String,
-    prompt: String,
-    protocol: String,
-) -> Result<TestResult, String> {
-    Ok(model_manager::test_model(&internal_id, &prompt, &protocol).await)
 }
 
 /// Ping model server

@@ -44,7 +44,6 @@ vi.mock('../../api/tauri', () => ({
   decryptSecret: vi.fn(),
   encryptSecret: vi.fn(),
   queryModelUsage: vi.fn(),
-  testModel: vi.fn(),
 }));
 vi.mock('../../api/models', () => ({
   addModel: vi.fn(),
@@ -129,7 +128,6 @@ function expectNoModelActions() {
   expect(api.updateModel).not.toHaveBeenCalled();
   expect(api.deleteModel).not.toHaveBeenCalled();
   expect(api.queryModelUsage).not.toHaveBeenCalled();
-  expect(api.testModel).not.toHaveBeenCalled();
   expect(api.decryptSecret).not.toHaveBeenCalled();
   expect(api.encryptSecret).not.toHaveBeenCalled();
   expect(invoke).not.toHaveBeenCalled();
@@ -254,7 +252,6 @@ it.each(['', '   '])('saves a custom Smart Router API with a blank key (%j)', as
   );
   expect(addSelectedModel).toHaveBeenCalledWith(expect.objectContaining({ apiKey }));
   expect(api.deleteModel).not.toHaveBeenCalled();
-  expect(api.testModel).not.toHaveBeenCalled();
   expect(showToast).not.toHaveBeenCalled();
   expect(context.showAddModelModal).toBe(false);
 });
@@ -271,7 +268,6 @@ it('saves an existing Smart Router API after clearing its key', async () => {
     expect.objectContaining({ apiKey: '' })
   );
   expect(updateSelectedModel).toHaveBeenCalledWith(expect.objectContaining({ apiKey: '' }));
-  expect(api.testModel).not.toHaveBeenCalled();
   expect(api.decryptSecret).not.toHaveBeenCalled();
   expect(showToast).not.toHaveBeenCalled();
   expect(context.showAddModelModal).toBe(false);
@@ -326,7 +322,6 @@ it('opens saved API Edit through the shared handler, refreshes manually and writ
   );
   expect(context.showAddModelModal).toBe(false);
   expect(api.queryModelUsage).not.toHaveBeenCalled();
-  expect(api.testModel).not.toHaveBeenCalled();
   expect(api.decryptSecret).not.toHaveBeenCalled();
   expect(invoke).not.toHaveBeenCalled();
 });
