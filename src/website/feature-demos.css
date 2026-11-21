@@ -164,24 +164,6 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.route-model-id {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10px;
-  color: #b1b2a6;
-}
-.route-model-id > span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.route-model-id em {
-  color: #52b87d;
-  font-style: normal;
-  flex-shrink: 0;
-}
 .route-keyless {
   position: absolute;
   top: 7px;
@@ -360,9 +342,6 @@ body {
   .route-demo-name {
     font-size: 11px;
   }
-  .route-model-id {
-    font-size: 9px;
-  }
 }
 
 .route-relay-icon {
@@ -375,9 +354,6 @@ body {
 }
 .route-demo-card[data-active='true'] {
   background: linear-gradient(135deg, #353129fa, #262821fa);
-}
-.route-demo-card .model-id-combobox {
-  font-size: 11px;
 }
 @media (max-width: 420px) {
   .route-relay-icon {

@@ -13,9 +13,7 @@ export interface ViewModeTabPosition {
   height: number;
 }
 
-// Every desktop platform paints the selected tab through the same canvas
-// owner. The former CSS pseudo-element background flowed too faintly in
-// WebView2 to match the macOS result.
+// The canvas paints the selected tab consistently across desktop webviews.
 export function ViewModeTabGroup({
   children,
   positionRef,

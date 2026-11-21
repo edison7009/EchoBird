@@ -39,7 +39,7 @@ function paint(selection: Parameters<typeof paintTabCanvas>[4], border = 'rgb(80
   };
   const palette: TabCanvasPalette = {
     surface: '#f7f2ea',
-    wave: '#e6dfd3',
+    keyBottom: '#e6dfd3',
     border,
     well: 'rgb(42,39,35)',
     shadow: 'rgb(0 0 0 / 0.4)',

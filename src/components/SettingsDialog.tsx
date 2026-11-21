@@ -532,7 +532,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                       {t('settings.closeWindowBehavior')}
                     </span>
                   </div>
-                  <ViewModeTabGroup className="view-mode-tabs settings-segment-tabs flex border border-cyber-border rounded-button overflow-hidden">
+                  <ViewModeTabGroup className="view-mode-tabs flex border border-cyber-border rounded-button overflow-hidden">
                     {(
                       [
                         [false, t('settings.closeDirectly')],
@@ -760,7 +760,7 @@ const ThemeSegmented: React.FC<{
     { id: 'system', label: labels.system },
   ];
   return (
-    <ViewModeTabGroup className="view-mode-tabs settings-segment-tabs flex flex-shrink-0 border border-cyber-border rounded-button overflow-hidden">
+    <ViewModeTabGroup className="view-mode-tabs flex flex-shrink-0 border border-cyber-border rounded-button overflow-hidden">
       {opts.map((o) => {
         const active = value === o.id;
         return (

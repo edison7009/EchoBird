@@ -263,17 +263,6 @@
   transition: width 0.42s cubic-bezier(0.2, 0.75, 0.25, 1);
   user-select: none;
 }
-.usage-island.usage-island-theme-auto {
-  /* The theme surface is a solid fill; the tab wave is too subtle to read
-     on the island's narrow layouts. */
-  background-image: none;
-  animation: none;
-  background-color: color-mix(
-    in srgb,
-    var(--usage-island-bg) var(--usage-island-surface-opacity, 100%),
-    transparent
-  );
-}
 /* App texture under the theme surface: above the fill, below all content,
    fading with the surface opacity. */
 .usage-island.usage-island-theme-auto {

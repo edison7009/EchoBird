@@ -12,17 +12,20 @@
 
 /* ---------- Deck ---------- */
 .brand-deck {
+  /* Cover the next card’s 10px corners even when this card lifts by 3px. */
+  --deck-overlap: 13px;
   display: flex;
   flex-direction: column;
   padding-top: 2px;
 }
 .brand-deck > .brand-deck-card + .brand-deck-card {
-  margin-top: -7px;
+  margin-top: calc(-1 * var(--deck-overlap));
 }
-/* Nothing lies on the last card: it needs no hidden foot. */
-.brand-deck > .brand-deck-card:last-child {
-  height: 37px;
-  padding-bottom: 0;
+.brand-deck > .brand-deck-card:has(+ .brand-deck-card) {
+  height: calc(37px + var(--deck-overlap));
+  padding-bottom: var(--deck-overlap);
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
 }
 .brand-deck-card {
   position: relative;
@@ -31,8 +34,8 @@
   flex: none;
   align-items: center;
   gap: 10px;
-  height: 44px;
-  padding: 0 8px 7px 7px;
+  height: 37px;
+  padding: 0 8px 0 7px;
   overflow: hidden;
   border-radius: 10px;
   color: #fff;
@@ -351,14 +354,6 @@ div.brand-card {
 .brand-card-actions [data-unclaimed] > button svg {
   filter: drop-shadow(0 0 4px rgb(var(--accent-rgb) / 0.7));
 }
-.brand-card-label {
-  flex: none;
-  width: 2.4em;
-  font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: 11px;
-  font-weight: 500;
-  color: rgb(var(--text-secondary-rgb) / 0.75);
-}
 .brand-pill {
   display: inline-flex;
   align-items: center;
@@ -370,11 +365,6 @@ div.brand-card {
   white-space: nowrap;
   background: rgb(var(--text-primary-rgb) / 0.08);
   color: rgb(var(--text-primary-rgb) / 0.82);
-}
-.brand-pill.is-untested {
-  background: transparent;
-  box-shadow: inset 0 0 0 1px rgb(var(--text-primary-rgb) / 0.16);
-  color: rgb(var(--text-primary-rgb) / 0.42);
 }
 .brand-plan {
   flex: none;

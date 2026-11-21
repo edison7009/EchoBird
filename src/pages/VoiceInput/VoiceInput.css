@@ -213,11 +213,6 @@
   color: rgb(var(--text-secondary-rgb));
   text-align: center;
 }
-.voice-shortcut-hint-icon {
-  display: inline-block;
-  margin: 0 3px;
-  vertical-align: -2px;
-}
 .voice-key:focus-visible {
   outline: 1px solid rgb(var(--accent-rgb));
   outline-offset: 3px;

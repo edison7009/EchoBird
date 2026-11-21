@@ -1,4 +1,4 @@
-// All flowing controls share one native frame request, while each owner can
+// Tab canvases share one native frame request, while each owner can
 // cancel its pending paint independently when hidden or unmounted.
 const pending = new Map<number, FrameRequestCallback>();
 let frame = 0;

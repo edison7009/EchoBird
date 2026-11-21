@@ -4,7 +4,7 @@ export interface TabCanvasPalette {
   /** Top of the chosen key (lighter). */
   surface: string;
   /** Foot of the chosen key (deeper). */
-  wave: string;
+  keyBottom: string;
   /** The group's border colour; a bordered group is drawn as a sunken well. */
   border: string;
   /** The well behind the keys. */
@@ -82,7 +82,7 @@ export function paintTabCanvas(
     const fill = context.createLinearGradient?.(0, y, 0, y + keyHeight);
     if (fill) {
       fill.addColorStop(0, palette.surface);
-      fill.addColorStop(1, palette.wave);
+      fill.addColorStop(1, palette.keyBottom);
     }
     context.save();
     context.shadowColor = palette.shadow;

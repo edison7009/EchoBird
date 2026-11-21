@@ -92,12 +92,6 @@ const applyColorTheme = (id: ColorThemeId, resolved: Resolved) => {
       ? 'rgb(var(--accent-rgb))'
       : 'color-mix(in srgb, rgb(var(--reasoning-accent-rgb)) 45%, rgb(var(--text-primary-rgb)))'
   );
-  // Light chromatic fills are pastel; keep their labels on the theme's dark text.
-  root.style.setProperty(
-    '--view-mode-label-rgb',
-    neutral ? '255 255 255' : 'var(--text-primary-rgb)'
-  );
-  root.style.setProperty('--view-mode-wave-rgb', 'var(--view-mode-accent-rgb)');
   if (fullPalette) {
     for (const [key, value] of Object.entries(fullPalette[resolved])) {
       const property = pluginColorKeys[key];
@@ -125,9 +119,9 @@ const applyColorTheme = (id: ColorThemeId, resolved: Resolved) => {
 const apply = (resolved: Resolved, colorTheme: ColorThemeId, instant: boolean) => {
   if (instant) {
     const kill = document.createElement('style');
-    // Preserve the shared flowing backgrounds while theme colors swap instantly.
+    // Keep island animations running while theme colors swap instantly.
     kill.textContent =
-      '*:not(.voice-island.voice-theme-auto, .usage-island.usage-island-theme-auto), *:not(.view-mode-tabs[data-sliding="true"])::before, *::after { transition: none !important; animation: none !important; }';
+      '*:not(.voice-island.voice-theme-auto, .usage-island.usage-island-theme-auto), *::before, *::after { transition: none !important; animation: none !important; }';
     document.head.appendChild(kill);
     document.documentElement.dataset.theme = resolved;
     applyColorTheme(colorTheme, resolved);

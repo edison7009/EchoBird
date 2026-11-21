@@ -41,14 +41,14 @@ export function mountTabCanvas(
   let width = 0;
   let height = 0;
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
-  const palette = { surface: '', wave: '', border, well: '', shadow: '', radius };
+  const palette = { surface: '', keyBottom: '', border, well: '', shadow: '', radius };
   const colors = document.createElement('span');
   colors.className = 'view-mode-canvas-colors';
   group.append(colors);
   const readColors = () => {
     const theme = getComputedStyle(colors);
     palette.surface = theme.backgroundColor;
-    palette.wave = theme.color;
+    palette.keyBottom = theme.color;
     palette.well = theme.borderTopColor;
     palette.shadow = theme.outlineColor;
     palette.border = bordered ? getComputedStyle(group).borderTopColor : 'transparent';

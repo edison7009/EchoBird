@@ -77,10 +77,6 @@ describe('default theme and saved preferences', () => {
       '--reasoning-accent-rgb',
       mode === 'light' ? '90 217 195' : '90 204 217'
     );
-    expect(root.style.setProperty).toHaveBeenCalledWith(
-      '--view-mode-label-rgb',
-      'var(--text-primary-rgb)'
-    );
     expect(root.dataset.theme).toBe(mode);
     expect(api.saveSettings).not.toHaveBeenCalled();
   });
@@ -131,7 +127,7 @@ describe('default theme and saved preferences', () => {
   });
 
   it.each(['light', 'dark'] as const)(
-    'keeps the neutral palette tab wave on the theme accent in %s mode',
+    'uses the theme accent for neutral palettes in %s mode',
     async (mode) => {
       await store.getState().init();
       store.getState().sync({ mode, colorTheme: 'oatgray' });
@@ -139,11 +135,6 @@ describe('default theme and saved preferences', () => {
         '--view-mode-accent-rgb',
         'var(--accent-rgb)'
       );
-      expect(root.style.setProperty).toHaveBeenCalledWith(
-        '--view-mode-wave-rgb',
-        'var(--view-mode-accent-rgb)'
-      );
-      expect(root.style.setProperty).toHaveBeenCalledWith('--view-mode-label-rgb', '255 255 255');
       if (mode === 'light')
         expect(root.style.setProperty).toHaveBeenCalledWith('--bg-base-rgb', '255 255 255');
       expect(api.saveSettings).not.toHaveBeenCalled();
@@ -205,8 +196,8 @@ describe('plugin palettes', () => {
     expect(root.style.removeProperty).toHaveBeenCalledWith('--accent-rgb');
     expect(root.style.setProperty).toHaveBeenCalledWith('--tooltip-bg-rgb', '37 38 37');
     expect(root.style.setProperty).toHaveBeenLastCalledWith(
-      '--view-mode-wave-rgb',
-      'var(--view-mode-accent-rgb)'
+      '--reasoning-accent-on-light',
+      'rgb(var(--accent-rgb))'
     );
     expect(store.getState().colorTheme).toBe('oatgray');
   });
