@@ -18,8 +18,17 @@ concurrency:
 
 jobs:
   mirror:
+    name: Mirror to ${{ matrix.target }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: ${{ matrix.timeout }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: CNB
+            timeout: 50
+          - target: GitCode
+            timeout: 15
     env:
       GH_TOKEN: ${{ github.token }}
       EXPECTED_ASSETS: 8
@@ -78,8 +87,7 @@ jobs:
           git add -A; git commit -q -m "EchoBird $tag installers"
 
       - name: Push to CNB
-        id: cnb
-        continue-on-error: true
+        if: matrix.target == 'CNB'
         env:
           TOKEN: ${{ secrets.CNB_TOKEN }}
         run: |
@@ -109,8 +117,7 @@ jobs:
           for i in 1 2 3; do git -c http.extraHeader="Authorization: Basic $auth" push --force https://cnb.cool/echobird/echobird-releases.git main && exit 0; sleep $((i*15)); done; exit 1
 
       - name: Push to GitCode
-        id: gitcode
-        continue-on-error: true
+        if: matrix.target == 'GitCode'
         env:
           TOKEN: ${{ secrets.GITCODE_TOKEN }}
         run: |
@@ -141,11 +148,16 @@ jobs:
           cd out
           for i in 1 2 3; do git -c http.extraHeader="Authorization: Basic $auth" push --force https://gitcode.com/edison7009/echobird-releases.git main && exit 0; sleep $((i*15)); done; exit 1
 
-      - name: Check mirrors serve the files
-        if: always()
+      - name: Check the mirror serves the installers
+        env:
+          MIRROR: ${{ matrix.target }}
         run: |
-          set -uo pipefail; name=$(head -1 names.txt); want=$(jq -r --arg n "$name" '.files[$n].sha256' out/manifest.json); bad=0
-          check() { got=$(curl -fsL --retry 3 "$2" | sha256sum | cut -d' ' -f1); [ "$got" = "$want" ] || bad=1; }
-          [ "${{ steps.cnb.outcome }}" = success ] && check cnb "https://cnb.cool/echobird/echobird-releases/-/git/raw/main/$name"
-          [ "${{ steps.gitcode.outcome }}" = success ] && check gitcode "https://api.gitcode.com/api/v5/repos/edison7009/echobird-releases/raw/$name?ref=main"
-          [ "${{ steps.cnb.outcome }}" = success ] && [ "${{ steps.gitcode.outcome }}" = success ] && [ "$bad" = 0 ]
+          set -euo pipefail
+          name=$(head -1 names.txt)
+          want=$(jq -er --arg n "$name" '.files[$n].sha256' out/manifest.json)
+          case "$MIRROR" in
+            CNB) url="https://cnb.cool/echobird/echobird-releases/-/git/raw/main/$name" ;;
+            GitCode) url="https://api.gitcode.com/api/v5/repos/edison7009/echobird-releases/raw/$name?ref=main" ;;
+          esac
+          got=$(curl -fsL --retry 3 "$url" | sha256sum | cut -d' ' -f1)
+          test "$got" = "$want"
