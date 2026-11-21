@@ -19,6 +19,7 @@ const MIRROR_MANIFESTS: &[(&str, &str)] = &[
     ("cnb", "https://cnb.cool/echobird/echobird-releases/-/git/raw/main/manifest.json"),
     ("gitcode", "https://api.gitcode.com/api/v5/repos/edison7009/echobird-releases/raw/manifest.json?ref=main"),
 ];
+const DOWNLOAD_IDLE_TIMEOUT: Duration = Duration::from_secs(15);
 static DOWNLOAD_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 #[derive(serde::Deserialize)]
@@ -135,7 +136,26 @@ struct Opened {
 }
 async fn probe(client: &reqwest::Client, source: Source, asset: &str) -> Result<Opened, String> {
     let started = Instant::now();
-    let mut response = tokio::time::timeout(Duration::from_secs(8), client.get(&source.url).send())
+    let mut opened = open_source(client, source, asset).await?;
+    let deadline = tokio::time::Instant::now() + Duration::from_millis(1500);
+    while opened.head.len() < 256 * 1024 {
+        match tokio::time::timeout_at(deadline, opened.response.chunk()).await {
+            Ok(Ok(Some(chunk))) => opened.head.extend_from_slice(&chunk),
+            Ok(Ok(None)) => break,
+            Ok(Err(e)) => return Err(e.to_string()),
+            Err(_) => break,
+        }
+    }
+    opened.rate = opened.head.len() as f64 / started.elapsed().as_secs_f64().max(0.001);
+    Ok(opened)
+}
+
+async fn open_source(
+    client: &reqwest::Client,
+    source: Source,
+    asset: &str,
+) -> Result<Opened, String> {
+    let response = tokio::time::timeout(Duration::from_secs(8), client.get(&source.url).send())
         .await
         .map_err(|_| "Download source timed out".to_string())?
         .map_err(|e| e.to_string())?
@@ -159,23 +179,12 @@ async fn probe(client: &reqwest::Client, source: Source, asset: &str) -> Result<
         }
     }
     let total = response.content_length();
-    let mut head = Vec::new();
-    let deadline = tokio::time::Instant::now() + Duration::from_millis(1500);
-    while head.len() < 256 * 1024 {
-        match tokio::time::timeout_at(deadline, response.chunk()).await {
-            Ok(Ok(Some(chunk))) => head.extend_from_slice(&chunk),
-            Ok(Ok(None)) => break,
-            Ok(Err(e)) => return Err(e.to_string()),
-            Err(_) => break,
-        }
-    }
-    let rate = head.len() as f64 / started.elapsed().as_secs_f64().max(0.001);
     Ok(Opened {
         source,
         response,
-        head,
+        head: Vec::new(),
         total,
-        rate,
+        rate: 0.0,
     })
 }
 
@@ -202,11 +211,7 @@ async fn write_download(
     let mut stream = opened.response.bytes_stream();
     let mut last = 0;
     progress(0);
-    while let Some(chunk) = stream.next().await {
-        let chunk = chunk.map_err(|e| e.to_string())?;
-        file.write_all(&chunk).await.map_err(|e| e.to_string())?;
-        hasher.update(&chunk);
-        size += chunk.len() as u64;
+    loop {
         if let Some(total) = total.filter(|n| *n > 0) {
             let pct = (size.saturating_mul(100) / total).min(99) as u8;
             if pct != last {
@@ -214,11 +219,51 @@ async fn write_download(
                 last = pct;
             }
         }
+        let Some(chunk) = stream.next().await else {
+            break;
+        };
+        let chunk = chunk.map_err(|e| e.to_string())?;
+        file.write_all(&chunk).await.map_err(|e| e.to_string())?;
+        hasher.update(&chunk);
+        size += chunk.len() as u64;
     }
     file.sync_all().await.map_err(|e| e.to_string())?;
     let sha256 = format!("{:x}", hasher.finalize());
     verify(opened.source.expected.as_ref(), opened.total, size, &sha256)?;
     Ok(MirrorFile { size, sha256 })
+}
+
+async fn download_ranked(
+    client: &reqwest::Client,
+    asset: &str,
+    mut opened: Vec<Opened>,
+    path: &Path,
+    progress: impl Fn(u8),
+) -> Result<MirrorFile, String> {
+    opened.sort_by(|a, b| b.rate.total_cmp(&a.rate));
+    let mut ranked = opened.into_iter();
+    let first = ranked.next().ok_or("No download source is reachable")?;
+    // Drop idle probe responses before starting the download. A fallback gets
+    // a fresh request and its own timeout budget.
+    let backups: Vec<_> = ranked.map(|opened| opened.source).collect();
+    let mut result = write_download(first, path, &progress).await;
+    for source in backups {
+        if result.is_ok() {
+            break;
+        }
+        result = match open_source(client, source, asset).await {
+            Ok(opened) => write_download(opened, path, &progress).await,
+            Err(error) => Err(error),
+        };
+    }
+    result
+}
+
+fn download_client(idle_timeout: Duration) -> reqwest::ClientBuilder {
+    reqwest::Client::builder()
+        .connect_timeout(Duration::from_secs(8))
+        .read_timeout(idle_timeout)
+        .timeout(Duration::from_secs(600))
 }
 
 fn download_destination(dir: &Path, asset: &str) -> PathBuf {
@@ -331,9 +376,7 @@ async fn run(app: &AppHandle, version: &str) -> Result<bool, String> {
         .map_err(|e| e.to_string())?;
     let dest = download_destination(&dir, &asset);
     let part = dir.join(format!(".{asset}-{}.part", uuid::Uuid::new_v4()));
-    let client = reqwest::Client::builder()
-        .connect_timeout(Duration::from_secs(8))
-        .timeout(Duration::from_secs(600))
+    let client = download_client(DOWNLOAD_IDLE_TIMEOUT)
         .build()
         .map_err(|e| e.to_string())?;
     emit(app, "speed_test", 0);
@@ -344,26 +387,21 @@ async fn run(app: &AppHandle, version: &str) -> Result<bool, String> {
         &format!("https://echobird.ai/download/{id}"),
     )
     .await;
-    let mut opened: Vec<_> = join_all(candidates.into_iter().map(|s| probe(&client, s, &asset)))
+    let opened = join_all(candidates.into_iter().map(|s| probe(&client, s, &asset)))
         .await
         .into_iter()
         .filter_map(Result::ok)
         .collect();
-    opened.sort_by(|a, b| b.rate.total_cmp(&a.rate));
-    let mut last_error = "No download source is reachable".to_string();
-    let mut downloaded = None;
-    for source in opened {
-        match write_download(source, &part, |pct| emit(app, "downloading", pct)).await {
-            Ok(fingerprint) => {
-                downloaded = Some(fingerprint);
-                break;
-            }
-            Err(error) => last_error = error,
+    let fingerprint = match download_ranked(&client, &asset, opened, &part, |pct| {
+        emit(app, "downloading", pct);
+    })
+    .await
+    {
+        Ok(fingerprint) => fingerprint,
+        Err(error) => {
+            let _ = tokio::fs::remove_file(&part).await;
+            return Err(error);
         }
-    }
-    let Some(fingerprint) = downloaded else {
-        let _ = tokio::fs::remove_file(&part).await;
-        return Err(last_error);
     };
     if let Err(error) = tokio::fs::rename(&part, &dest).await {
         let _ = tokio::fs::remove_file(&part).await;
@@ -498,6 +536,90 @@ fi
         assert!(verify(None, Some(10), 9, &digest).is_err());
         assert!(verify(None, None, 0, &digest).is_err());
     }
+    #[tokio::test]
+    async fn stalled_download_reopens_the_next_ranked_source() {
+        use axum::{body::Body, http::header, routing::get, Router};
+        use futures_util::stream;
+        use std::{
+            cell::RefCell,
+            sync::{
+                atomic::{AtomicUsize, Ordering},
+                Arc,
+            },
+        };
+
+        const SAMPLE_SIZE: usize = 256 * 1024;
+        let installer = vec![42; SAMPLE_SIZE * 2];
+        let expected = MirrorFile {
+            size: installer.len() as u64,
+            sha256: format!("{:x}", Sha256::digest(&installer)),
+        };
+        let backup_requests = Arc::new(AtomicUsize::new(0));
+        let app = Router::new()
+            .route(
+                "/primary",
+                get(|| async {
+                    let head = stream::iter([Ok::<_, std::io::Error>(vec![42; SAMPLE_SIZE])]);
+                    (
+                        [(header::CONTENT_LENGTH, (SAMPLE_SIZE * 2).to_string())],
+                        Body::from_stream(head.chain(stream::pending())),
+                    )
+                }),
+            )
+            .route(
+                "/backup",
+                get({
+                    let requests = backup_requests.clone();
+                    let installer = installer.clone();
+                    move || async move {
+                        requests.fetch_add(1, Ordering::Relaxed);
+                        installer
+                    }
+                }),
+            );
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+        let client = download_client(Duration::from_millis(250))
+            .no_proxy()
+            .build()
+            .unwrap();
+        let mut opened = Vec::new();
+        for (name, rate) in [("backup", 1.0), ("primary", 2.0)] {
+            let mut candidate = probe(
+                &client,
+                Source {
+                    url: format!("{base}/{name}"),
+                    expected: Some(expected.clone()),
+                },
+                "fixture.exe",
+            )
+            .await
+            .unwrap();
+            assert!(candidate.head.len() >= SAMPLE_SIZE);
+            candidate.rate = rate;
+            opened.push(candidate);
+        }
+
+        let dir = tempfile::tempdir().unwrap();
+        let part = dir.path().join("fixture.part");
+        let progress = RefCell::new(Vec::new());
+        let result = tokio::time::timeout(
+            Duration::from_secs(5),
+            download_ranked(&client, "fixture.exe", opened, &part, |pct| {
+                progress.borrow_mut().push(pct);
+            }),
+        )
+        .await
+        .expect("the stalled download should time out and switch sources")
+        .unwrap();
+        assert_eq!(backup_requests.load(Ordering::Relaxed), 2);
+        assert!(progress.into_inner().starts_with(&[0, 50, 0]));
+        assert_eq!(result.sha256, expected.sha256);
+        assert_eq!(tokio::fs::read(&part).await.unwrap(), installer);
+        server.abort();
+    }
+
     #[tokio::test]
     async fn streams_real_http_response_and_preserves_complete_download_on_failure() {
         use tokio::io::{AsyncReadExt, AsyncWriteExt};
