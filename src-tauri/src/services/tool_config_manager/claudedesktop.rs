@@ -12,7 +12,7 @@ pub(crate) static SELECTION_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::c
 
 pub(crate) struct ClaudeDesktopLayout {
     cfg_official: PathBuf,
-    cfg_threep: PathBuf,
+    pub(crate) cfg_threep: PathBuf,
     pub(super) lib_dir: PathBuf,
 }
 

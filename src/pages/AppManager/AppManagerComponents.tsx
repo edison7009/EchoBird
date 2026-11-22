@@ -1,3 +1,7 @@
+import { AppLibraryPanel, AppLibraryTabs, libraryKinds } from './AppLibraryPanel';
+import { AppPanelNotice } from './AppPanelNotice';
+import { UnderlineTabs } from './UnderlineTabs';
+import type { LibraryKind } from '../../api/appLibrary';
 import { CustomSwitchEntry } from '../FreeModels/QuickAddAccounts';
 import { DesktopPrimaryButton } from '../../components/DesktopPrimaryButton';
 import { acquireBuiltinApp, isBundledApp } from '../../api/builtinApps';
@@ -289,8 +293,6 @@ export const AppManagerMain: React.FC = () => {
     }
   };
   const [activeUninstalledCat, setActiveUninstalledCat] = useState('ALL');
-  const categoryTabsRef = useRef<HTMLDivElement>(null);
-  const categoryUnderlineRef = useRef<HTMLSpanElement>(null);
 
   // Persist My and Store orders separately; retain the existing My key.
   const orderKeys = {
@@ -393,36 +395,13 @@ export const AppManagerMain: React.FC = () => {
     setActiveUninstalledCat('ALL');
   }
 
-  useEffect(() => {
-    const tabs = categoryTabsRef.current;
-    const underline = categoryUnderlineRef.current;
-    if (!tabs || !underline) return;
-
-    let frame: number | undefined;
-    const updateUnderline = () => {
-      const active = tabs.querySelector<HTMLButtonElement>('[aria-pressed="true"]');
-      if (!active?.offsetWidth) return;
-      // Place the line immediately on entry; animate subsequent selections.
-      if (!underline.style.width) {
-        underline.style.transition = 'none';
-        frame = requestAnimationFrame(() => underline.style.removeProperty('transition'));
-      }
-      underline.style.width = `${active.offsetWidth}px`;
-      underline.style.transform = `translate(${active.offsetLeft}px, ${active.offsetTop + active.offsetHeight - 2}px)`;
-      underline.style.visibility = 'visible';
-    };
-    updateUnderline();
-    const observer = new ResizeObserver(updateUnderline);
-    observer.observe(tabs);
-    tabs.querySelectorAll('button').forEach((button) => observer.observe(button));
-    return () => {
-      observer.disconnect();
-      if (frame !== undefined) {
-        cancelAnimationFrame(frame);
-        underline.style.removeProperty('transition');
-      }
-    };
-  }, [activeUninstalledCat, uninstalledCats, viewMode, t]);
+  const storeTabs = useMemo(
+    () => [
+      { id: 'ALL', label: t('toolCat.all') },
+      ...uninstalledCats.map((id) => ({ id, label: t(catLabelKey(id)) })),
+    ],
+    [t, uninstalledCats]
+  );
 
   // Saved Store order first; otherwise keep the existing default sort.
   const uninstalledOrdered = useMemo(() => {
@@ -636,44 +615,25 @@ export const AppManagerMain: React.FC = () => {
           )}
           {/* Install view — category tabs filter the uninstalled apps. */}
           {viewMode === 'install' && uninstalled.length > 0 && (
-            <div ref={categoryTabsRef} className="relative mb-5 flex shrink-0 flex-wrap gap-1">
-              <button
-                onClick={() => setActiveUninstalledCat('ALL')}
-                aria-pressed={activeUninstalledCat === 'ALL'}
-                className={`border-b-2 border-transparent px-3 py-1.5 text-[14px] font-bold transition-colors outline-none ${
-                  activeUninstalledCat === 'ALL'
-                    ? 'text-cyber-text'
-                    : 'text-cyber-text-secondary hover:text-cyber-text'
-                }`}
-              >
-                {t('toolCat.all')}
-              </button>
-              {uninstalledCats.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setActiveUninstalledCat(cat)}
-                  aria-pressed={activeUninstalledCat === cat}
-                  className={`border-b-2 border-transparent px-3 py-1.5 text-[14px] font-bold transition-colors outline-none ${
-                    activeUninstalledCat === cat
-                      ? 'text-cyber-text'
-                      : 'text-cyber-text-secondary hover:text-cyber-text'
-                  }`}
-                >
-                  {t(catLabelKey(cat))}
-                </button>
-              ))}
-              <span
-                ref={categoryUnderlineRef}
-                aria-hidden="true"
-                className="pointer-events-none absolute left-0 top-0 h-0.5 bg-cyber-border transition-[transform,width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
-                style={{ visibility: 'hidden' }}
-              />
-            </div>
+            <UnderlineTabs
+              items={storeTabs}
+              active={activeUninstalledCat}
+              onSelect={setActiveUninstalledCat}
+              label={t('aiDesktop.installView')}
+              className="mb-5"
+            />
           )}
           <div className="min-h-0 flex-1 overflow-y-auto">
             {/* Installed — flat draggable grid, no section header (per spec) */}
             {viewMode !== 'install' && installedOrdered.length > 0 && <div>{sortableGrid}</div>}
-            {viewMode === 'install' && uninstalled.length > 0 && <section>{sortableGrid}</section>}
+            {viewMode === 'install' && uninstalled.length > 0 && (
+              <section
+                role="tabpanel"
+                aria-label={storeTabs.find((tab) => tab.id === activeUninstalledCat)?.label}
+              >
+                {sortableGrid}
+              </section>
+            )}
             {(viewMode === 'install' ? uninstalled.length === 0 : installed.length === 0) && (
               <p className="py-12 text-center text-sm text-cyber-text-secondary">
                 {t(
@@ -886,13 +846,13 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
   if (isEmpty) {
     const [before, after] = t('agent.noModelsHint').split('{modelNexus}');
     return (
-      <div className="flex h-full items-center justify-center text-center">
-        <p className="text-base text-cyber-text-secondary font-mono leading-relaxed">
+      <AppPanelNotice>
+        <p>
           {before}
-          <span className="text-cyber-text font-bold">{t('nav.modelNexus')}</span>
+          <span className="font-semibold text-cyber-text">{t('nav.modelNexus')}</span>
           {after}
         </p>
-      </div>
+      </AppPanelNotice>
     );
   }
 
@@ -1010,6 +970,7 @@ export const AppManagerPanel: React.FC = () => {
   } = useModelNexus();
   const {
     selectedToolData,
+    viewMode,
     selectedTool,
     userModels,
     toolModelConfig,
@@ -1049,6 +1010,25 @@ export const AppManagerPanel: React.FC = () => {
     warmUpSelectedTool,
     selectedToolAction,
   } = useAppManager();
+
+  const activePage = useNavigationStore((state) => state.activePage);
+  const libraryTool =
+    activePage === 'apps' && viewMode === 'desktop' && selectedToolData?.installed
+      ? selectedToolData
+      : undefined;
+  const kinds = libraryKinds(libraryTool?.id);
+  const [librarySelection, setLibrarySelection] = useState<{
+    toolId?: string;
+    tab: 'model' | LibraryKind;
+  }>({ tab: 'model' });
+  const [resourceRevision, setResourceRevision] = useState(0);
+  if (librarySelection.toolId !== libraryTool?.id) {
+    setLibrarySelection({ toolId: libraryTool?.id, tab: 'model' });
+  }
+  const resourceTab =
+    libraryTool && librarySelection.toolId === libraryTool.id && librarySelection.tab !== 'model'
+      ? librarySelection.tab
+      : null;
 
   const applicationDetails = useApplicationDetails(selectedToolData);
   const [readyApplication, setReadyApplication] = useState<{
@@ -1228,12 +1208,14 @@ export const AppManagerPanel: React.FC = () => {
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* Header */}
-      <div className="h-10 px-2 flex items-center justify-between bg-transparent">
-        <span className="min-w-0 truncate px-3 py-1.5 text-sm font-semibold text-cyber-text">
+      <div className="flex h-10 items-center justify-between gap-2 bg-transparent px-2">
+        <span
+          className={`min-w-0 truncate py-1.5 text-sm font-semibold text-cyber-text ${detailsIncludeActions ? 'px-3' : ''}`}
+        >
           {panelTool ? toolDisplayName(panelTool, locale) : ''}
         </span>
         <div className="flex shrink-0 items-center gap-1">
-          {supportsWarmUp && (
+          {!resourceTab && supportsWarmUp && (
             <button
               type="button"
               aria-label={t('agent.warmUpAccount')}
@@ -1244,7 +1226,7 @@ export const AppManagerPanel: React.FC = () => {
               <Zap size={12} className={selectedToolAction === 'warmUp' ? 'animate-pulse' : ''} />
             </button>
           )}
-          {supportsClaim && (
+          {!resourceTab && supportsClaim && (
             <button
               type="button"
               aria-label={t('accountCenter.claimAll')}
@@ -1262,7 +1244,10 @@ export const AppManagerPanel: React.FC = () => {
               disabled={
                 !selectedToolData || isRefreshingSelectedTool || selectedToolAction !== null
               }
-              onClick={() => void refreshSelectedTool()}
+              onClick={() => {
+                if (resourceTab) setResourceRevision((value) => value + 1);
+                else void refreshSelectedTool();
+              }}
               className={`account-icon-button flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-cyber-elevated/45 ${!selectedToolData ? 'disabled:opacity-40' : ''}`}
             >
               <RefreshCw size={12} className={isRefreshingSelectedTool ? 'animate-spin' : ''} />
@@ -1271,8 +1256,22 @@ export const AppManagerPanel: React.FC = () => {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2 pt-0">
-        {selectedToolData ? (
+      {kinds.length > 0 && (
+        <AppLibraryTabs
+          kinds={kinds}
+          active={resourceTab ?? 'model'}
+          onSelect={(tab) => setLibrarySelection({ toolId: libraryTool?.id, tab })}
+        />
+      )}
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2 pb-2 pt-0">
+        {resourceTab && libraryTool ? (
+          <AppLibraryPanel
+            key={libraryTool.id + '/' + resourceTab}
+            tool={libraryTool}
+            kind={resourceTab}
+            revision={resourceRevision}
+          />
+        ) : selectedToolData ? (
           // Not installed yet — offer the tool's website or repository
           // alongside the bottom bar's one-click install action.
           selectedToolData.systemAppId && panelTool ? (
@@ -1284,8 +1283,8 @@ export const AppManagerPanel: React.FC = () => {
             </ApplicationDetailsPanel>
           ) : !selectedToolData.installed ? (
             selectedToolData.website && (
-              <div className="h-full flex flex-col items-center justify-center gap-2 px-3 text-center">
-                <p className="text-sm text-cyber-text-secondary leading-relaxed">
+              <AppPanelNotice>
+                <p>
                   {t(
                     /^https?:\/\/(?:www\.)?github\.com(?:\/|$)/i.test(selectedToolData.website)
                       ? 'aiDesktop.githubRepository'
@@ -1310,7 +1309,7 @@ export const AppManagerPanel: React.FC = () => {
                   </span>
                   <ExternalLink size={13} className="flex-shrink-0" aria-hidden="true" />
                 </a>
-              </div>
+              </AppPanelNotice>
             )
           ) : accountPanel ? (
             accountPanel
@@ -1403,12 +1402,10 @@ export const AppManagerPanel: React.FC = () => {
             </div>
           )
         ) : (
-          <div className="h-full flex items-center justify-center">
-            <p className="text-cyber-text-secondary text-center">{t('agent.selectTool')}</p>
-          </div>
+          <AppPanelNotice>{t('agent.selectTool')}</AppPanelNotice>
         )}
-        {selectedToolData && !detailsIncludeActions && (
-          <div className="px-3 pt-4">{applicationActions}</div>
+        {!resourceTab && selectedToolData && !detailsIncludeActions && (
+          <div className="pt-2">{applicationActions}</div>
         )}
       </div>
     </div>

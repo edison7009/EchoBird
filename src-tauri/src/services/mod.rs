@@ -25,6 +25,7 @@ pub mod doubao_accounts;
 pub mod trae_accounts;
 pub mod workbuddy_accounts;
 
+pub(crate) mod app_library;
 pub mod cli_launch;
 pub mod cline_accounts;
 pub mod cline_native;

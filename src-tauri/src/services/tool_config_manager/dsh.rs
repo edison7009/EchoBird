@@ -96,13 +96,17 @@ pub(crate) fn dsh_config_dir() -> PathBuf {
 fn read_document(path: &Path, default: Value) -> Result<Value, String> {
     match fs::read_to_string(path) {
         Ok(text) => {
-            let value: Value = serde_yaml_ng::from_str(&expression_tags(&text, false)?)
-                .map_err(|_| "accountError.format")?;
+            let value = parse_yaml(&text)?;
             Ok(if value.is_null() { default } else { value })
         }
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(default),
         Err(_) => Err("accountError.read".into()),
     }
+}
+
+pub(crate) fn parse_yaml(text: &str) -> Result<Value, String> {
+    serde_yaml_ng::from_str(&expression_tags(text, false)?)
+        .map_err(|_| "accountError.format".into())
 }
 
 pub(crate) fn credentials_at(home: &Path) -> Result<Value, String> {

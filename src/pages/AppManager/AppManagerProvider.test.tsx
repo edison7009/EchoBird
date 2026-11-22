@@ -734,12 +734,9 @@ describe.each(['claudedesktop', 'claudecode'] as const)('%s direct API configura
       webSearch: true,
     });
   });
-  it('shows the restart notice only after successful Claude Code apply and restore', async () => {
+  it('reports a failed write and keeps successful model changes quiet', async () => {
     await mount();
-    const notices = () =>
-      renderer.root
-        .findAllByType('p')
-        .filter((node) => node.children.includes('agent.claudeCodeReopen'));
+    const notices = () => renderer.root.findAllByProps({ role: 'alert' });
     expect(notices()).toHaveLength(0);
     vi.mocked(api.applyModelToTool).mockResolvedValueOnce({
       success: false,
@@ -753,11 +750,12 @@ describe.each(['claudedesktop', 'claudecode'] as const)('%s direct API configura
       await context.handleLaunch();
       await vi.advanceTimersByTimeAsync(3000);
     });
-    const expectedCount = tool === 'claudecode' ? 1 : 0;
-    expect(notices()).toHaveLength(expectedCount);
+    expect(api.applyModelToTool).toHaveBeenCalledTimes(2);
+    expect(notices()).toHaveLength(0);
     vi.mocked(api.restoreToolToOfficial).mockResolvedValueOnce({ success: true, message: 'ok' });
     await act(async () => context.handleRestoreModel(tool));
-    expect(notices()).toHaveLength(expectedCount * 2);
+    expect(api.restoreToolToOfficial).toHaveBeenCalledExactlyOnceWith(tool);
+    expect(notices()).toHaveLength(0);
     expect(api.startTool).not.toHaveBeenCalled();
   });
   it('stages Claude preferences until explicit launch and restores them on reentry', async () => {

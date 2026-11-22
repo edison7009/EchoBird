@@ -113,7 +113,7 @@ fn home() -> Result<PathBuf, String> {
     dirs::home_dir().ok_or_else(|| "accountError.home".to_string())
 }
 
-fn config_path() -> Result<PathBuf, String> {
+pub(crate) fn config_path() -> Result<PathBuf, String> {
     let dir = config_dir()?;
     if dir.join(".config.json").exists() {
         return Ok(dir.join(".config.json"));

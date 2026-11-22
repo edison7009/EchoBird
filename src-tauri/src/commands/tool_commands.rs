@@ -953,3 +953,67 @@ pub async fn delete_devin_account(account_id: String) -> Result<(), String> {
         crate::services::devin_accounts::delete(&account_id).await,
     )
 }
+
+#[tauri::command]
+pub(crate) async fn list_app_library(
+    tool_id: String,
+    kind: crate::services::app_library::Kind,
+) -> Result<Vec<crate::services::app_library::Entry>, String> {
+    tauri::async_runtime::spawn_blocking(move || crate::services::app_library::list(&tool_id, kind))
+        .await
+        .map_err(|_| "readFailed".to_owned())?
+}
+
+#[tauri::command]
+pub(crate) async fn copy_app_library_entry(
+    tool_id: String,
+    kind: crate::services::app_library::Kind,
+    id: String,
+    targets: Vec<String>,
+) -> Result<Vec<crate::services::app_library::CopyResult>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::services::app_library::copy(&tool_id, kind, &id, &targets)
+    })
+    .await
+    .map_err(|_| "writeFailed".to_owned())?
+}
+
+#[tauri::command]
+pub(crate) async fn remove_app_library_entry(
+    tool_id: String,
+    kind: crate::services::app_library::Kind,
+    id: String,
+) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::services::app_library::remove(&tool_id, kind, &id)
+    })
+    .await
+    .map_err(|_| "writeFailed".to_owned())?
+}
+
+#[tauri::command]
+pub(crate) async fn toggle_app_library_entry(
+    tool_id: String,
+    kind: crate::services::app_library::Kind,
+    id: String,
+    enabled: bool,
+) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::services::app_library::toggle(&tool_id, kind, &id, enabled)
+    })
+    .await
+    .map_err(|_| "writeFailed".to_owned())?
+}
+
+#[tauri::command]
+pub(crate) async fn add_app_library_mcp(
+    tool_id: String,
+    name: String,
+    definition: String,
+) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::services::app_library::add_mcp(&tool_id, &name, &definition)
+    })
+    .await
+    .map_err(|_| "writeFailed".to_owned())?
+}

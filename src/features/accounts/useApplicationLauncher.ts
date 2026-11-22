@@ -73,7 +73,7 @@ interface LaunchOptions extends Pick<
   locale: string;
   t: ReturnType<typeof useI18n>['t'];
   showToast: (type: ToastType, message: string) => void;
-  applyRestore: (id: string, notifyRestart?: boolean) => Promise<true | string | false>;
+  applyRestore: (id: string) => Promise<true | string | false>;
   applyModelConfig: (id: string, model: string) => Promise<true | string | false>;
 }
 
@@ -709,7 +709,7 @@ export function useApplicationLauncher({
       return;
     } else if (selectedTool === 'claudecode' && claudeCodeAccounts.selectedId!) {
       try {
-        const restored = await applyRestore(selectedTool, false);
+        const restored = await applyRestore(selectedTool);
         if (restored !== true) {
           setApplyError(typeof restored === 'string' ? restored : t('key.destroyed'));
           finishLaunch();
@@ -717,7 +717,6 @@ export function useApplicationLauncher({
         }
         await api.switchClaudeCodeAccount(claudeCodeAccounts.selectedId!);
         await claudeCodeAccounts.reload();
-        showToast('info', t('agent.claudeCodeReopen'));
         accountApplied = true;
         startCooldown();
       } catch (error) {

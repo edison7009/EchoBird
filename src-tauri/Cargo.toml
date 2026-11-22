@@ -51,7 +51,7 @@ tauri-plugin-window-state = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0"
 plist = "1"
-toml_edit = "0.25"
+toml_edit = { version = "0.25", features = ["serde"] }
 jsonc-parser = { version = "0.33.1", features = ["serde", "cst", "serde_json"] }
 # Qoder desktop stores model selection in LevelDB on all supported platforms;
 # Cline Desktop also uses it on Windows.

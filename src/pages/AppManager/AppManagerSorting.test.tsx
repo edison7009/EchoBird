@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { LocalTool } from '../../api/types';
 import { AppManagerContext, type AppManagerContextType } from './context';
 import { AppManagerMain } from './AppManagerComponents';
+import { UnderlineTabs } from './UnderlineTabs';
 import { DndContext } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
 
@@ -187,15 +188,18 @@ describe('App Desktop drag sorting', () => {
 
   it('keeps store categories visible above the scrolling app grid', () => {
     open();
-    const categories = renderer.root
-      .findAllByType('div')
-      .find((node) => node.props.className?.includes('shrink-0 flex-wrap gap-1'))!;
+    const categories = renderer.root.findByType(UnderlineTabs);
     const scroller = renderer.root
       .findAllByType('div')
       .find((node) => node.props.className?.includes('overflow-y-auto'))!;
-    expect(categories.parent).toBe(scroller.parent);
-    expect(scroller.findAllByProps({ 'aria-pressed': true })).toHaveLength(0);
-    expect(scroller.findAllByProps({ 'aria-label': 'Store A' })).toHaveLength(1);
+    const layout = scroller.parent!;
+    expect(categories.parent).toBe(layout);
+    expect(layout.children.indexOf(categories)).toBeLessThan(layout.children.indexOf(scroller));
+    expect(categories.findAllByProps({ role: 'tab', 'aria-selected': true })).toHaveLength(1);
+    expect(scroller.findAllByProps({ role: 'tab' })).toHaveLength(0);
+    expect(
+      scroller.findByProps({ role: 'tabpanel' }).findAllByProps({ 'aria-label': 'Store A' })
+    ).toHaveLength(1);
   });
 
   it('falls back to the default order for missing or malformed local state', () => {

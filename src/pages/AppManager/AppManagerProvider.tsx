@@ -819,7 +819,6 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
             ...Object.fromEntries(sharedTools.map((id) => [id, model.internalId])),
           }));
         }
-        if (isClaudeCodeApp) showToast('info', t('agent.claudeCodeReopen'));
         return true;
       } else {
         console.error('[AppManager] Failed to apply model:', result?.message);
@@ -900,10 +899,7 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
   // a vendor-default config on next launch, so restore is symmetric with
   // a fresh install. Backend also clears the ~/.echobird/{tool}.json relay
   // for "custom" tools.
-  const applyRestore = async (
-    toolId: string,
-    notifyRestart = true
-  ): Promise<true | string | false> => {
+  const applyRestore = async (toolId: string): Promise<true | string | false> => {
     try {
       const result = await api.restoreToolToOfficial(toolId);
       if (result?.success) {
@@ -911,8 +907,6 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
         setDetectedTools((prev) =>
           prev.map((t) => (t.id === toolId ? { ...t, activeModel: official?.name || '' } : t))
         );
-        if (toolId === 'claudecode' && notifyRestart)
-          showToast('info', t('agent.claudeCodeReopen'));
         return true;
       }
       const message = result?.message;
