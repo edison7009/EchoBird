@@ -5,7 +5,8 @@ import { useAiCareerStore } from '../../stores/aiCareerStore';
 import { useToolsStore } from '../../stores/toolsStore';
 import { openExternal } from '../../api/tauri';
 import { BrandRow } from '../../components/BrandRow';
-import { CAREER_FAMILIES, FamilyIcon } from './familyIcons';
+import { CAREER_FAMILIES } from '../../data/aiCareerFamilies';
+import { FamilyIcon } from './familyIcons';
 import '../../components/brandCards.css';
 
 export function AiCareerFamilyPanel() {

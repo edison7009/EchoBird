@@ -5,6 +5,7 @@ const RESUME_COMMANDS: Readonly<Record<string, string>> = {
   hermes: 'hermes --resume',
   mimo: 'mimo --session',
   deepseek: 'dsh --profile tui --resume',
+  antigravity: 'agy --conversation',
 };
 
 export function sessionResumeCommand(tool: string, token: string | null): string | null {

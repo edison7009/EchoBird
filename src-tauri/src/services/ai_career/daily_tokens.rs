@@ -1,7 +1,8 @@
 use super::{
-    collect_dsh_paths, collect_jsonl_paths, drizzle_sessions_sql, drizzle_usage_boundary,
-    dsh_decode_checked, dsh_owns_usage, is_unmeasured_drizzle_zero, mimo_db_path,
-    parsed_cache_path, path_metadata, persistent_cache, sqlite_has_column, Family, TokenUsage,
+    antigravity, collect_jsonl_paths, collect_session_files, drizzle_sessions_sql,
+    drizzle_usage_boundary, dsh_decode_checked, dsh_owns_usage, family_cache_contains,
+    is_unmeasured_drizzle_zero, mimo_db_path, native_log, parsed_cache_path, path_metadata,
+    persistent_cache, sqlite_has_column, Family, TokenUsage,
 };
 use std::collections::{HashMap, HashSet};
 use std::io::{BufRead, BufReader};
@@ -568,6 +569,27 @@ fn scan_deepseek_checked(path: &Path) -> Result<Scan, String> {
     Ok(scan)
 }
 
+fn scan_native(path: &Path, family: Family) -> Result<Scan, String> {
+    let log = if family == Family::Antigravity {
+        native_log::antigravity(path)
+    } else {
+        native_log::workbuddy(path)
+    }
+    .map_err(|error| error.to_string())?;
+    let mut scan = Scan {
+        incomplete: log.incomplete,
+        ..Scan::default()
+    };
+    for (ms, usage) in log.samples {
+        if let Some(entry) = entry(ms.map(|ts| ts / 1000), usage) {
+            scan.samples.push(Sample { id: None, entry });
+        } else {
+            scan.incomplete = true;
+        }
+    }
+    Ok(scan)
+}
+
 #[cfg(test)]
 fn cached_scan(path: &Path, family: Family) -> Scan {
     cached_scan_in(scan_cache(), path, family)
@@ -582,7 +604,6 @@ fn cached_scan(path: &Path, family: Family) -> Scan {
 #[cfg(test)]
 thread_local! { static DAILY_PARSE_COUNT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) }; }
 
-#[cfg(test)]
 fn cached_scan_in(
     cache: &Mutex<HashMap<PathBuf, CachedScan>>,
     path: &Path,
@@ -616,6 +637,7 @@ fn cached_scan_pages_in(
         Family::Claude => scan_claude_checked(path),
         Family::Codex => scan_codex_pages_checked(paths),
         Family::DeepSeek => scan_deepseek_checked(path),
+        Family::Antigravity | Family::WorkBuddy => scan_native(path, family),
         _ => Ok(Scan::default()),
     };
     let mut cache = cache.lock().map_err(|e| e.to_string())?;
@@ -794,7 +816,11 @@ pub fn daily_tokens(family: Option<Family>) -> Result<DailyTokenResponse, String
 }
 
 #[cfg(test)]
-fn daily_tokens_at(home: &Path, selected: Option<Family>, now: SystemTime) -> DailyTokenResponse {
+pub(super) fn daily_tokens_at(
+    home: &Path,
+    selected: Option<Family>,
+    now: SystemTime,
+) -> DailyTokenResponse {
     daily_tokens_at_checked(home, selected, now, scan_cache()).unwrap()
 }
 
@@ -832,14 +858,40 @@ fn daily_tokens_at_checked(
             }
             Family::OpenCode => scan_drizzle_checked(&root.join("opencode.db"), cutoff)?,
             Family::MiMo => scan_drizzle_checked(&mimo_db_path(home), cutoff)?,
+            Family::Antigravity => {
+                let mut scan = Scan::default();
+                let mut paths = HashSet::new();
+                for session in antigravity::index(&root)? {
+                    if session.modified_ms / 1000 < cutoff {
+                        break;
+                    }
+                    let cached = if let Some(path) = &session.transcript {
+                        paths.insert(path.clone());
+                        cached_scan_in(cache, path, family)?
+                    } else {
+                        None
+                    };
+                    if let Some(cached) = cached {
+                        scan.incomplete |= cached.incomplete || cached.samples.is_empty();
+                        scan.samples.extend(cached.samples);
+                    } else {
+                        scan.incomplete = true;
+                    }
+                }
+                if let Ok(mut cache) = cache.lock() {
+                    cache.retain(|path, _| {
+                        !family_cache_contains(&root, family, path) || paths.contains(path)
+                    });
+                }
+                scan
+            }
             _ => {
                 let mut candidates = Vec::new();
-                if family == Family::DeepSeek {
-                    collect_dsh_paths(&root, family, &mut candidates).map_err(|e| e.to_string())?;
-                } else if let Some(depth) = family.jsonl_depth() {
-                    let depth = if family == Family::Claude { 4 } else { depth };
-                    collect_jsonl_paths(root.clone(), depth, family, &mut candidates)
-                        .map_err(|e| e.to_string())?;
+                if family == Family::Claude {
+                    collect_jsonl_paths(root.clone(), 4, family, &mut candidates)
+                        .map_err(|error| error.to_string())?;
+                } else {
+                    collect_session_files(&root, family, &mut candidates)?;
                 }
                 let groups = if family == Family::Codex {
                     let recent: HashSet<_> = candidates
@@ -870,7 +922,9 @@ fn daily_tokens_at_checked(
                     }
                 }
                 if let Ok(mut cache) = cache.lock() {
-                    cache.retain(|path, _| !path.starts_with(&root) || cache_keys.contains(path));
+                    cache.retain(|path, _| {
+                        !family_cache_contains(&root, family, path) || cache_keys.contains(path)
+                    });
                 }
                 scan
             }

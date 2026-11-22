@@ -1,19 +1,5 @@
 import { useState } from 'react';
-import type { AiCareerFamily } from '../../api/aiCareer';
-
-export const CAREER_FAMILIES: ReadonlyArray<{
-  id: AiCareerFamily;
-  name: string;
-  toolId: string;
-  format: 'svg' | 'png';
-}> = [
-  { id: 'claude', name: 'Claude', toolId: 'claudecode', format: 'svg' },
-  { id: 'codex', name: 'Codex', toolId: 'codex', format: 'svg' },
-  { id: 'opencode', name: 'OpenCode', toolId: 'opencode', format: 'svg' },
-  { id: 'deepseek', name: 'DeepSeek', toolId: 'dsh', format: 'svg' },
-  { id: 'hermes', name: 'Hermes', toolId: 'hermes', format: 'png' },
-  { id: 'mimo', name: 'MiMo', toolId: 'mimocode', format: 'png' },
-];
+import { CAREER_FAMILIES, type AiCareerFamily } from '../../data/aiCareerFamilies';
 
 export function FamilyIcon({
   family,

@@ -3,10 +3,9 @@
 // `ai_career` service + `set_avatar` / `get_avatar` commands.
 
 import { invoke } from '@tauri-apps/api/core';
+import type { AiCareerFamily } from '../data/aiCareerFamilies';
 
-/// The six first-class tool families. CLI + desktop variants of a family
-/// fold into one (they share a session store on disk).
-export type AiCareerFamily = 'claude' | 'codex' | 'opencode' | 'hermes' | 'mimo' | 'deepseek';
+export type { AiCareerFamily } from '../data/aiCareerFamilies';
 
 export interface SavedSession {
   id: string;
@@ -51,14 +50,14 @@ export async function aiCareerFamilyHistory(
   return invoke('ai_career_family_history', { family, offset, limit });
 }
 
-/// Contribution-heatmap entries across all six families (210-day lookback).
+/// Contribution-heatmap entries across all families (210-day lookback).
 export async function aiCareerHeatmap(
   family: AiCareerFamily | null = null
 ): Promise<HeatmapEntry[]> {
   return invoke('ai_career_heatmap', { family });
 }
 
-/// Total on-disk byte size across all six families' session files. The
+/// Total on-disk byte size across all families' session files. The
 /// frontend divides this by a bytes-per-token ratio for an approximate ("≈")
 /// cumulative token count — works even when a provider doesn't report real
 /// usage (third-party models often log 0), since it measures content volume.

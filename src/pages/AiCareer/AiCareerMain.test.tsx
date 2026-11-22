@@ -348,6 +348,27 @@ it('shows successful cached statistics and Tokens before a fresh response replac
   expect(writeSnapshot).toHaveBeenCalledTimes(2);
 });
 
+it.each([
+  ['Codex', 'codex'],
+  ['Antigravity', 'antigravity'],
+  ['WorkBuddy', 'workbuddy'],
+] as const)('settles empty activity and Token usage for %s without a retry', async (name, id) => {
+  await mount();
+  await selectTokens();
+  vi.mocked(api.aiCareerHeatmap).mockResolvedValueOnce([]);
+  vi.mocked(api.aiCareerTokenBytes).mockResolvedValueOnce(0);
+  vi.mocked(api.aiCareerDailyTokens).mockResolvedValueOnce({
+    entries: [],
+    unavailable_families: [],
+  });
+  await selectFamily(name);
+  expect(api.aiCareerDailyTokens).toHaveBeenLastCalledWith(id);
+  expect(chartCount()).toBe(0);
+  expect(tokenDays().size).toBe(0);
+  expect(chart().props['data-token-status']).toBe('ready');
+  expect(renderer.root.findAllByProps({ role: 'alert' })).toHaveLength(0);
+});
+
 it('treats cached empty responses as ready and preserves them after a background failure', async () => {
   useAiCareerStore.getState().cacheDashboard(null, [], 0);
   useAiCareerStore.getState().cacheDailyTokens(null, { entries: [], unavailable_families: [] });

@@ -11,6 +11,8 @@ import deepseek from '../../../docs/api/tools/install/dsh.json';
 import mimo from '../../../docs/api/tools/install/mimocode.json';
 import hermes from '../../../docs/api/tools/install/hermes.json';
 import opencode from '../../../docs/api/tools/install/opencode.json';
+import antigravityDesktop from '../../../docs/api/tools/install/antigravitydesktop.json';
+import workbuddy from '../../../docs/api/tools/install/workbuddy.json';
 import { AiCareerFamilyPanel } from './AiCareerFamilyPanel';
 
 const { showToast } = vi.hoisted(() => ({ showToast: vi.fn() }));
@@ -33,6 +35,8 @@ const families: ReadonlyArray<{
   { family: 'mimo', name: 'MiMo', catalog: mimo },
   { family: 'hermes', name: 'Hermes', catalog: hermes },
   { family: 'opencode', name: 'OpenCode', catalog: opencode },
+  { family: 'antigravity', name: 'Antigravity', catalog: antigravityDesktop },
+  { family: 'workbuddy', name: 'WorkBuddy', catalog: workbuddy },
 ];
 
 const tools: LocalTool[] = families.map(({ catalog }) => ({
@@ -78,6 +82,14 @@ describe('career family website actions', () => {
     expect(api.scanTools).not.toHaveBeenCalled();
     expect(api.openExternal).not.toHaveBeenCalled();
     expect(useAiCareerStore.getState().selectedFamily).toBeNull();
+  });
+
+  it('groups desktop and CLI editions under their family buttons', () => {
+    mount();
+    expect(familyButton('Antigravity')).toBeDefined();
+    expect(familyButton('WorkBuddy')).toBeDefined();
+    expect(familyButton('Antigravity CLI')).toBeUndefined();
+    expect(familyButton('WorkBuddy AI')).toBeUndefined();
   });
 
   it.each(families)('selects $name without opening its website or scanning', ({ family, name }) => {

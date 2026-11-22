@@ -181,17 +181,21 @@ describe('career family sessions', () => {
     expect(useAiCareerStore.getState().cachedScopes.codex?.sessions).toEqual([session(3)]);
   });
 
-  it('shows initial skeletons only when no successful first page is cached', async () => {
-    const firstPage = deferred<SavedSession[]>();
-    vi.mocked(api.aiCareerFamilyHistory).mockReturnValueOnce(firstPage.promise);
-    await open();
-    expect(text()).toContain('animate-pulse');
-    expect(text()).not.toContain('aiCareer.noSessions');
-    await act(async () => firstPage.resolve([]));
-    expect(text()).not.toContain('animate-pulse');
-    expect(text()).toContain('aiCareer.noSessions');
-    expect(useAiCareerStore.getState().cachedScopes.codex?.sessions).toEqual([]);
-  });
+  it.each(['codex', 'antigravity', 'workbuddy'] as const)(
+    'settles an uncached empty history for %s in the shared empty state',
+    async (family) => {
+      const firstPage = deferred<SavedSession[]>();
+      vi.mocked(api.aiCareerFamilyHistory).mockReturnValueOnce(firstPage.promise);
+      await open(family);
+      expect(text()).toContain('animate-pulse');
+      expect(text()).not.toContain('aiCareer.noSessions');
+      await act(async () => firstPage.resolve([]));
+      expect(text()).not.toContain('animate-pulse');
+      expect(text()).toContain('aiCareer.noSessions');
+      expect(text()).not.toContain('aiCareer.retry');
+      expect(useAiCareerStore.getState().cachedScopes[family]?.sessions).toEqual([]);
+    }
+  );
 
   it('retains cached rows without a new error when background revalidation fails', async () => {
     const cached = [session(4)];

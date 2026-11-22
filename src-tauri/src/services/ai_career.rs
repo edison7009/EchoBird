@@ -1,13 +1,10 @@
 //! "我的AI生涯" (My AI Career) data layer — cross-tool session history +
 //! contribution heatmap. Ported from Coffee CLI's `server.rs` history
-//! scanner, trimmed to six first-class tool families.
+//! scanner.
 //!
 //! Each family reads its on-disk session store DIRECTLY (independent of
 //! EchoBird's tool detection — we just scan the well-known roots).
-//! Desktop and CLI variants of a family share one session store, so they
-//! fold into a single family here (e.g. EchoBird's `claudecode` +
-//! `claudedesktop` tool ids both map to the `Claude` family →
-//! `~/.claude/projects`).
+//! Related editions share a family view, including editions with separate stores.
 //!
 //! | Family   | Root                              | Shape                          |
 //! |----------|-----------------------------------|--------------------------------|
@@ -17,10 +14,12 @@
 //! | Hermes   | `<HERMES_HOME>/state.db`          | SQLite (`state.db`)            |
 //! | MiMo     | `~/.local/share/mimocode`         | SQLite (`mimocode.db`)         |
 //! | DeepSeek | `<DSH_HOME|~/.dsh>/sessions`     | zstd/JSONL event log, depth 3  |
+//! | Antigravity | `~/.gemini/antigravity{,-cli}` | SQLite index and JSONL exports |
+//! | WorkBuddy | `~/.workbuddy{,-ai}/projects`   | JSONL, depth 2 |
 //!
 //! Two surfaces consume this: the per-family history list (paginated, one
 //! family at a time — keeps the payload small) and the contribution heatmap
-//! (all six families aggregated, 210-day lookback, on-disk count cache).
+//! (all families aggregated, 210-day lookback, on-disk count cache).
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -29,15 +28,19 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
+mod antigravity;
 mod codex_pages;
 mod daily_tokens;
+#[cfg(test)]
+mod native_history_tests;
+mod native_log;
 mod persistent_cache;
 pub use daily_tokens::daily_tokens;
 pub use daily_tokens::{DailyTokenEntry, DailyTokenResponse};
 
 // ─── Tool families ───────────────────────────────────────────────────────
 
-/// The first-class families. CLI + desktop variants fold into one. MiMo Code is
+/// The first-class families. MiMo Code is
 /// Xiaomi's OpenCode fork (same Drizzle/SQLite store, different data dir + db
 /// name) — it rides the same reader as OpenCode. DeepSeek is DeepSeek Harness
 /// (`dsh`): each session is one event log under `~/.dsh/sessions` (zstd by
@@ -50,16 +53,20 @@ pub enum Family {
     Hermes,
     MiMo,
     DeepSeek,
+    Antigravity,
+    WorkBuddy,
 }
 
 impl Family {
-    pub const ALL: [Family; 6] = [
+    pub const ALL: [Family; 8] = [
         Family::Claude,
         Family::Codex,
         Family::OpenCode,
         Family::Hermes,
         Family::MiMo,
         Family::DeepSeek,
+        Family::Antigravity,
+        Family::WorkBuddy,
     ];
 
     /// Stable id used in the IPC payload + frontend family cards.
@@ -71,33 +78,25 @@ impl Family {
             Family::Hermes => "hermes",
             Family::MiMo => "mimo",
             Family::DeepSeek => "deepseek",
+            Family::Antigravity => "antigravity",
+            Family::WorkBuddy => "workbuddy",
         }
     }
 
     pub fn from_id(s: &str) -> Option<Self> {
-        match s {
-            "claude" => Some(Family::Claude),
-            "codex" => Some(Family::Codex),
-            "opencode" => Some(Family::OpenCode),
-            "hermes" => Some(Family::Hermes),
-            "mimo" => Some(Family::MiMo),
-            "deepseek" => Some(Family::DeepSeek),
+        Self::ALL.into_iter().find(|family| family.as_id() == s)
+    }
+
+    /// JSONL scan depth for the families with flat session files.
+    fn jsonl_depth(self) -> Option<u8> {
+        match self {
+            Family::Claude => Some(2),
+            Family::Codex => Some(4),
             _ => None,
         }
     }
 
-    /// JSONL scan depth for the file-walking families; `None` for the SQLite
-    /// families (OpenCode, MiMo, Hermes) and DeepSeek (its own collector) that
-    /// bypass the mtime-then-parse pipeline.
-    fn jsonl_depth(self) -> Option<u8> {
-        match self {
-            Family::Claude => Some(2), // ~/.claude/projects/<hash>/<hash>.jsonl
-            Family::Codex => Some(4),  // ~/.codex/sessions/<Y>/<M>/<D>/rollout-*.jsonl
-            Family::OpenCode | Family::Hermes | Family::MiMo | Family::DeepSeek => None,
-        }
-    }
-
-    /// On-disk session-store root for this family.
+    /// Base directory for this family's session stores.
     fn root(self, home: &Path) -> PathBuf {
         match self {
             Family::Claude => home.join(".claude").join("projects"),
@@ -110,6 +109,8 @@ impl Family {
             // DeepSeek Harness — `<dsh home>/sessions` (the dsh-base bundle's
             // `session-persistence-jsonl` root; see dsh_home()).
             Family::DeepSeek => dsh_home().join("sessions"),
+            Family::Antigravity => home.join(".gemini"),
+            Family::WorkBuddy => home.to_path_buf(),
         }
     }
 }
@@ -854,6 +855,59 @@ fn collect_jsonl_paths(
         } else if metadata.is_dir() {
             collect_jsonl_paths(path, depth - 1, family, out)?;
         }
+    }
+    Ok(())
+}
+
+const WORKBUDDY_EDITIONS: [(&str, &str); 2] = [
+    (".workbuddy", "workbuddy"),
+    (".workbuddy-ai", "workbuddyai"),
+];
+
+fn family_cache_contains(root: &Path, family: Family, path: &Path) -> bool {
+    match family {
+        Family::WorkBuddy => WORKBUDDY_EDITIONS.iter().any(|(edition, _)| {
+            path.strip_prefix(root)
+                .is_ok_and(|relative| relative.starts_with(Path::new(edition).join("projects")))
+        }),
+        Family::Antigravity => antigravity::EDITION_DIRS.iter().any(|edition| {
+            path.strip_prefix(root)
+                .is_ok_and(|relative| relative.starts_with(edition))
+        }),
+        _ => path.starts_with(root),
+    }
+}
+
+fn collect_session_files(
+    root: &Path,
+    family: Family,
+    out: &mut Vec<(SystemTime, PathBuf, Family)>,
+) -> Result<(), String> {
+    if family == Family::DeepSeek {
+        collect_dsh_paths(root, family, out).map_err(|error| error.to_string())?;
+    } else if family == Family::WorkBuddy {
+        for (edition, _) in WORKBUDDY_EDITIONS {
+            let directory = root.join(edition);
+            let projects = directory.join("projects");
+            let mut candidates = Vec::new();
+            collect_jsonl_paths(projects.clone(), 2, family, &mut candidates)
+                .map_err(|error| error.to_string())?;
+            if candidates.is_empty() {
+                continue;
+            }
+            let deleted = native_log::workbuddy_deleted(&directory.join("workbuddy.db"))
+                .map_err(|error| error.to_string())?;
+            out.extend(candidates.into_iter().filter(|(_, path, _)| {
+                path.parent() != Some(projects.as_path())
+                    && path
+                        .file_stem()
+                        .and_then(|id| id.to_str())
+                        .is_some_and(|id| !deleted.contains(id))
+            }));
+        }
+    } else if let Some(depth) = family.jsonl_depth() {
+        collect_jsonl_paths(root.to_path_buf(), depth, family, out)
+            .map_err(|error| error.to_string())?;
     }
     Ok(())
 }
@@ -2073,7 +2127,6 @@ fn parse_session_cached(path: &Path, family: Family) -> Option<SavedSession> {
         .flatten()
 }
 
-#[cfg(test)]
 fn parse_session_cached_in(
     cache: &Mutex<HashMap<PathBuf, CachedSession>>,
     path: &Path,
@@ -2108,6 +2161,19 @@ fn parse_session_pages_cached_in(
         Family::Claude => parse_agent_jsonl_checked(path, family),
         Family::Codex => parse_codex_pages_checked(paths),
         Family::DeepSeek => parse_dsh_session_checked(path),
+        Family::WorkBuddy => {
+            let edition = path.ancestors().nth(3).and_then(Path::file_name);
+            let tool = WORKBUDDY_EDITIONS
+                .iter()
+                .find(|(directory, _)| edition.is_some_and(|name| name == *directory))
+                .map_or(family.as_id(), |(_, tool)| *tool);
+            native_log::workbuddy(path)
+                .map(|log| log.session(path, tool))
+                .map_err(|error| error.to_string())
+        }
+        Family::Antigravity => native_log::antigravity(path)
+            .map(|log| log.session(path, family.as_id()))
+            .map_err(|error| error.to_string()),
         _ => Ok(None),
     };
     let mut guard = cache
@@ -2241,6 +2307,22 @@ fn family_history_at_checked(
             limit,
         );
     }
+    if family == Family::Antigravity {
+        return antigravity::index(&family.root(home))?
+            .into_iter()
+            .skip(offset)
+            .take(limit)
+            .map(|session| {
+                let log = session
+                    .transcript
+                    .as_deref()
+                    .map(|path| parse_session_cached_in(session_cache(), path, family))
+                    .transpose()?
+                    .flatten();
+                Ok(session.save(log))
+            })
+            .collect();
+    }
     family_history_files_at(&family.root(home), family, offset, limit, session_cache())
 }
 
@@ -2251,21 +2333,8 @@ fn family_history_files_at(
     limit: usize,
     cache: &Mutex<HashMap<PathBuf, CachedSession>>,
 ) -> Result<Vec<SavedSession>, String> {
-    // DeepSeek Harness keeps one event log per session (`session.jsonl.zstd`
-    // by default) — collect + parse those directly.
-    let mut candidates: Vec<(SystemTime, PathBuf, Family)> = Vec::new();
-    match family {
-        Family::Claude | Family::Codex => {
-            if let Some(depth) = family.jsonl_depth() {
-                collect_jsonl_paths(root.to_path_buf(), depth, family, &mut candidates)
-                    .map_err(|e| e.to_string())?;
-            }
-        }
-        Family::DeepSeek => {
-            collect_dsh_paths(root, family, &mut candidates).map_err(|e| e.to_string())?
-        }
-        Family::OpenCode | Family::Hermes | Family::MiMo => unreachable!(),
-    }
+    let mut candidates = Vec::new();
+    collect_session_files(root, family, &mut candidates)?;
 
     candidates.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(&b.1)));
     let mut sessions = Vec::new();
@@ -2294,7 +2363,9 @@ fn family_history_files_at(
         }
     }
     if let Ok(mut cache) = cache.lock() {
-        cache.retain(|path, _| !path.starts_with(root) || cache_keys.contains(path));
+        cache.retain(|path, _| {
+            !family_cache_contains(root, family, path) || cache_keys.contains(path)
+        });
     }
     if family == Family::Codex {
         apply_codex_thread_names(root, &mut sessions);
@@ -2302,10 +2373,15 @@ fn family_history_files_at(
     Ok(sessions)
 }
 
-/// Contribution-heatmap entries across all six families, 210-day lookback.
+/// Contribution-heatmap entries across all families, 210-day lookback.
 /// Past session files are immutable once their mtime settles, so per-file
 /// counts are cached on disk and skipped on subsequent scans.
 pub fn message_heatmap(selected_family: Option<Family>) -> Result<Vec<HeatmapEntry>, String> {
+    if selected_family
+        .is_none_or(|family| matches!(family, Family::Antigravity | Family::WorkBuddy))
+    {
+        hydrate_session_cache();
+    }
     let home = dirs::home_dir().ok_or_else(|| "home directory unavailable".to_string())?;
     message_heatmap_at_checked(&home, selected_family, &count_cache_path())
 }
@@ -2334,25 +2410,15 @@ fn message_heatmap_at_checked(
         .checked_sub(Duration::from_secs(LOOKBACK_SECS))
         .unwrap_or(UNIX_EPOCH);
 
-    // Collect file candidates for the JSONL families only (OpenCode, MiMo, and
-    // Hermes are separate SQLite passes below).
-    let mut candidates: Vec<(SystemTime, PathBuf, Family)> = Vec::new();
+    let cutoff_secs = cutoff
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0);
+
+    let mut candidates = Vec::new();
     for family in Family::ALL {
-        if selected_family.is_some_and(|selected| selected != family) {
-            continue;
-        }
-        match family {
-            Family::Claude | Family::Codex => {
-                if let Some(depth) = family.jsonl_depth() {
-                    collect_jsonl_paths(family.root(home), depth, family, &mut candidates)
-                        .map_err(|e| e.to_string())?;
-                }
-            }
-            Family::DeepSeek => {
-                collect_dsh_paths(&family.root(home), family, &mut candidates)
-                    .map_err(|e| e.to_string())?;
-            }
-            Family::OpenCode | Family::Hermes | Family::MiMo => {}
+        if selected_family.is_none_or(|selected| selected == family) {
+            collect_session_files(&family.root(home), family, &mut candidates)?;
         }
     }
 
@@ -2363,6 +2429,19 @@ fn message_heatmap_at_checked(
 
     for (mtime, path, family) in &candidates {
         if *mtime < cutoff {
+            continue;
+        }
+        if *family == Family::WorkBuddy {
+            if let Some(session) = parse_session_cached_in(session_cache(), path, *family)? {
+                if let (Ok(ms), Some(count)) =
+                    (session.saved_at.parse::<i64>(), session.message_count)
+                {
+                    let ts = ms / 1000;
+                    if ts >= cutoff_secs {
+                        out.push(HeatmapEntry { ts, count });
+                    }
+                }
+            }
             continue;
         }
         let ts = mtime
@@ -2422,8 +2501,9 @@ fn message_heatmap_at_checked(
     // Prune entries for files that vanished from disk.
     let before = cache.len();
     cache.retain(|key, _| {
-        selected_family.is_some_and(|family| !Path::new(key).starts_with(family.root(home)))
-            || keep.contains(key)
+        selected_family.is_some_and(|family| {
+            !family_cache_contains(&family.root(home), family, Path::new(key))
+        }) || keep.contains(key)
     });
     if cache.len() != before {
         cache_dirty = true;
@@ -2432,10 +2512,6 @@ fn message_heatmap_at_checked(
     // SQLite second pass — OpenCode, MiMo (its fork), and Hermes keep sessions
     // in a SQLite db (not flat files). Each collector opens its db read-only and
     // returns early if it's missing, so no is_file() guard is needed.
-    let cutoff_secs = cutoff
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_secs() as i64)
-        .unwrap_or(0);
     if selected_family.is_none_or(|family| family == Family::OpenCode) {
         collect_drizzle_heatmap_entries_checked(
             &Family::OpenCode.root(home).join("opencode.db"),
@@ -2454,6 +2530,24 @@ fn message_heatmap_at_checked(
         )?;
     }
 
+    if selected_family.is_none_or(|family| family == Family::Antigravity) {
+        for session in antigravity::index(&Family::Antigravity.root(home))? {
+            let ts = session.modified_ms / 1000;
+            if ts < cutoff_secs {
+                break;
+            }
+            let count = session
+                .transcript
+                .as_deref()
+                .map(|path| parse_session_cached_in(session_cache(), path, Family::Antigravity))
+                .transpose()?
+                .flatten()
+                .and_then(|log| log.message_count)
+                .unwrap_or(0);
+            out.push(HeatmapEntry { ts, count });
+        }
+    }
+
     if cache_dirty {
         write_count_cache(cache_path, &cache);
     }
@@ -2461,7 +2555,7 @@ fn message_heatmap_at_checked(
 }
 
 /// Rough "≈ N tokens" estimate: sum the on-disk byte size of every session
-/// file across the six families (capped per file), which the frontend
+/// file across the families (capped per file), which the frontend
 /// divides by a bytes-per-token ratio. Deliberately approximate — it measures
 /// content volume, so it works even when a provider doesn't report real usage
 /// (third-party models often log 0 tokens). Stat-only (no file reads), cheap.
@@ -2509,6 +2603,27 @@ fn estimate_token_bytes_at_checked(
                 // MiMo Code's SQLite db (its OpenCode fork's `mimocode.db`).
                 if let Some(m) = path_metadata(&mimo_db_path(home))? {
                     total = total.saturating_add(m.len());
+                }
+            }
+            Family::WorkBuddy => {
+                let mut candidates = Vec::new();
+                collect_session_files(&family.root(home), family, &mut candidates)
+                    .map_err(std::io::Error::other)?;
+                for (_, path, _) in candidates {
+                    if let Some(metadata) = path_metadata(&path)? {
+                        total = total.saturating_add(metadata.len().min(MAX_PER_FILE));
+                    }
+                }
+            }
+            Family::Antigravity => {
+                for session in
+                    antigravity::index(&family.root(home)).map_err(std::io::Error::other)?
+                {
+                    if let Some(path) = session.file {
+                        if let Some(metadata) = path_metadata(&path)? {
+                            total = total.saturating_add(metadata.len().min(MAX_PER_FILE));
+                        }
+                    }
                 }
             }
             Family::DeepSeek => {

@@ -9,6 +9,7 @@ describe('career session actions', () => {
     ['hermes', 'hermes --resume'],
     ['mimo', 'mimo --session'],
     ['deepseek', 'dsh --profile tui --resume'],
+    ['antigravity', 'agy --conversation'],
   ])('uses the native resume command for %s', (tool, prefix) => {
     expect(sessionResumeCommand(tool, 'native_id-123')).toBe(`${prefix} native_id-123`);
   });
@@ -20,9 +21,10 @@ describe('career session actions', () => {
     }
   );
 
-  it('does not invent a command for an unknown tool', () => {
-    expect(sessionResumeCommand('unknown', 'id')).toBeNull();
-  });
+  it.each(['unknown', 'antigravitydesktop', 'workbuddy', 'workbuddyai'])(
+    'does not invent a terminal command for %s',
+    (tool) => expect(sessionResumeCommand(tool, 'id')).toBeNull()
+  );
 
   it.each([
     ['C:\\Projects\\中文项目\\', '中文项目'],

@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { useNavigationStore } from './navigationStore';
+import { CAREER_FAMILIES } from '../data/aiCareerFamilies';
 import type {
   AiCareerFamily,
   DailyTokenEntry,
@@ -20,7 +21,7 @@ interface CareerSnapshot {
 
 const STORAGE_KEY = 'echobird-ai-career-cache';
 const CACHE_VERSION = 1;
-const SCOPES: Scope[] = ['overview', 'claude', 'codex', 'opencode', 'hermes', 'mimo', 'deepseek'];
+const SCOPES: Scope[] = ['overview', ...CAREER_FAMILIES.map(({ id }) => id)];
 const numeric = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value) && value >= 0;
 const nullableNumber = (value: unknown) => value === null || numeric(value);
