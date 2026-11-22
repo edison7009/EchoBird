@@ -9,11 +9,19 @@ use crate::services::smart_router::{self, PublicActivity, PublicConfig};
 
 #[tauri::command]
 pub async fn get_smart_router_token_credits(
+    wallet_ledger_id: Option<String>,
 ) -> Result<smart_router::statistics::TokenCredits, String> {
     crate::services::developer_preview::run(async {
-        tauri::async_runtime::spawn_blocking(smart_router::statistics::token_credits)
-            .await
-            .map_err(|_| "Unable to read local TokenPet credits".to_string())?
+        tauri::async_runtime::spawn_blocking(move || {
+            let include_local_history =
+                super::settings_commands::get_settings().ai_career_enabled != Some(false);
+            smart_router::statistics::token_credits(
+                include_local_history,
+                wallet_ledger_id.as_deref(),
+            )
+        })
+        .await
+        .map_err(|_| "Unable to read local TokenPet credits".to_string())?
     })
     .await
 }

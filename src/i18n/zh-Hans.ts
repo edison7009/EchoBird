@@ -850,7 +850,7 @@ const zhHans: Partial<Translations> = {
   'pets.reward.doubleDetail': '成长卡收益 · 15 分钟',
   'pets.reward.hasteDetail': '下次补给提前',
   'pets.reward.boost': '成长卡收益 ×2',
-  'pets.balanceHelp': '智能接入消耗 Token，自动获得 TokenPet',
+  'pets.balanceHelp': '智能接入和我的AI生涯的实测用量可自动转换为 TokenPet',
   'pets.eggName': '彩色蛋',
   'pets.stage.egg': '完整蛋',
   'pets.stage.cracked': '裂壳蛋',

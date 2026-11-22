@@ -180,7 +180,8 @@ export function PetsMain() {
       if (!current || pending) return;
       pending = true;
       try {
-        const credits = await getSmartRouterTokenCredits();
+        const walletLedgerId = usePetsStore.getState().routerCredits?.ledgerId;
+        const credits = await getSmartRouterTokenCredits(walletLedgerId);
         if (current) usePetsStore.getState().creditRouter(credits);
       } catch {
         // Keep the last saved wallet and retry on the next visible refresh.

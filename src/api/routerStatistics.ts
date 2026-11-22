@@ -11,8 +11,8 @@ export interface RouterTokenCredits {
   ledgerId: string;
   total: number;
 }
-export function getSmartRouterTokenCredits(): Promise<RouterTokenCredits> {
-  return invoke('get_smart_router_token_credits');
+export function getSmartRouterTokenCredits(walletLedgerId?: string): Promise<RouterTokenCredits> {
+  return invoke('get_smart_router_token_credits', { walletLedgerId });
 }
 
 export interface RouterStatisticsCounts {

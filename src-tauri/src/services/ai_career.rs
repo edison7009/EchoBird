@@ -36,6 +36,7 @@ mod native_history_tests;
 mod native_log;
 mod persistent_cache;
 pub use daily_tokens::daily_tokens;
+pub(crate) use daily_tokens::pet_usage;
 pub use daily_tokens::{DailyTokenEntry, DailyTokenResponse};
 
 // ─── Tool families ───────────────────────────────────────────────────────

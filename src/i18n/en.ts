@@ -916,7 +916,8 @@ const en = {
   'pets.reward.doubleDetail': 'Growth card rewards · 15 min',
   'pets.reward.hasteDetail': 'Earlier next supply',
   'pets.reward.boost': 'Growth card rewards ×2',
-  'pets.balanceHelp': 'Use Tokens through Smart Access to earn TokenPet automatically',
+  'pets.balanceHelp':
+    'Earn TokenPet automatically from measured usage in Smart Access and My AI Career',
   'pets.eggName': 'Colored egg',
   'pets.stage.egg': 'Egg',
   'pets.stage.cracked': 'Cracked egg',

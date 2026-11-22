@@ -4,7 +4,7 @@ use std::io::Read;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime};
 
 use chrono::{Datelike, Local, Timelike};
 use serde::{Deserialize, Serialize};
@@ -14,10 +14,14 @@ use super::usage::{TokenUsage, UsageReport};
 use super::{market, pricing};
 use crate::models::model::AccountSource;
 
+#[path = "pet_history.rs"]
+mod pet_history;
+
 pub const RETENTION_DAYS: i32 = 14;
 const MAX_IDENTITIES: usize = 256;
 const MAX_GROUPS: usize = 32;
 const MAX_FILE_BYTES: u64 = 8 * 1024 * 1024;
+const PET_REFRESH_INTERVAL: Duration = Duration::from_secs(60);
 const FLUSH_DELAY: Duration = Duration::from_secs(30);
 const STORAGE_ERROR: &str = "Unable to read or save local router statistics";
 static COLLECTOR: OnceLock<Arc<Collector>> = OnceLock::new();
@@ -105,6 +109,8 @@ struct Store {
     #[serde(default)]
     credits: TokenCredits,
     #[serde(default)]
+    pet_history: pet_history::History,
+    #[serde(default)]
     market: market::Store,
 }
 
@@ -133,6 +139,7 @@ impl Default for Store {
             groups: BTreeSet::new(),
             days: BTreeMap::new(),
             credits: TokenCredits::default(),
+            pet_history: pet_history::History::default(),
             market: market::Store::default(),
         }
     }
@@ -145,10 +152,18 @@ impl Store {
         self.market.trim(today, &self.identities);
     }
 
+    fn wallet(&self) -> TokenCredits {
+        TokenCredits {
+            ledger_id: self.credits.ledger_id.clone(),
+            total: self.credits.total.saturating_add(self.pet_history.extra()),
+        }
+    }
+
     fn valid(&self) -> bool {
         let hash =
             |value: &str| value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit());
         self.version == 1
+            && self.pet_history.valid()
             && self.market.valid(&self.identities)
             && uuid::Uuid::parse_str(&self.credits.ledger_id).is_ok()
             && self.identities.len() <= MAX_IDENTITIES
@@ -186,6 +201,7 @@ struct State {
 pub struct Collector {
     path: PathBuf,
     state: Mutex<State>,
+    pet_refresh: Mutex<Option<Instant>>,
     write: Mutex<()>,
     active: AtomicBool,
     writer_started: AtomicBool,
@@ -287,11 +303,13 @@ impl Collector {
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => Store::default(),
             Err(_) => return Err(STORAGE_ERROR.into()),
         };
-        data.trim(clock().0);
+        let (today, _, now) = clock();
+        data.trim(today);
+        data.pet_history.trim((now / 1000) as i64);
         Ok(Arc::new(Self {
             path,
             state: Mutex::new(State {
-                durable_credits: data.credits.clone(),
+                durable_credits: data.wallet(),
                 data,
                 revision: 0,
                 saved_revision: 0,
@@ -299,6 +317,7 @@ impl Collector {
                 storage_error: false,
             }),
             write: Mutex::new(()),
+            pet_refresh: Mutex::new(None),
             active: AtomicBool::new(false),
             writer_started: AtomicBool::new(false),
             epoch: AtomicU64::new(0),
@@ -324,6 +343,13 @@ impl Collector {
     }
 
     fn update(&self, epoch: u64, update: impl FnOnce(&mut Store, i32, u8, u64)) {
+        self.update_if(epoch, |store, day, hour, now| {
+            update(store, day, hour, now);
+            true
+        });
+    }
+
+    fn update_if(&self, epoch: u64, update: impl FnOnce(&mut Store, i32, u8, u64) -> bool) {
         if !self.active.load(Ordering::Relaxed) || self.epoch.load(Ordering::Relaxed) != epoch {
             return;
         }
@@ -333,7 +359,10 @@ impl Collector {
             return;
         }
         state.data.trim(today);
-        update(&mut state.data, today, hour, now);
+        state.data.pet_history.trim((now / 1000) as i64);
+        if !update(&mut state.data, today, hour, now) {
+            return;
+        }
         let data = &mut state.data;
         data.market.trim(today, &data.identities);
         state.revision = state.revision.saturating_add(1);
@@ -496,7 +525,7 @@ impl Collector {
         let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
         state.storage_error = result.is_err();
         if result.is_ok() {
-            state.durable_credits = data.credits;
+            state.durable_credits = data.wallet();
             state.saved_revision = revision;
             state.saved_at = clock().2;
             #[cfg(test)]
@@ -515,6 +544,47 @@ impl Collector {
         }
         // Reads never force disk I/O or publish credits before the writer saves them.
         Ok(state.durable_credits.clone())
+    }
+
+    fn sync_pet_history(&self, wallet_ledger_id: Option<&str>) -> Result<TokenCredits, String> {
+        if !self.active.load(Ordering::Relaxed) {
+            return self.token_credits();
+        }
+        let Ok(mut last) = self.pet_refresh.try_lock() else {
+            return self.token_credits();
+        };
+        if last.is_some_and(|last| last.elapsed() < PET_REFRESH_INTERVAL) {
+            return self.token_credits();
+        }
+        let epoch = self.epoch.load(Ordering::SeqCst);
+        let now = (clock().2 / 1000) as i64;
+        let since = {
+            let state = self.state.lock().unwrap_or_else(|error| error.into_inner());
+            let wallet_reset =
+                wallet_ledger_id.is_some_and(|id| id != state.data.credits.ledger_id.as_str());
+            state
+                .data
+                .pet_history
+                .since(now, state.data.credits.total, wallet_reset)
+        };
+        let mut totals = pet_history::NativeTotals::new();
+        for (family, entry) in crate::services::ai_career::pet_usage(since, SystemTime::now()) {
+            let amount = entry.input_tokens.saturating_add(entry.output_tokens);
+            let total = totals
+                .entry(pet_history::day(entry.ts))
+                .or_default()
+                .entry(family.as_id().to_owned())
+                .or_default();
+            *total = total.saturating_add(amount);
+        }
+        self.update_if(epoch, move |store, _, _, timestamp| {
+            store
+                .pet_history
+                .merge_native(since, (timestamp / 1000) as i64, totals)
+        });
+        self.flush()?;
+        *last = Some(Instant::now());
+        self.token_credits()
     }
 
     pub fn observe(
@@ -569,8 +639,11 @@ impl Collector {
         let collector = self.clone();
         super::usage::observe_report(response, started, move |report| {
             let usage = &report.usage;
-            collector.update(epoch, |store, _, _, _| {
+            collector.update(epoch, |store, _, _, now| {
                 store.credits.total = store.credits.total.saturating_add(usage.total_tokens);
+                store
+                    .pet_history
+                    .record_router((now / 1000) as i64, usage.total_tokens);
                 if let Some((row, row_day, day, hour, group, _)) = &target {
                     if let Some(counts) = store
                         .days
@@ -653,8 +726,16 @@ pub fn begin(group: &str) -> Option<Arc<Request>> {
 pub fn snapshot(days: u8, group: Option<&str>) -> Result<Snapshot, String> {
     global()?.snapshot(days, group)
 }
-pub fn token_credits() -> Result<TokenCredits, String> {
-    global()?.token_credits()
+pub fn token_credits(
+    include_local_history: bool,
+    wallet_ledger_id: Option<&str>,
+) -> Result<TokenCredits, String> {
+    let collector = global()?;
+    if include_local_history {
+        collector.sync_pet_history(wallet_ledger_id)
+    } else {
+        collector.token_credits()
+    }
 }
 
 pub fn observe(

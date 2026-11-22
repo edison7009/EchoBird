@@ -789,7 +789,10 @@ fn hermes_has_usage(path: &Path) -> Result<bool, String> {
     .map_err(|e| e.to_string())
 }
 
-pub fn daily_tokens(family: Option<Family>) -> Result<DailyTokenResponse, String> {
+fn with_scan_cache<T>(
+    persist: bool,
+    scan: impl FnOnce(&Path, &Mutex<HashMap<PathBuf, CachedScan>>) -> Result<T, String>,
+) -> Result<T, String> {
     static REQUEST: Mutex<()> = Mutex::new(());
     let _request = REQUEST.lock().map_err(|e| e.to_string())?;
     let home = dirs::home_dir().ok_or_else(|| "Home directory is unavailable".to_string())?;
@@ -803,8 +806,8 @@ pub fn daily_tokens(family: Option<Family>) -> Result<DailyTokenResponse, String
             }
         }
     });
-    let result = daily_tokens_at_checked(&home, family, SystemTime::now(), scan_cache());
-    if result.is_ok() {
+    let result = scan(&home, scan_cache());
+    if persist && result.is_ok() {
         if let Ok(cache) = scan_cache().lock() {
             let _ = persistent_cache::write(
                 &parsed_cache_path("ai-career-daily-tokens-v1.json"),
@@ -813,6 +816,99 @@ pub fn daily_tokens(family: Option<Family>) -> Result<DailyTokenResponse, String
         }
     }
     result
+}
+
+pub fn daily_tokens(family: Option<Family>) -> Result<DailyTokenResponse, String> {
+    with_scan_cache(true, |home, cache| {
+        daily_tokens_at_checked(home, family, SystemTime::now(), cache)
+    })
+}
+
+pub(crate) fn pet_usage(since: i64, now: SystemTime) -> Vec<(Family, DailyTokenEntry)> {
+    with_scan_cache(false, |home, cache| {
+        Ok(pet_usage_at(home, since, now, cache))
+    })
+    .unwrap_or_default()
+}
+
+fn pet_usage_at(
+    home: &Path,
+    since: i64,
+    now: SystemTime,
+    cache: &Mutex<HashMap<PathBuf, CachedScan>>,
+) -> Vec<(Family, DailyTokenEntry)> {
+    let until = now.duration_since(UNIX_EPOCH).unwrap_or_default().as_secs() as i64;
+    let mut entries = Vec::new();
+    for family in Family::ALL {
+        let measured = if family == Family::Hermes {
+            hermes_pet_usage(&family.root(home).join("state.db"), since, until)
+        } else {
+            daily_tokens_at_checked(home, Some(family), now, cache).map(|scan| scan.entries)
+        };
+        if let Ok(samples) = measured {
+            entries.extend(
+                samples
+                    .into_iter()
+                    .filter(|entry| (since..=until).contains(&entry.ts))
+                    .map(|entry| (family, entry)),
+            );
+        }
+    }
+    entries
+}
+
+// Hermes exposes measured session totals. They can be compared with router
+// usage when the session fits in one UTC day.
+fn hermes_pet_usage(path: &Path, since: i64, until: i64) -> Result<Vec<DailyTokenEntry>, String> {
+    if path_metadata(path).map_err(|e| e.to_string())?.is_none() {
+        return Ok(Vec::new());
+    }
+    let conn =
+        rusqlite::Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+            .map_err(|error| error.to_string())?;
+    for column in ["input_tokens", "output_tokens", "started_at"] {
+        if !sqlite_has_column(&conn, "sessions", column).map_err(|error| error.to_string())? {
+            return Ok(Vec::new());
+        }
+    }
+    let end_column =
+        if sqlite_has_column(&conn, "sessions", "ended_at").map_err(|error| error.to_string())? {
+            "ended_at"
+        } else {
+            "NULL"
+        };
+    let visibility = super::hermes_session_visibility(&conn).map_err(|error| error.to_string())?;
+    let query = format!(
+        "SELECT started_at, {end_column}, input_tokens, output_tokens FROM sessions
+         WHERE {visibility} AND started_at >= ?1 AND started_at <= ?2
+         AND input_tokens >= 0 AND output_tokens >= 0 AND (input_tokens > 0 OR output_tokens > 0)"
+    );
+    let mut stmt = conn.prepare(&query).map_err(|error| error.to_string())?;
+    let rows = stmt
+        .query_map([since, until], |row| {
+            Ok((
+                row.get::<_, f64>(0)?,
+                row.get::<_, Option<f64>>(1)?,
+                row.get::<_, u64>(2)?,
+                row.get::<_, u64>(3)?,
+            ))
+        })
+        .map_err(|error| error.to_string())?;
+    let mut entries = Vec::new();
+    for row in rows {
+        let (started, ended, input_tokens, output_tokens) =
+            row.map_err(|error| error.to_string())?;
+        let start = started as i64;
+        let end = ended.map_or(until, |ended| ended as i64);
+        if started.is_finite() && end >= start && end <= until && start / 86_400 == end / 86_400 {
+            entries.push(DailyTokenEntry {
+                ts: start,
+                input_tokens,
+                output_tokens,
+            });
+        }
+    }
+    Ok(entries)
 }
 
 #[cfg(test)]
@@ -1919,5 +2015,35 @@ mod tests {
             assert_eq!(std::fs::read(&path).unwrap(), before);
         }
         std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn pet_uses_measured_hermes_totals_only_for_datable_visible_sessions() {
+        let dir = tempfile::tempdir().unwrap();
+        let db = dir.path().join("state.db");
+        let conn = rusqlite::Connection::open(&db).unwrap();
+        conn.execute_batch(
+            "CREATE TABLE sessions (started_at REAL, ended_at REAL, input_tokens INTEGER,
+                output_tokens INTEGER, archived INTEGER, hidden INTEGER);
+             INSERT INTO sessions VALUES
+                (86520, 86540, 20, 8, 0, 0),
+                (86560, NULL, 12, 4, 0, 0),
+                (86430, 86450, 100, 10, 0, 0),
+                (85000, 86500, 100, 10, 0, 0),
+                (86580, 86600, 0, 0, 0, 0),
+                (86700, 86710, 100, 10, 1, 0),
+                (86720, 86730, 100, 10, 0, 1),
+                (89900, 90010, 100, 10, 0, 0);",
+        )
+        .unwrap();
+        drop(conn);
+        let entries = hermes_pet_usage(&db, 84000, 90000).unwrap();
+        let mut amounts: Vec<_> = entries
+            .into_iter()
+            .map(|entry| (entry.ts, entry.input_tokens + entry.output_tokens))
+            .collect();
+        amounts.sort_unstable();
+        assert_eq!(amounts, [(86430, 110), (86520, 28), (86560, 16)]);
+        assert_eq!(hermes_pet_usage(&db, 86500, 90000).unwrap().len(), 2);
     }
 }

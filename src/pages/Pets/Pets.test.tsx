@@ -337,6 +337,18 @@ it('rolls a newly credited balance upwards with a finite animation', async () =>
   vi.mocked(performance.now).mockRestore();
 });
 
+it('resumes TokenPet credits from the last saved ledger total', async () => {
+  pets.setState({ balance: 100, routerCredits: { ledgerId: 'fixture-ledger', total: 40 } });
+  mock.credits.mockResolvedValue({ ledgerId: 'fixture-ledger', total: 65 });
+  await mount();
+  expect(mock.credits).toHaveBeenLastCalledWith('fixture-ledger');
+  expect(pets.getState().balance).toBe(125);
+  await act(async () => {
+    vi.advanceTimersByTime(5000);
+  });
+  expect(pets.getState().balance).toBe(125);
+});
+
 it('ignores a late usage response after hiding the page and stops its refresh timer', async () => {
   let resolve!: (value: { ledgerId: string; total: number }) => void;
   mock.credits.mockReturnValueOnce(

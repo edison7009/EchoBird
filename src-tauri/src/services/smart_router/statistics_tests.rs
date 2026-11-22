@@ -15,6 +15,56 @@ fn successful(collector: &Arc<Collector>) {
 }
 
 #[tokio::test]
+async fn local_pet_earnings_share_the_persisted_router_ledger() {
+    let (root, collector) = fixture();
+    collector.configure(true);
+    let request = collector.begin("group").unwrap();
+    collector
+        .observe(
+            crate::services::account_proxy::json_response(
+                &serde_json::json!({"usage":{"total_tokens":40}}),
+            ),
+            Some(&request),
+            "",
+        )
+        .into_body()
+        .collect()
+        .await
+        .unwrap();
+    collector.flush().unwrap();
+    let router_wallet = collector.token_credits().unwrap();
+    assert_eq!(router_wallet.total, 40);
+
+    let epoch = collector.epoch.load(Ordering::SeqCst);
+    let merge = |store: &mut Store, _, _, now| {
+        let now = (now / 1000) as i64;
+        let since = store.pet_history.since(now, store.credits.total, false);
+        store.pet_history.merge_native(
+            since,
+            now,
+            BTreeMap::from([(
+                pet_history::day(now),
+                BTreeMap::from([("codex".into(), 65)]),
+            )]),
+        )
+    };
+    collector.update_if(epoch, merge);
+    assert_eq!(collector.token_credits().unwrap().total, 40);
+    collector.flush().unwrap();
+    let writes = collector.writes.load(Ordering::Relaxed);
+    collector.update_if(epoch, merge);
+    collector.flush().unwrap();
+    assert_eq!(collector.writes.load(Ordering::Relaxed), writes);
+    let reopened = Collector::open(root.join("counts.json")).unwrap();
+    let state = reopened.state.lock().unwrap();
+    assert_eq!(state.durable_credits.ledger_id, router_wallet.ledger_id);
+    assert_eq!(state.durable_credits.total, 65);
+    drop(state);
+    collector.configure(false);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[tokio::test]
 async fn paused_or_old_generation_responses_cannot_credit_a_new_session() {
     let (root, collector) = fixture();
     collector.configure(true);
