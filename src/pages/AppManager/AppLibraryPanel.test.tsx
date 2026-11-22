@@ -162,6 +162,36 @@ describe('application resources', () => {
     }
   });
 
+  it.each([
+    ['qoder', 'qodercn'],
+    ['workbuddy', 'workbuddyai'],
+  ] as const)(
+    'offers the same tabs for %s and %s with independent resource lists',
+    async (first, second) => {
+      expect(libraryKinds(first)).toEqual(['skills', 'mcp']);
+      expect(libraryKinds(second)).toEqual(libraryKinds(first));
+      const pending = deferredRead();
+      vi.mocked(appLibrary.list)
+        .mockResolvedValueOnce([resource('first-edition-only')])
+        .mockReturnValueOnce(pending.promise);
+      await act(async () => {
+        renderer = create(
+          <AppLibraryPanel key={first} tool={tool(first, first)} kind="skills" revision={0} />
+        );
+      });
+      expect(JSON.stringify(renderer.toJSON())).toContain('first-edition-only');
+      await act(async () => {
+        renderer.update(
+          <AppLibraryPanel key={second} tool={tool(second, second)} kind="skills" revision={0} />
+        );
+      });
+      expect(appLibrary.list).toHaveBeenLastCalledWith(second, 'skills');
+      expect(JSON.stringify(renderer.toJSON())).not.toContain('first-edition-only');
+      await act(async () => pending.resolve([resource('second-edition-only')]));
+      expect(JSON.stringify(renderer.toJSON())).toContain('second-edition-only');
+    }
+  );
+
   it('uses the same resource snapshot for Codex CLI and ChatGPT Desktop', async () => {
     expect(libraryKinds('chatgptdesktop')).toEqual(libraryKinds('codex'));
     expect(libraryKinds('claudedesktop')).toEqual(['skills', 'mcp', 'memory']);

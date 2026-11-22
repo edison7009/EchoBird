@@ -62,7 +62,7 @@ struct App {
     mcp_file: PathBuf,
 }
 
-const TOOL_IDS: [&str; 17] = [
+const TOOL_IDS: [&str; 19] = [
     "antigravity",
     "antigravitydesktop",
     "dsh",
@@ -74,7 +74,9 @@ const TOOL_IDS: [&str; 17] = [
     "cline",
     "devincli",
     "qoder",
+    "qodercn",
     "workbuddy",
+    "workbuddyai",
     "kimicode",
     "kimidesktop",
     "pi",
@@ -84,7 +86,10 @@ const TOOL_IDS: [&str; 17] = [
 
 impl App {
     fn open(id: &str, kind: Kind) -> Result<Self, String> {
-        let home = dirs::home_dir().ok_or("unsupported")?;
+        Self::open_in_home(id, kind, dirs::home_dir().ok_or("unsupported")?)
+    }
+
+    fn open_in_home(id: &str, kind: Kind, home: PathBuf) -> Result<Self, String> {
         let (id, directory, mcp_file) = match (id, kind) {
             ("claudecode", _) | ("claudedesktop", Kind::Memory) => (
                 "claudecode",
@@ -157,9 +162,21 @@ impl App {
                 let directory = home.join(".qoder");
                 ("qoder", directory.clone(), directory.join("settings.json"))
             }
+            ("qodercn", _) => {
+                let directory = home.join(".qoder-cn");
+                (
+                    "qodercn",
+                    directory.clone(),
+                    directory.join("settings.json"),
+                )
+            }
             ("workbuddy", _) => {
                 let directory = configured_home("WORKBUDDY_CONFIG_DIR", home.join(".workbuddy"));
                 ("workbuddy", directory.clone(), directory.join("mcp.json"))
+            }
+            ("workbuddyai", _) => {
+                let directory = home.join(".workbuddy-ai");
+                ("workbuddyai", directory.clone(), directory.join("mcp.json"))
             }
             ("kimicode" | "kimidesktop", _) => {
                 let directory = configured_home("KIMI_CODE_HOME", home.join(".kimi-code"));
@@ -742,13 +759,85 @@ mod tests {
             mcp_file: directory.join(match id {
                 "codex" => "config.toml",
                 "claudedesktop" => "claude_desktop_config.json",
-                "qoder" => "settings.json",
+                "qoder" | "qodercn" => "settings.json",
                 "cline" => "data/settings/cline_mcp_settings.json",
                 "devincli" => "mcp_config.json",
                 "opencode" => "opencode.jsonc",
                 _ => "mcp.json",
             }),
             directory,
+        }
+    }
+
+    #[test]
+    fn additional_editions_open_and_edit_their_own_user_resources() {
+        let root = tempfile::tempdir().unwrap();
+        let home = root.path();
+
+        for (id, native_directory, mcp_name, other_directory) in [
+            ("qodercn", ".qoder-cn", "settings.json", ".qoder"),
+            ("workbuddyai", ".workbuddy-ai", "mcp.json", ".workbuddy"),
+        ] {
+            let other = home.join(other_directory);
+            fs::create_dir_all(&other).unwrap();
+            let other_config = other.join(mcp_name);
+            let other_bytes = br#"{"mcpServers":{"other-edition":{"command":"example"}}}"#;
+            fs::write(&other_config, other_bytes).unwrap();
+
+            let app = App::open_in_home(id, Kind::Mcp, home.to_path_buf()).unwrap();
+            assert_eq!(app.id, id);
+            assert_eq!(app.mcp_file, home.join(native_directory).join(mcp_name));
+            assert!(app.assets(Kind::Mcp).unwrap().is_empty());
+            assert!(app.assets(Kind::Skills).unwrap().is_empty());
+
+            let source = fixture("codex", home);
+            let skill = source.primary_skills().join("test-skill");
+            fs::create_dir_all(&skill).unwrap();
+            fs::write(skill.join("SKILL.md"), "# Test skill").unwrap();
+            let source_entry = source.assets(Kind::Skills).unwrap().remove(0);
+            copy_item(&source, &app, Kind::Skills, &source_entry).unwrap();
+            let entry = app.assets(Kind::Skills).unwrap().remove(0);
+            assert_eq!(entry.name, "test-skill");
+            assert_eq!(
+                entry.path.unwrap(),
+                home.join(native_directory).join("skills/test-skill")
+            );
+            assert!(!other.join("skills").exists());
+
+            let unrelated = json!({"settings":{"keep":42}});
+            let mut original = unrelated.clone();
+            if id == "workbuddyai" {
+                original["mcpServers"] = json!({
+                    "connector": {"managedBy":"connector","url":"https://example.test"}
+                });
+            }
+            fs::write(&app.mcp_file, original.to_string()).unwrap();
+            config::add_mcp(&app, "local", json!({"command":"example"})).unwrap();
+            config::toggle(&app, Kind::Mcp, "local", false).unwrap();
+            let entries = app.assets(Kind::Mcp).unwrap();
+            assert_eq!(
+                entries
+                    .iter()
+                    .find(|entry| entry.id == "local")
+                    .unwrap()
+                    .enabled,
+                Some(false)
+            );
+            config::toggle(&app, Kind::Mcp, "local", true).unwrap();
+            config::remove_mcp(&app, "local").unwrap();
+            if id == "workbuddyai" {
+                let connector = app.assets(Kind::Mcp).unwrap().remove(0);
+                assert!(!connector.can_copy && !connector.can_remove && !connector.can_toggle);
+                assert!(config::remove_mcp(&app, "connector").is_err());
+                assert!(config::toggle(&app, Kind::Mcp, "connector", false).is_err());
+            }
+            let updated: Value = serde_json::from_slice(&fs::read(&app.mcp_file).unwrap()).unwrap();
+            assert_eq!(updated["settings"], unrelated["settings"]);
+            assert_eq!(
+                updated["mcpServers"].get("connector"),
+                original["mcpServers"].get("connector")
+            );
+            assert_eq!(fs::read(&other_config).unwrap(), other_bytes);
         }
     }
 
@@ -1448,6 +1537,40 @@ mod tests {
         let native: Value = serde_json::from_slice(&fs::read(&app.mcp_file).unwrap()).unwrap();
         assert_eq!(native["mcpServers"]["fixture"]["disabled"], true);
         assert_eq!(native["keep"]["value"], 42);
+    }
+
+    #[test]
+    fn qoder_mcp_preserves_comments_in_both_editions() {
+        let root = tempfile::tempdir().unwrap();
+        for id in ["qoder", "qodercn"] {
+            let app = fixture(id, root.path());
+            fs::create_dir_all(&app.directory).unwrap();
+            let original = concat!(
+                "\u{feff}",
+                r#"{
+                    // existing model settings
+                    "keep": 42,
+                    "mcpServers": {
+                        "original": {
+                            // existing server command
+                            "command": "example",
+                        },
+                    },
+                }"#
+            );
+            fs::write(&app.mcp_file, original).unwrap();
+            assert_eq!(app.assets(Kind::Mcp).unwrap()[0].id, "original");
+            config::add_mcp(&app, "new", json!({"command":"example"})).unwrap();
+            config::toggle(&app, Kind::Mcp, "original", false).unwrap();
+            config::remove_mcp(&app, "new").unwrap();
+            let entries = app.assets(Kind::Mcp).unwrap();
+            assert_eq!(entries.len(), 1);
+            assert_eq!(entries[0].enabled, Some(false));
+            let updated = fs::read_to_string(&app.mcp_file).unwrap();
+            assert!(updated.starts_with('\u{feff}'));
+            assert!(updated.contains("// existing model settings"));
+            assert!(updated.contains("// existing server command"));
+        }
     }
 
     #[test]

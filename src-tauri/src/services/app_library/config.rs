@@ -1,5 +1,9 @@
 use super::{dsh_mcp, opencode_resources, App, Entry, Kind};
-use crate::services::native_account_files::{self, DirectoryLock};
+use crate::services::{
+    native_account_files::{self, DirectoryLock},
+    tool_config_manager::jsonc,
+};
+use jsonc_parser::{cst::CstRootNode, ParseOptions};
 use serde::Deserialize;
 use serde_json::{json, Map, Value};
 use std::{
@@ -8,21 +12,42 @@ use std::{
 };
 use toml_edit::{ArrayOfTables, DocumentMut, InlineTable, Item, Table};
 
+enum Format {
+    Json,
+    Jsonc,
+    Toml,
+}
+
 enum Config {
     Json(Value),
+    Jsonc { tree: CstRootNode, bom: bool },
     Toml(DocumentMut),
 }
 
 impl Config {
-    fn read(path: &Path, toml: bool) -> Result<Self, &'static str> {
+    fn read(path: &Path, format: Format) -> Result<Self, &'static str> {
         let raw = native_account_files::read_optional(path)
             .map_err(|_| "readFailed")?
             .unwrap_or_default();
         let text = std::str::from_utf8(&raw)
             .map_err(|_| "invalidConfig")?
             .trim_start_matches('\u{feff}');
-        if toml {
-            return text.parse().map(Self::Toml).map_err(|_| "invalidConfig");
+        match format {
+            Format::Toml => return text.parse().map(Self::Toml).map_err(|_| "invalidConfig"),
+            Format::Jsonc => {
+                let options = ParseOptions {
+                    allow_comments: true,
+                    allow_trailing_commas: true,
+                    ..Default::default()
+                };
+                let tree = CstRootNode::parse(text, &options).map_err(|_| "invalidConfig")?;
+                tree.object_value_or_create().ok_or("invalidConfig")?;
+                return Ok(Self::Jsonc {
+                    tree,
+                    bom: raw.starts_with(b"\xef\xbb\xbf"),
+                });
+            }
+            Format::Json => {}
         }
         let value: Value = if raw.is_empty() {
             json!({})
@@ -38,6 +63,11 @@ impl Config {
     fn entries(&self, key: &str) -> Result<Map<String, Value>, &'static str> {
         let value = match self {
             Config::Json(document) => document.get(key).cloned(),
+            Config::Jsonc { tree, .. } => tree
+                .object_value()
+                .and_then(|root| root.get(key))
+                .map(|value| value.to_serde_value().ok_or("invalidConfig"))
+                .transpose()?,
             Config::Toml(document) => {
                 let Some(item) = document.get(key) else {
                     return Ok(Map::new());
@@ -72,6 +102,17 @@ impl Config {
                     entries.remove(id);
                 }
             }
+            Config::Jsonc { tree, .. } => {
+                let root = tree.object_value().ok_or("invalidConfig")?;
+                if let Some(value) = value {
+                    let entries = root.object_value_or_create(key).ok_or("invalidConfig")?;
+                    jsonc::set(&entries, id, &value);
+                } else if let Some(property) =
+                    root.object_value(key).and_then(|group| group.get(id))
+                {
+                    property.remove();
+                }
+            }
             Config::Toml(document) => {
                 let group = document
                     .as_table_mut()
@@ -103,7 +144,7 @@ impl Config {
 
     fn flag(&mut self, key: &str, id: &str, enabled: bool) -> Result<(), &'static str> {
         match self {
-            Config::Json(_) => self.set(key, id, Some(json!(enabled))),
+            Config::Json(_) | Config::Jsonc { .. } => self.set(key, id, Some(json!(enabled))),
             Config::Toml(document) => {
                 let entry = document
                     .get_mut(key)
@@ -122,6 +163,13 @@ impl Config {
             Config::Json(document) => {
                 native_account_files::json(document).map_err(|_| "writeFailed")?
             }
+            Config::Jsonc { tree, bom } => {
+                let mut text = tree.to_string();
+                if *bom {
+                    text.insert(0, '\u{feff}');
+                }
+                text.into_bytes()
+            }
             Config::Toml(document) => document.to_string().into_bytes(),
         };
         native_account_files::write_private_file(path, &bytes).map_err(|_| "writeFailed")
@@ -130,18 +178,20 @@ impl Config {
 
 fn edit(
     path: &Path,
-    toml: bool,
+    format: Format,
     apply: impl FnOnce(&mut Config) -> Result<(), &'static str>,
 ) -> Result<(), &'static str> {
     fs::create_dir_all(path.parent().ok_or("writeFailed")?).map_err(|_| "writeFailed")?;
     let _lock = DirectoryLock::acquire_existing(path).map_err(|_| "writeFailed")?;
-    let mut document = Config::read(path, toml)?;
+    let mut document = Config::read(path, format)?;
     apply(&mut document)?;
     document.save(path)
 }
 
 pub(super) fn claude_user_memory_dir(directory: &Path, home: &Path) -> Option<PathBuf> {
-    let Config::Json(settings) = Config::read(&directory.join("settings.json"), false).ok()? else {
+    let Config::Json(settings) =
+        Config::read(&directory.join("settings.json"), Format::Json).ok()?
+    else {
         return None;
     };
     let value = settings.get("autoMemoryDirectory")?.as_str()?;
@@ -191,7 +241,7 @@ pub(super) fn apply_skill_states(app: &App, entries: &mut [Entry]) {
     }
     match app.id {
         "claudecode" => {
-            let Ok(overrides) = Config::read(&app.directory.join("settings.json"), false)
+            let Ok(overrides) = Config::read(&app.directory.join("settings.json"), Format::Json)
                 .and_then(|document| document.entries(CLAUDE_SKILL_OVERRIDES))
             else {
                 return;
@@ -207,8 +257,8 @@ pub(super) fn apply_skill_states(app: &App, entries: &mut [Entry]) {
             }
         }
         "codex" => {
-            let Ok(rules) =
-                Config::read(&app.mcp_file, true).and_then(|document| codex_skill_rules(&document))
+            let Ok(rules) = Config::read(&app.mcp_file, Format::Toml)
+                .and_then(|document| codex_skill_rules(&document))
             else {
                 return;
             };
@@ -237,21 +287,25 @@ pub(super) fn toggle_skill(app: &App, entry: &Entry, enabled: bool) -> Result<()
     let result = match app.id {
         "claudecode" => {
             let name = skill_name(entry);
-            edit(&app.directory.join("settings.json"), false, |document| {
-                let overrides = document.entries(CLAUDE_SKILL_OVERRIDES)?;
-                if overrides
-                    .get(name)
-                    .is_some_and(|mode| mode != "on" && mode != "off")
-                {
-                    return Err("unsupported");
-                }
-                let mode = if enabled { "on" } else { "off" };
-                document.set(CLAUDE_SKILL_OVERRIDES, name, Some(json!(mode)))
-            })
+            edit(
+                &app.directory.join("settings.json"),
+                Format::Json,
+                |document| {
+                    let overrides = document.entries(CLAUDE_SKILL_OVERRIDES)?;
+                    if overrides
+                        .get(name)
+                        .is_some_and(|mode| mode != "on" && mode != "off")
+                    {
+                        return Err("unsupported");
+                    }
+                    let mode = if enabled { "on" } else { "off" };
+                    document.set(CLAUDE_SKILL_OVERRIDES, name, Some(json!(mode)))
+                },
+            )
         }
         "codex" => {
             let path = skill_path(entry).ok_or("missing")?;
-            edit(&app.mcp_file, true, |document| {
+            edit(&app.mcp_file, Format::Toml, |document| {
                 set_codex_skill_rule(document, &path, enabled)
             })
         }
@@ -326,6 +380,14 @@ fn mcp_table(app: &App) -> &'static str {
     }
 }
 
+fn mcp_format(app: &App) -> Format {
+    match app.id {
+        "codex" => Format::Toml,
+        "qoder" | "qodercn" => Format::Jsonc,
+        _ => Format::Json,
+    }
+}
+
 fn raw_mcp(app: &App) -> Result<Map<String, Value>, &'static str> {
     if app.id == "dsh" {
         return Ok(dsh_mcp::read(&app.mcp_file)?.entries);
@@ -336,14 +398,25 @@ fn raw_mcp(app: &App) -> Result<Map<String, Value>, &'static str> {
             .map(|(name, server)| (name, server.value))
             .collect());
     }
-    Config::read(&app.mcp_file, app.id == "codex")?.entries(mcp_table(app))
+    Config::read(&app.mcp_file, mcp_format(app))?.entries(mcp_table(app))
 }
 
 fn uses_disabled_mcp_flag(app: &App) -> bool {
     matches!(
         app.id,
-        "workbuddy" | "antigravitydesktop" | "qoder" | "cline" | "devincli" | "opencode"
+        "workbuddy"
+            | "workbuddyai"
+            | "antigravitydesktop"
+            | "qoder"
+            | "qodercn"
+            | "cline"
+            | "devincli"
+            | "opencode"
     )
+}
+
+fn workbuddy_connector(app: &App, server: &Value) -> bool {
+    matches!(app.id, "workbuddy" | "workbuddyai") && server["managedBy"] == "connector"
 }
 
 pub(super) fn mcp_entries(app: &App) -> Result<Vec<Entry>, String> {
@@ -376,7 +449,7 @@ pub(super) fn mcp_entries(app: &App) -> Result<Vec<Entry>, String> {
                 .or_else(|| server["transport"]["url"].as_str())
                 .and_then(|value| reqwest::Url::parse(value).ok())
                 .and_then(|url| url.host_str().map(str::to_owned));
-            let connector = app.id == "workbuddy" && server["managedBy"] == "connector";
+            let connector = workbuddy_connector(app, &server);
             entry.enabled = if uses_disabled_mcp_flag(app) {
                 Some(server["disabled"] != true)
             } else {
@@ -410,7 +483,7 @@ fn normalize_transport(app: &App, server: &Value) -> Result<Value, &'static str>
     }
     match app.id {
         "opencode" => return opencode_resources::portable(data),
-        "workbuddy" | "qoder" => {
+        "workbuddy" | "workbuddyai" | "qoder" | "qodercn" => {
             if server["managedBy"] == "connector" {
                 return Err("unsupported");
             }
@@ -657,7 +730,7 @@ fn insert_mcp(app: &App, id: &str, mut definition: Value) -> Result<(), &'static
         fields.insert("transport".into(), transport);
     }
     let key = mcp_table(app);
-    edit(&app.mcp_file, app.id == "codex", |document| {
+    edit(&app.mcp_file, mcp_format(app), |document| {
         let entries = document.entries(key)?;
         let exists = if app.id == "pi" {
             let namespace = id.replace('-', "_");
@@ -683,10 +756,10 @@ pub(super) fn remove_mcp(app: &App, id: &str) -> Result<(), String> {
             .map_err(str::to_owned);
     }
     let key = mcp_table(app);
-    edit(&app.mcp_file, app.id == "codex", |document| {
+    edit(&app.mcp_file, mcp_format(app), |document| {
         let entries = document.entries(key)?;
         let item = entries.get(id).ok_or("missing")?;
-        if app.id == "workbuddy" && item["managedBy"] == "connector" {
+        if workbuddy_connector(app, item) {
             return Err("unsupported");
         }
         document.set(key, id, None)
@@ -725,9 +798,9 @@ pub(super) fn plugin_entries(app: &App) -> Result<Vec<Entry>, String> {
     }
     let root = app.directory.join("plugins");
     let installed =
-        Config::read(&root.join("installed_plugins.json"), false)?.entries("plugins")?;
-    let flags =
-        Config::read(&app.directory.join("settings.json"), false)?.entries("enabledPlugins")?;
+        Config::read(&root.join("installed_plugins.json"), Format::Json)?.entries("plugins")?;
+    let flags = Config::read(&app.directory.join("settings.json"), Format::Json)?
+        .entries("enabledPlugins")?;
     let mut plugins = Vec::new();
     for (name, installations) in installed {
         let Some(user) = installations.as_array().and_then(|list| {
@@ -754,7 +827,7 @@ pub(super) fn plugin_entries(app: &App) -> Result<Vec<Entry>, String> {
 }
 
 fn codex_plugins(app: &App) -> Result<Vec<Entry>, String> {
-    let configured = Config::read(&app.mcp_file, true)?.entries("plugins")?;
+    let configured = Config::read(&app.mcp_file, Format::Toml)?.entries("plugins")?;
     let cache = app.directory.join("plugins").join("cache");
     let mut entries = Vec::new();
     for market in directories(&cache)? {
@@ -841,16 +914,21 @@ pub(super) fn toggle(app: &App, kind: Kind, id: &str, enabled: bool) -> Result<(
     }
     if kind == Kind::Mcp && (uses_disabled_mcp_flag(app) || matches!(app.id, "kimicode" | "pi")) {
         let key = mcp_table(app);
-        return edit(&app.mcp_file, false, |document| {
+        return edit(&app.mcp_file, mcp_format(app), |document| {
+            if let Config::Jsonc { tree, .. } = document {
+                let entry = tree
+                    .object_value()
+                    .and_then(|root| root.object_value(key))
+                    .and_then(|group| group.object_value(id))
+                    .ok_or("missing")?;
+                jsonc::set(&entry, "disabled", &json!(!enabled));
+                return Ok(());
+            }
             let mut server = document.entries(key)?.remove(id).ok_or("missing")?;
-            let fields = server.as_object_mut().ok_or("invalidConfig")?;
-            if app.id == "workbuddy"
-                && fields
-                    .get("managedBy")
-                    .is_some_and(|value| value == "connector")
-            {
+            if workbuddy_connector(app, &server) {
                 return Err("unsupported");
             }
+            let fields = server.as_object_mut().ok_or("invalidConfig")?;
             if matches!(app.id, "kimicode" | "pi") {
                 fields.insert("enabled".into(), json!(enabled));
             } else if app.id == "devincli" && enabled {
@@ -862,13 +940,15 @@ pub(super) fn toggle(app: &App, kind: Kind, id: &str, enabled: bool) -> Result<(
         })
         .map_err(str::to_owned);
     }
-    let (path, key, toml) = match (app.id, kind) {
-        ("claudecode", Kind::Plugins) => {
-            (app.directory.join("settings.json"), "enabledPlugins", false)
-        }
-        ("codex", Kind::Plugins) => (app.mcp_file.clone(), "plugins", true),
-        ("codex", Kind::Mcp) => (app.mcp_file.clone(), "mcp_servers", true),
+    let (path, key, format) = match (app.id, kind) {
+        ("claudecode", Kind::Plugins) => (
+            app.directory.join("settings.json"),
+            "enabledPlugins",
+            Format::Json,
+        ),
+        ("codex", Kind::Plugins) => (app.mcp_file.clone(), "plugins", Format::Toml),
+        ("codex", Kind::Mcp) => (app.mcp_file.clone(), "mcp_servers", Format::Toml),
         _ => return Err("unsupported".into()),
     };
-    edit(&path, toml, |document| document.flag(key, id, enabled)).map_err(str::to_owned)
+    edit(&path, format, |document| document.flag(key, id, enabled)).map_err(str::to_owned)
 }
