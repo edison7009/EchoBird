@@ -1,4 +1,4 @@
-use super::{dsh_mcp, markdown_field, opencode_resources, App, Entry, Kind};
+use super::{dsh_mcp, opencode_resources, App, Entry, Kind};
 use crate::services::native_account_files::{self, DirectoryLock};
 use serde::Deserialize;
 use serde_json::{json, Map, Value};
@@ -177,12 +177,8 @@ fn codex_skill_rules(document: &Config) -> Result<Vec<CodexSkillRule>, &'static 
     Ok(rules)
 }
 
-fn skill_name(entry: &Entry) -> String {
-    entry
-        .path
-        .as_ref()
-        .and_then(|path| markdown_field(&path.join("SKILL.md"), "name"))
-        .unwrap_or_else(|| entry.name.clone())
+fn skill_name(entry: &Entry) -> &str {
+    entry.declared_skill_name.as_deref().unwrap_or(&entry.name)
 }
 
 fn skill_path(entry: &Entry) -> Option<PathBuf> {
@@ -202,11 +198,12 @@ pub(super) fn apply_skill_states(app: &App, entries: &mut [Entry]) {
             };
             for entry in entries {
                 let name = skill_name(entry);
-                let mode = overrides.get(&name);
-                entry.enabled = Some(mode.is_none_or(|mode| mode != "off"));
-                entry.can_toggle = name != "synced"
+                let mode = overrides.get(name);
+                let can_toggle = name != "synced"
                     && !entry.name.eq_ignore_ascii_case("synced")
                     && mode.is_none_or(|mode| mode == "on" || mode == "off");
+                entry.enabled = Some(mode.is_none_or(|mode| mode != "off"));
+                entry.can_toggle = can_toggle;
             }
         }
         "codex" => {
@@ -225,7 +222,7 @@ pub(super) fn apply_skill_states(app: &App, entries: &mut [Entry]) {
                     .rev()
                     .find(|rule| match (&rule.path, &rule.name) {
                         (Some(selector), None) => *selector == path,
-                        (None, Some(selector)) => *selector == name,
+                        (None, Some(selector)) => selector == name,
                         _ => false,
                     });
                 entry.enabled = Some(mode.is_none_or(|rule| rule.enabled));
@@ -243,13 +240,13 @@ pub(super) fn toggle_skill(app: &App, entry: &Entry, enabled: bool) -> Result<()
             edit(&app.directory.join("settings.json"), false, |document| {
                 let overrides = document.entries(CLAUDE_SKILL_OVERRIDES)?;
                 if overrides
-                    .get(&name)
+                    .get(name)
                     .is_some_and(|mode| mode != "on" && mode != "off")
                 {
                     return Err("unsupported");
                 }
                 let mode = if enabled { "on" } else { "off" };
-                document.set(CLAUDE_SKILL_OVERRIDES, &name, Some(json!(mode)))
+                document.set(CLAUDE_SKILL_OVERRIDES, name, Some(json!(mode)))
             })
         }
         "codex" => {

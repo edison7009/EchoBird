@@ -534,34 +534,6 @@ html.is-macos .usage-island.usage-island-theme-auto {
   pointer-events: none;
   z-index: 0;
 }
-.capability-toggle[aria-pressed='true'] {
-  color: rgb(var(--text-primary-rgb));
-}
-.capability-toggle[aria-pressed='false']::before {
-  content: '';
-  position: absolute;
-  inset: var(--capability-key-inset);
-  z-index: -1;
-  border: 1px dashed rgb(var(--text-primary-rgb) / 0.2);
-  border-radius: inherit;
-  pointer-events: none;
-  transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease;
-}
-.capability-toggle[aria-pressed='false']:enabled:hover {
-  color: rgb(var(--accent-rgb));
-}
-.capability-toggle[aria-pressed='false']:enabled:hover::before {
-  border-color: rgb(var(--accent-rgb) / 0.55);
-  background-color: rgb(var(--accent-rgb) / 0.06);
-}
-.capability-toggles[data-tab-renderer='canvas'] > .capability-toggle {
-  z-index: 1;
-}
-.capability-toggles[data-tab-renderer='canvas'] > .capability-toggle[aria-pressed='true'] {
-  background: transparent;
-}
 /* Desktop capabilities and compact model choices share a checkbox tile.
    Hovering a selected tile shows a cross because clicking it clears the check. */
 .capability-switch {
@@ -673,9 +645,6 @@ html.is-macos .usage-island.usage-island-theme-auto {
 [data-tab-renderer='canvas'] > .view-mode-tab[aria-selected='true'] {
   color: #2b2620 !important;
   font-weight: 600;
-}
-[data-tab-renderer='canvas'] > .capability-toggle[aria-pressed='true'] {
-  color: #2b2620 !important;
 }
 
 @keyframes voice-island-gradient-flow {

@@ -1,4 +1,4 @@
-use super::{children, markdown_field, real_directory, Entry};
+use super::{children, markdown_metadata, real_directory, Entry};
 use serde_json::Value;
 use std::{
     fs,
@@ -67,7 +67,10 @@ fn add_skill(
     document: &Path,
     writable: bool,
 ) {
-    let Some(description) = markdown_field(document, "description") else {
+    let Some(metadata) = markdown_metadata(document) else {
+        return;
+    };
+    let Some(description) = metadata.description else {
         return;
     };
     let fallback = if path == document {
@@ -75,15 +78,17 @@ fn add_skill(
     } else {
         path.file_name()
     };
-    let name = markdown_field(document, "name")
+    let name = metadata
+        .name
         .unwrap_or_else(|| fallback.unwrap_or_default().to_string_lossy().into_owned());
     let relative = path.strip_prefix(root).unwrap_or(&path).to_string_lossy();
     let id = format!("{index}/{relative}");
-    let regular = fs::symlink_metadata(document).is_ok_and(|metadata| metadata.is_file());
+    let can_copy =
+        writable && fs::symlink_metadata(document).is_ok_and(|metadata| metadata.is_file());
     let mut entry = Entry::new(name, Some(path));
     entry.id = id;
     entry.description = Some(description);
-    entry.can_copy = writable && regular;
+    entry.can_copy = can_copy;
     entry.can_remove = entry.can_copy && index == 0;
     entries.push(entry);
 }

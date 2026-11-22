@@ -288,10 +288,10 @@ async fn proxy_credentials_with_rejection_at(
     let accounts = load_at(path)?;
     let saved = accounts.get(id).ok_or("accountError.invalidAccount")?;
     let raw = decode(&saved.credential)?;
-    if identity(&raw)?.0 != id {
+    let mut secret: Value = serde_json::from_str(&raw).map_err(|_| "accountError.format")?;
+    if identity_document(&secret)?.0 != id {
         return Err("accountError.invalidAccount".into());
     }
-    let mut secret: Value = serde_json::from_str(&raw).map_err(|_| "accountError.format")?;
     if force_refresh
         && (rejected_token.is_none() || rejected_token == secret["token"]["access_token"].as_str())
     {
@@ -306,10 +306,12 @@ async fn proxy_credentials_with_rejection_at(
             .ok_or("accountError.invalidAccount")?;
         if latest.credential != saved.credential {
             let latest_raw = decode(&latest.credential)?;
-            if identity(&latest_raw)?.0 != id {
+            let latest_secret =
+                serde_json::from_str(&latest_raw).map_err(|_| "accountError.format")?;
+            if identity_document(&latest_secret)?.0 != id {
                 return Err("accountError.invalidAccount".into());
             }
-            secret = serde_json::from_str(&latest_raw).map_err(|_| "accountError.format")?;
+            secret = latest_secret;
         } else {
             latest.credential = encode(&refreshed)?;
             save_at(path, &latest_accounts)?;
@@ -451,11 +453,11 @@ pub async fn refresh(id: &str) -> Result<Account, String> {
     let saved = accounts.get(id).ok_or("accountError.invalidAccount")?;
     let mut document: Value =
         serde_json::from_str(&unprotect(&saved.credential)?).map_err(|_| "accountError.format")?;
-    if identity(&document.to_string())?.0 != id {
+    if identity_document(&document)?.0 != id {
         return Err("accountError.invalidAccount".into());
     }
     quota::refresh_access(&mut document).await?;
-    if identity(&document.to_string())?.0 != id {
+    if identity_document(&document)?.0 != id {
         return Err("accountError.invalidAccount".into());
     }
     let (plan, quotas) = quota::fetch(&document).await?;

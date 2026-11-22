@@ -257,10 +257,9 @@ pub(super) fn plugins(directory: &Path) -> Result<Vec<Entry>, String> {
                     .or_else(|| plugin["package"].as_str())
                     .or_else(|| plugin.get(0).and_then(Value::as_str))
                 {
-                    entries.insert(
-                        name.to_owned(),
-                        Entry::new(name.to_owned(), Some(file.path.clone())),
-                    );
+                    let mut entry = Entry::new(name.to_owned(), Some(file.path.clone()));
+                    entry.id = format!("package/{name}");
+                    entries.insert(entry.id.clone(), entry);
                 }
             }
         }
@@ -277,10 +276,10 @@ pub(super) fn plugins(directory: &Path) -> Result<Vec<Entry>, String> {
                     .unwrap_or_default()
                     .to_string_lossy()
                     .into_owned();
-                entries.insert(
-                    path.to_string_lossy().into_owned(),
-                    Entry::new(name, Some(path)),
-                );
+                let id = format!("file/{}", path.display());
+                let mut entry = Entry::new(name, Some(path));
+                entry.id = id;
+                entries.insert(entry.id.clone(), entry);
             }
         }
     }

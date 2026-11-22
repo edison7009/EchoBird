@@ -15,7 +15,7 @@ export interface TabCanvasPalette {
 }
 
 /** The chosen key sits this far inside its tab, so the well shows round it. */
-export const TAB_KEY_INSET = 3;
+const TAB_KEY_INSET = 3;
 
 function roundedRect(
   context: CanvasRenderingContext2D,
@@ -49,7 +49,7 @@ export function paintTabCanvas(
   width: number,
   height: number,
   scale: number,
-  selection: ViewModeTabPosition | ViewModeTabPosition[],
+  selection: ViewModeTabPosition | null,
   palette: TabCanvasPalette
 ) {
   const context = canvas.getContext('2d');
@@ -69,16 +69,13 @@ export function paintTabCanvas(
     context.fillStyle = palette.well;
     context.fillRect(0, 0, width, height);
   }
-  for (const region of Array.isArray(selection) ? selection : [selection]) {
-    const inset = Math.min(TAB_KEY_INSET, region.width / 4, region.height / 4);
-    const x = region.x + inset;
-    const y = region.y + inset;
-    const keyWidth = Math.max(0, region.width - inset * 2);
-    const keyHeight = Math.max(0, region.height - inset * 2);
-    const keyRadius = Math.max(
-      2,
-      Math.min(Array.isArray(selection) ? keyHeight / 2 : palette.radius - inset, keyHeight / 2)
-    );
+  if (selection) {
+    const inset = Math.min(TAB_KEY_INSET, selection.width / 4, selection.height / 4);
+    const x = selection.x + inset;
+    const y = selection.y + inset;
+    const keyWidth = Math.max(0, selection.width - inset * 2);
+    const keyHeight = Math.max(0, selection.height - inset * 2);
+    const keyRadius = Math.max(2, Math.min(palette.radius - inset, keyHeight / 2));
     const fill = context.createLinearGradient?.(0, y, 0, y + keyHeight);
     if (fill) {
       fill.addColorStop(0, palette.surface);

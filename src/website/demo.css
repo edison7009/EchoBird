@@ -134,11 +134,6 @@ body,
   height: 56px;
 }
 
-#root .demo-account-panel .capability-toggle {
-  height: 32px;
-  min-width: 56px;
-  padding-inline: 14px;
-}
 /* Keep this homepage demonstration focused on the two clickable capabilities. */
 #root .demo-account-panel .capability-toggles > .ml-auto {
   display: none;

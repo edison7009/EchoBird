@@ -28,6 +28,8 @@ pub(crate) struct Entry {
     id: String,
     name: String,
     description: Option<String>,
+    #[serde(skip)]
+    declared_skill_name: Option<String>,
     group: Option<String>,
     path: Option<PathBuf>,
     enabled: Option<bool>,
@@ -42,6 +44,7 @@ impl Entry {
             id: name.clone(),
             name,
             description: None,
+            declared_skill_name: None,
             group: None,
             path,
             enabled: None,
@@ -279,12 +282,7 @@ impl App {
             Kind::Plugins => config::plugin_entries(self)?,
             Kind::Memory => self.memory()?,
         };
-        entries.sort_by(|first, second| {
-            first
-                .group
-                .cmp(&second.group)
-                .then_with(|| first.name.to_lowercase().cmp(&second.name.to_lowercase()))
-        });
+        entries.sort_by_cached_key(|entry| (entry.group.clone(), entry.name.to_lowercase()));
         Ok(entries)
     }
 
@@ -316,7 +314,10 @@ impl App {
                     && fs::symlink_metadata(&instructions).is_ok_and(|info| info.is_file());
                 let mut entry = Entry::new(name.into(), Some(file.clone()));
                 entry.id = format!("{root_index}/{name}");
-                entry.description = markdown_field(&instructions, "description");
+                if let Some(metadata) = markdown_metadata(&instructions) {
+                    entry.description = metadata.description;
+                    entry.declared_skill_name = metadata.name;
+                }
                 entry.can_copy = writable;
                 // Secondary roots may be shared with other clients.
                 entry.can_remove = writable && root_index == 0;
@@ -444,24 +445,35 @@ fn children(path: &Path) -> Result<Vec<PathBuf>, String> {
     }
 }
 
-fn markdown_field(path: &Path, field: &str) -> Option<String> {
+#[derive(Default)]
+struct MarkdownMetadata {
+    name: Option<String>,
+    description: Option<String>,
+}
+
+fn markdown_metadata(path: &Path) -> Option<MarkdownMetadata> {
     let mut text = String::new();
     let mut input = fs::File::open(path).ok()?.take(64 * 1024);
     input.read_to_string(&mut text).ok()?;
-    let frontmatter = text.lines().skip_while(|line| line.trim().is_empty());
-    let mut frontmatter = frontmatter.skip_while(|line| line.trim() != "---");
+    let mut frontmatter = text.lines().skip_while(|line| line.trim() != "---");
     frontmatter.next()?;
     let yaml = frontmatter
         .take_while(|line| line.trim() != "---")
         .collect::<Vec<_>>()
         .join("\n");
     let data = yaml_rust2::YamlLoader::load_from_str(&yaml).ok()?;
-    data.first()?
-        .as_hash()?
-        .get(&yaml_rust2::Yaml::String(field.into()))?
-        .as_str()
-        .map(|value| value.split_whitespace().collect::<Vec<_>>().join(" "))
-        .filter(|value| !value.is_empty())
+    let fields = data.first()?.as_hash()?;
+    let field = |key: &str| {
+        fields
+            .get(&yaml_rust2::Yaml::String(key.into()))?
+            .as_str()
+            .map(|value| value.split_whitespace().collect::<Vec<_>>().join(" "))
+            .filter(|value| !value.is_empty())
+    };
+    Some(MarkdownMetadata {
+        name: field("name"),
+        description: field("description"),
+    })
 }
 
 fn add_claude_rules(entries: &mut Vec<Entry>, root: &Path) -> Result<(), String> {
@@ -495,12 +507,13 @@ fn add_memory_file(entries: &mut Vec<Entry>, path: PathBuf, group: &str) {
         return;
     }
     let name = path.file_name().unwrap_or_default().to_string_lossy();
+    let metadata = markdown_metadata(&path).unwrap_or_default();
     let mut entry = Entry::new(
-        markdown_field(&path, "name").unwrap_or_else(|| name.into_owned()),
+        metadata.name.unwrap_or_else(|| name.into_owned()),
         Some(path.clone()),
     );
     entry.id = path.to_string_lossy().into_owned();
-    entry.description = markdown_field(&path, "description");
+    entry.description = metadata.description;
     entry.group = Some(group.into());
     entries.push(entry);
 }
@@ -565,7 +578,7 @@ fn copy_item(app: &App, target: &App, kind: Kind, item: &Entry) -> Result<(), &'
                 .and_then(|name| name.to_str())
                 .ok_or("invalidName")?;
             let declared_name = if target.id == "pi" {
-                markdown_field(&source.join("SKILL.md"), "name")
+                markdown_metadata(&source.join("SKILL.md")).and_then(|metadata| metadata.name)
             } else {
                 None
             };
@@ -802,6 +815,29 @@ mod tests {
         assert_eq!(server["disabled"], true);
         config::remove_mcp(&app, "sample").unwrap();
         assert_eq!(app.assets(Kind::Mcp).unwrap().len(), 2);
+    }
+
+    #[test]
+    fn opencode_plugins_with_the_same_name_have_distinct_resource_ids() {
+        let root = tempfile::tempdir().unwrap();
+        let app = fixture("opencode", root.path());
+        for name in ["plugin", "plugins"] {
+            let directory = app.directory.join(name);
+            fs::create_dir_all(&directory).unwrap();
+            fs::write(directory.join("shared.ts"), "").unwrap();
+        }
+        fs::write(&app.mcp_file, r#"{"plugin":["shared.ts"]}"#).unwrap();
+        let entries = app.assets(Kind::Plugins).unwrap();
+        assert_eq!(entries.len(), 3);
+        assert!(entries.iter().all(|entry| entry.name == "shared.ts"));
+        assert_eq!(
+            entries
+                .iter()
+                .map(|entry| &entry.id)
+                .collect::<std::collections::HashSet<_>>()
+                .len(),
+            3
+        );
     }
 
     #[test]

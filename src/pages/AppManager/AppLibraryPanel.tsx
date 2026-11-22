@@ -361,10 +361,12 @@ export function AppLibraryPanel({
   };
 
   const match = query.trim().toLowerCase();
-  const visible = entries.filter(
-    (item) =>
-      !match || [item.name, item.description].some((value) => value?.toLowerCase().includes(match))
-  );
+  const visible = match
+    ? entries.filter(
+        (item) =>
+          item.name.toLowerCase().includes(match) || item.description?.toLowerCase().includes(match)
+      )
+    : entries;
   return (
     <section
       role="tabpanel"

@@ -1,4 +1,4 @@
-use super::{children, markdown_field, real_directory, Entry};
+use super::{children, markdown_metadata, real_directory, Entry};
 use crate::services::{
     claude_desktop_accounts,
     native_account_files::{self, DirectoryLock},
@@ -131,13 +131,13 @@ pub(super) fn copy_skill(directory: &Path, source: &Path, name: &str) -> Result<
     }) {
         return Err("exists");
     }
-    let metadata = source.join("SKILL.md");
+    let metadata = markdown_metadata(&source.join("SKILL.md")).unwrap_or_default();
     let now = Utc::now();
     let updated = now.to_rfc3339_opts(SecondsFormat::Millis, true);
     skills.push(json!({
         "skillId": id,
-        "name": markdown_field(&metadata, "name").as_deref().unwrap_or(name),
-        "description": markdown_field(&metadata, "description").unwrap_or_default(),
+        "name": metadata.name.as_deref().unwrap_or(name),
+        "description": metadata.description.unwrap_or_default(),
         "creatorType": "user",
         "syncManaged": false,
         "updatedAt": updated,

@@ -3,13 +3,18 @@ import type { ViewModeTabPosition } from './ViewModeTabGroup';
 import { paintTabCanvas } from './tabCanvas';
 import { requestFlowFrame, cancelFlowFrame } from './flowFrames';
 
+const positionFields = ['x', 'y', 'width', 'height'] as const;
+
+function positionChanged(previous: ViewModeTabPosition, next: ViewModeTabPosition) {
+  return positionFields.some((key) => Math.abs(previous[key] - next[key]) > 0.01);
+}
+
 // Returns one owner for the canvas, observers, animation and layout restoration.
 export function mountTabCanvas(
   group: HTMLDivElement,
-  remembered?: MutableRefObject<ViewModeTabPosition | null>,
-  independent = false
+  remembered?: MutableRefObject<ViewModeTabPosition | null>
 ) {
-  const selector = independent ? '.capability-toggle' : '.view-mode-tab';
+  const selector = '.view-mode-tab';
   const canvas = document.createElement('canvas');
   canvas.className = 'view-mode-canvas';
   canvas.setAttribute('aria-hidden', 'true');
@@ -35,7 +40,6 @@ export function mountTabCanvas(
   let disposed = false;
   let from: ViewModeTabPosition | null = null;
   let target: ViewModeTabPosition | null = null;
-  let regions: ViewModeTabPosition[] = [];
   let current: ViewModeTabPosition | null = null;
   let started = 0;
   let width = 0;
@@ -53,37 +57,27 @@ export function mountTabCanvas(
     palette.shadow = theme.outlineColor;
     palette.border = bordered ? getComputedStyle(group).borderTopColor : 'transparent';
   };
-  const visible = () =>
-    !document.hidden &&
-    width > 0 &&
-    height > 0 &&
-    (independent ? regions.length > 0 : target !== null);
+  const visible = () => !document.hidden && width > 0 && height > 0;
   const paint = (now: number) => {
     frame = 0;
-    if (disposed || !visible()) return;
+    if (disposed || !target || !visible()) return;
     // A shared frame can have a timestamp just before this control's transition started.
-    const progress = motion.matches ? 1 : Math.max(0, Math.min(1, (now - started) / 220));
-    const ease = 1 - (1 - progress) ** 3;
-    if (target) current = { ...target };
-    if (!independent && from && current && target && progress < 1) {
-      for (const key of ['x', 'y', 'width', 'height'] as const)
-        current[key] = from[key] + (target[key] - from[key]) * ease;
+    const progress = !from || motion.matches ? 1 : Math.max(0, Math.min(1, (now - started) / 220));
+    current = { ...target };
+    if (from && progress < 1) {
+      const ease = 1 - (1 - progress) ** 3;
+      for (const key of positionFields) current[key] = from[key] + (target[key] - from[key]) * ease;
+    } else {
+      from = null;
     }
     // Preserve the painted position for controls that share it across remounts.
-    if (remembered && current && !independent) remembered.current = { ...current };
-    paintTabCanvas(
-      canvas,
-      width,
-      height,
-      devicePixelRatio || 1,
-      independent ? regions : current!,
-      palette
-    );
+    if (remembered) remembered.current = current;
+    paintTabCanvas(canvas, width, height, devicePixelRatio || 1, current, palette);
     // The key is static; keep painting only while it slides to a new tab.
-    if (!motion.matches && progress < 1) frame = requestFlowFrame(paint);
+    if (progress < 1) frame = requestFlowFrame(paint);
   };
   const requestPaint = () => {
-    if (!frame && !disposed && visible()) frame = requestFlowFrame(paint);
+    if (!frame && !disposed && target && visible()) frame = requestFlowFrame(paint);
   };
   const update = () => {
     const selected = group.querySelector<HTMLElement>(
@@ -94,35 +88,15 @@ export function mountTabCanvas(
     const bounds = group.getBoundingClientRect();
     width = bounds.width;
     height = bounds.height;
-    if (independent) {
-      regions = Array.from(group.querySelectorAll<HTMLElement>(`${selector}[aria-pressed="true"]`))
-        .filter((button) => button.offsetWidth && button.offsetHeight)
-        .map((button) => {
-          const rect = button.getBoundingClientRect();
-          return {
-            x: rect.left - bounds.left,
-            y: rect.top - bounds.top,
-            width: rect.width,
-            height: rect.height,
-          };
-        });
-      readColors();
-      if (!visible()) {
-        if (frame) cancelFlowFrame(frame);
-        frame = 0;
-        canvas.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
-      } else requestPaint();
-      return;
-    }
     if (!selected || !selected.offsetWidth || !selected.offsetHeight || !width || !height) {
       target = null;
       if (frame) cancelFlowFrame(frame);
       frame = 0;
-      canvas.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
-      // No selected tab still needs the segmented control's outline, without
-      // keeping an animation alive or painting a selected background.
-      readColors();
-      paintTabCanvas(canvas, width, height, devicePixelRatio || 1, [], palette);
+      // Keep the segmented control's well visible with no selected tab.
+      if (visible()) {
+        readColors();
+        paintTabCanvas(canvas, width, height, devicePixelRatio || 1, null, palette);
+      }
       return;
     }
     const rect = selected.getBoundingClientRect();
@@ -144,13 +118,9 @@ export function mountTabCanvas(
       next.x = 0;
     }
     if (width - (next.x + next.width) <= padding[1] + 0.5) next.width = width - next.x;
-    if (
-      !target ||
-      (['x', 'y', 'width', 'height'] as const).some(
-        (key) => Math.abs(next[key] - target![key]) > 0.01
-      )
-    ) {
-      from = current ?? remembered?.current ?? next;
+    if (!target || positionChanged(target, next)) {
+      const previous = current ?? remembered?.current;
+      from = previous && positionChanged(previous, next) ? previous : null;
       target = next;
       started = performance.now();
     }
@@ -182,7 +152,7 @@ export function mountTabCanvas(
     attributeFilter: ['aria-pressed', 'aria-selected'],
   });
   const theme = new MutationObserver(() => {
-    if (!independent && !target) {
+    if (!target) {
       update();
       return;
     }

@@ -66,16 +66,10 @@ describe('tab canvas', () => {
     expect(keys.some(([x, y]) => y === 3 && x > 63 && x < 70)).toBe(true);
   });
 
-  it('draws no well for a borderless group, only its keys', () => {
-    const { fills, gradients } = paint(
-      [
-        { x: 0, y: 0, width: 50, height: 24 },
-        { x: 60, y: 0, width: 50, height: 24 },
-      ],
-      'transparent'
-    );
+  it('draws no well for a borderless group, only its key', () => {
+    const { fills, gradients } = paint({ x: 0, y: 0, width: 50, height: 24 }, 'transparent');
     expect(fills.some((fill) => fill.style === 'rgb(42,39,35)')).toBe(false);
-    expect(gradients).toHaveLength(2);
+    expect(gradients).toHaveLength(1);
   });
 
   it('paints the same image every time: the key does not flow or flicker', () => {
