@@ -337,7 +337,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         <aside className="flex w-[196px] flex-shrink-0 flex-col gap-1 border-r border-cyber-border/60 bg-cyber-surface/50 p-3">
-          <div className="px-2.5 pt-1 pb-3.5 text-[16px] font-bold tracking-wide text-cyber-text">
+          <div className="px-2.5 pt-1 pb-3.5 text-[20px] font-bold leading-7 tracking-wide text-cyber-text">
             {t('settings.title')}
           </div>
           <nav className="space-y-1">
@@ -372,7 +372,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
               </b>
               <small>{t('settings.starOnGithubHint')}</small>
             </button>
-            <div className="flex items-center justify-between px-1 text-[11px] text-cyber-text-muted">
+            <div className="flex items-center justify-between px-1 text-[12px] text-cyber-text-muted">
               <span className="font-mono">{appVersion ? `v${appVersion}` : '—'}</span>
               <button
                 type="button"
@@ -387,9 +387,9 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
 
         <section className="flex min-w-0 flex-1 flex-col">
           <header className="flex h-[58px] flex-shrink-0 items-center justify-between border-b border-cyber-border/50 px-6">
-            <span className="text-[16px] font-semibold text-cyber-text">
+            <h2 className="text-[20px] font-semibold leading-7 text-cyber-text">
               {t(`settings.${activeTab}`)}
-            </span>
+            </h2>
             <button
               type="button"
               onClick={handleClose}
@@ -524,7 +524,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                           />
                         ))}
                       </div>
-                      <div className="relative mx-[7px] h-4 text-[12px] leading-4 tabular-nums text-cyber-text-muted">
+                      <div className="relative mx-[7px] h-4 text-[13px] leading-4 tabular-nums text-cyber-text-muted">
                         <span className="absolute left-0">70%</span>
                         <span className="absolute left-[37.5%] -translate-x-1/2 text-cyber-text-secondary">
                           100%
@@ -534,7 +534,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                     </div>
                   </div>
                   {uiScale.failed && (
-                    <p role="alert" className="mt-2 text-[13px] text-red-400">
+                    <p role="alert" className="mt-2 text-[14px] text-red-400">
                       {t('settings.uiScaleError')}
                     </p>
                   )}
@@ -610,7 +610,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                         onChange={(value) => void handleProtectionChange(value)}
                       />
                       {protectionError && (
-                        <p role="alert" className="text-xs font-normal text-red-400">
+                        <p role="alert" className="text-[14px] font-normal text-red-400">
                           {t('settings.sensitiveInfoProtectionError')}
                         </p>
                       )}
@@ -654,7 +654,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                     </div>
                   </div>
                   {optionalError && (
-                    <p role="alert" className="mt-2 text-xs text-red-400">
+                    <p role="alert" className="mt-2 text-[14px] text-red-400">
                       {t('settings.optionalFeaturesError')}
                     </p>
                   )}

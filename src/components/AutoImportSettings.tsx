@@ -33,9 +33,11 @@ export function AutoImportSettings() {
       aria-label={t('autoImport.title')}
       className="grid grid-cols-[minmax(0,1fr)_10rem] grid-rows-[auto_auto] items-start gap-x-4 gap-y-1 px-2"
     >
-      <div className="col-start-1 row-start-1 flex self-end items-center gap-2 text-[14px] font-medium text-cyber-text-secondary">
-        <Download size={14} className="shrink-0" />
-        <span>{t('autoImport.title')}</span>
+      <div className="col-start-1 row-start-1 flex flex-wrap items-center gap-x-2 gap-y-1 self-end text-[16px] font-medium text-cyber-text-secondary">
+        <div className="flex min-w-0 items-center gap-2">
+          <Download size={14} className="shrink-0" />
+          <span>{t('autoImport.title')}</span>
+        </div>
         <ConfigBackupActions />
       </div>
       {running ? (
@@ -69,7 +71,7 @@ export function AutoImportSettings() {
           </div>
           <p
             role={error ? 'alert' : progress ? 'status' : undefined}
-            className={`col-start-1 row-start-2 min-h-5 pl-[22px] text-[12px] leading-5 ${error ? 'text-red-500' : 'text-cyber-text-secondary'}`}
+            className={`col-start-1 row-start-2 min-h-5 pl-[22px] text-[14px] leading-5 ${error ? 'text-red-500' : 'text-cyber-text-secondary'}`}
           >
             {backupFeedback ? (
               <ConfigBackupStatus />

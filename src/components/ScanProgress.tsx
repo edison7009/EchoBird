@@ -31,7 +31,7 @@ export function ScanProgress({
         />
       </div>
       <div
-        className={`text-cyber-text-secondary ${layout === 'settings' ? 'col-start-1 row-start-2 min-h-10 pl-[22px] text-[12px] leading-5' : `text-[11px] truncate ${layout === 'action' ? 'h-4 w-full text-center leading-4' : 'mt-2'}`}`}
+        className={`text-cyber-text-secondary ${layout === 'settings' ? 'col-start-1 row-start-2 min-h-10 pl-[22px] text-[14px] leading-5' : `text-[11px] truncate ${layout === 'action' ? 'h-4 w-full text-center leading-4' : 'mt-2'}`}`}
         role="status"
         aria-live="polite"
       >

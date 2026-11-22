@@ -24,10 +24,9 @@
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 9px;
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  color: rgb(var(--text-muted-rgb));
+  color: rgb(var(--text-secondary-rgb));
 }
 
 .settings-tile {
@@ -82,7 +81,8 @@ button.settings-tile[aria-pressed='true']::after {
   gap: 10px;
   padding: 0 12px;
   border-radius: 9px;
-  font-size: 14px;
+  font-size: 16px;
+  line-height: 1.25;
   color: rgb(var(--text-secondary-rgb));
   transition: color 0.15s ease;
 }
@@ -98,11 +98,16 @@ button.settings-tile[aria-pressed='true']::after {
 .settings-big {
   display: grid;
   height: 96px;
+  grid-template-columns: minmax(0, 1fr);
   place-content: center;
   justify-items: center;
   gap: 8px;
-  font-size: 13px;
+  padding-inline: 8px;
+  font-size: 15px;
   font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+  overflow-wrap: anywhere;
 }
 .settings-big-glyph {
   font-size: 32px;
@@ -124,8 +129,9 @@ button.settings-tile[aria-pressed='true']::after {
   min-height: 78px;
   gap: 8px;
   padding: 11px 12px 11px 13px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
+  line-height: 1.35;
 }
 .settings-feature-label {
   display: contents;
@@ -139,9 +145,7 @@ button.settings-tile[aria-pressed='true']::after {
   grid-row: 2;
   grid-column: 1 / -1;
   align-self: end;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 .settings-feature > :nth-child(2) {
   grid-row: 1;
@@ -160,7 +164,7 @@ button.settings-tile[aria-pressed='true']::after {
 }
 .settings-scale-value {
   margin-left: auto;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 800;
   line-height: 1;
   color: rgb(var(--text-primary-rgb));
@@ -169,7 +173,7 @@ button.settings-tile[aria-pressed='true']::after {
 .settings-chip {
   padding: 3px 10px;
   border-radius: 7px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   color: rgb(var(--text-secondary-rgb));
   background: rgb(0 0 0 / 0.24);
@@ -196,7 +200,10 @@ button.settings-tile[aria-pressed='true']::after {
 .settings-chip:disabled {
   opacity: 0.5;
 }
-/* Import, in the backup panel: the cream key, not the accent orange. */
+/* Import in the backup panel uses the cream key. */
+.settings-import-button {
+  font-size: 18px;
+}
 .settings-tile .settings-import-button:not(:disabled) {
   border-color: transparent;
   color: #26221d;
@@ -242,12 +249,14 @@ button.settings-tile[aria-pressed='true']::after {
    sits on a small label at the bottom. */
 .settings-filled {
   display: flex;
+  min-width: 0;
   overflow: hidden;
   align-items: flex-end;
   justify-content: center;
-  padding: 0 6px 8px;
-  font-size: 12px;
+  padding: 28px 6px 8px;
+  font-size: 14px;
   font-weight: 600;
+  line-height: 1.25;
 }
 .settings-filled > span:first-child {
   position: absolute;
@@ -257,11 +266,9 @@ button.settings-tile[aria-pressed='true']::after {
 .settings-filled > span:last-child {
   position: relative;
   max-width: 100%;
-  overflow: hidden;
   padding: 1px 8px;
   border-radius: 6px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
   color: rgb(var(--text-secondary-rgb));
   background: rgb(var(--bg-base-rgb) / 0.78);
 }
@@ -270,7 +277,7 @@ button.settings-tile[aria-pressed='true']::after {
   color: rgb(var(--text-primary-rgb));
 }
 .settings-background {
-  height: 86px;
+  min-height: 86px;
 }
 .settings-background-sample {
   background-color: rgb(var(--bg-base-rgb));
@@ -317,8 +324,7 @@ button.settings-tile[aria-pressed='true']::after {
 
 /* Colour themes */
 .settings-swatch {
-  height: 64px;
-  font-size: 11.5px;
+  min-height: 64px;
 }
 
 /* Star on GitHub */
@@ -341,14 +347,12 @@ button.settings-tile[aria-pressed='true']::after {
   min-width: 0;
   align-items: center;
   gap: 4px;
-  font-size: 12.5px;
-  white-space: nowrap;
+  font-size: 14px;
+  line-height: 1.35;
 }
 .settings-star small {
-  overflow: hidden;
-  font-size: 10.5px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 12px;
+  line-height: 1.35;
   color: rgb(var(--text-muted-rgb));
 }
 .settings-star .lucide-star {
