@@ -1,7 +1,7 @@
 {
   "$schema-comment": "Remote-updatable free model catalog.",
   "version": 1,
-  "updatedAt": "2026-11-15",
+  "updatedAt": "2026-11-22",
   "models": [
     {
       "id": "kilo:kilo-auto/free",
@@ -2670,6 +2670,76 @@
       "phoneRequired": true,
       "commercialOk": false,
       "verifiedAt": "2026-11-15"
+    },
+    {
+      "id": "modelscope:deepseek-ai/DeepSeek-V4.1-Flash",
+      "providerId": "modelscope",
+      "provider": "ModelScope",
+      "modelId": "deepseek-ai/DeepSeek-V4.1-Flash",
+      "baseUrl": "https://api-inference.modelscope.cn/v1",
+      "anthropicUrl": "https://api-inference.modelscope.cn",
+      "websiteUrl": "https://modelscope.cn/",
+      "freeType": "renewing-quota",
+      "freeTier": "~2,000 free API calls/day across open-weight models (Qwen3, DeepSeek, GLM, Llama, etc.) via API-Inference",
+      "rateLimits": "~2,000 calls/day; concurrency/QPS caps applied and dynamically adjusted",
+      "notes": "Alibaba's model hub — a different product from Alibaba Model Studio. Requires a ModelScope account bound to an Alibaba Cloud account with real-name (ID) verification — a practical barrier for non-China users. Explicitly non-commercial (\"for developers to experience\"). No card.",
+      "docsUrl": "https://www.modelscope.cn/docs/model-service/API-Inference/intro",
+      "cardRequired": false,
+      "phoneRequired": null,
+      "commercialOk": false,
+      "verifiedAt": "2026-11-22"
+    },
+    {
+      "id": "modelscope:nex-agi/Nex-N2.5-mini",
+      "providerId": "modelscope",
+      "provider": "ModelScope",
+      "modelId": "nex-agi/Nex-N2.5-mini",
+      "baseUrl": "https://api-inference.modelscope.cn/v1",
+      "anthropicUrl": "https://api-inference.modelscope.cn",
+      "websiteUrl": "https://modelscope.cn/",
+      "freeType": "renewing-quota",
+      "freeTier": "~2,000 free API calls/day across open-weight models (Qwen3, DeepSeek, GLM, Llama, etc.) via API-Inference",
+      "rateLimits": "~2,000 calls/day; concurrency/QPS caps applied and dynamically adjusted",
+      "notes": "Alibaba's model hub — a different product from Alibaba Model Studio. Requires a ModelScope account bound to an Alibaba Cloud account with real-name (ID) verification — a practical barrier for non-China users. Explicitly non-commercial (\"for developers to experience\"). No card.",
+      "docsUrl": "https://www.modelscope.cn/docs/model-service/API-Inference/intro",
+      "cardRequired": false,
+      "phoneRequired": null,
+      "commercialOk": false,
+      "verifiedAt": "2026-11-22"
+    },
+    {
+      "id": "modelscope:nex-agi/Nex-N2.5-Pro",
+      "providerId": "modelscope",
+      "provider": "ModelScope",
+      "modelId": "nex-agi/Nex-N2.5-Pro",
+      "baseUrl": "https://api-inference.modelscope.cn/v1",
+      "anthropicUrl": "https://api-inference.modelscope.cn",
+      "websiteUrl": "https://modelscope.cn/",
+      "freeType": "renewing-quota",
+      "freeTier": "~2,000 free API calls/day across open-weight models (Qwen3, DeepSeek, GLM, Llama, etc.) via API-Inference",
+      "rateLimits": "~2,000 calls/day; concurrency/QPS caps applied and dynamically adjusted",
+      "notes": "Alibaba's model hub — a different product from Alibaba Model Studio. Requires a ModelScope account bound to an Alibaba Cloud account with real-name (ID) verification — a practical barrier for non-China users. Explicitly non-commercial (\"for developers to experience\"). No card.",
+      "docsUrl": "https://www.modelscope.cn/docs/model-service/API-Inference/intro",
+      "cardRequired": false,
+      "phoneRequired": null,
+      "commercialOk": false,
+      "verifiedAt": "2026-11-22"
+    },
+    {
+      "id": "openrouter:baidu/ernie-5.5-flash-preview:free",
+      "providerId": "openrouter",
+      "provider": "OpenRouter",
+      "modelId": "baidu/ernie-5.5-flash-preview:free",
+      "baseUrl": "https://openrouter.ai/api/v1",
+      "freeType": "renewing-quota",
+      "freeTier": "A rotating catalog of models whose IDs end in :free, available behind one OpenRouter API key",
+      "rateLimits": "20 req/min; 50 req/day under 10 credits purchased lifetime, 1000 req/day once 10+ credits purchased (one-time, not a subscription)",
+      "notes": "ToS (Jul 2026) prohibits reselling API access or building a competing service — platform-wide, not just the free models; per-model terms still apply",
+      "docsUrl": "https://openrouter.ai/docs/api-reference/limits",
+      "cardRequired": false,
+      "phoneRequired": false,
+      "commercialOk": true,
+      "verifiedAt": "2026-11-22"
     }
   ]
 }
