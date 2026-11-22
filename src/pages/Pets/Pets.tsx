@@ -348,7 +348,7 @@ function PetCard({ pet }: { pet: PreviewPet }) {
     <button
       type="button"
       // A list row in the pet's own colour, like the other right-hand lists.
-      className={`pets-card brand-row is-quiet${selected ? ' is-selected' : ''}`}
+      className={`pets-card brand-row sidebar-card rounded-card is-quiet${selected ? ' is-selected' : ''}`}
       style={{ '--brand': PET_TINTS[pet.color].hex } as CSSProperties}
       aria-pressed={selected}
       onClick={() => usePetsStore.getState().select(pet.id)}
@@ -380,7 +380,7 @@ export function PetsPanel() {
         <PetCard key={pet.id} pet={pet} />
       ))}
       <button
-        className="pets-acquire brand-new-row"
+        className="pets-acquire brand-new-row rounded-card"
         type="button"
         disabled={balance < EGG_COST}
         onClick={() => usePetsStore.getState().acquire()}

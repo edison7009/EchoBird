@@ -1,9 +1,4 @@
-import { useLayoutEffect, useRef, type CSSProperties } from 'react';
-import { TAB_KEY_INSET } from '../../components/tabCanvas';
-import { mountTabCanvas } from '../../components/useTabCanvas';
 import { RoutingHint } from '../../components/RoutingToggle';
-
-const keyStyle = { '--capability-key-inset': `${TAB_KEY_INSET}px` } as CSSProperties;
 
 export interface CapabilityToggle {
   id?: string;
@@ -26,18 +21,13 @@ export function CapabilityToggles({
   return (
     <div data-disabled={disabled} className="capability-toggles flex items-center gap-2">
       {toggles.map(({ label, checked, onChange }) => (
-        <button
+        <CapabilityToggleButton
           key={label}
-          type="button"
-          aria-pressed={checked}
-          aria-label={label}
+          label={label}
+          checked={checked}
           disabled={disabled}
-          onClick={() => onChange(!checked)}
-          className="capability-switch"
-        >
-          <span>{label}</span>
-          <span aria-hidden="true" className="capability-switch-box" />
-        </button>
+          onChange={onChange}
+        />
       ))}
       <span className="ml-auto inline-flex">
         <RoutingHint
@@ -64,12 +54,13 @@ export function CapabilityToggles({
   );
 }
 
-export function CapabilityToggleButton({
+function CapabilityToggleButton({
   label,
   checked,
   onChange,
-  disabled = false,
-}: Omit<CapabilityToggle, 'hint'> & { disabled?: boolean }) {
+  disabled,
+  compact = false,
+}: Omit<CapabilityToggle, 'hint'> & { disabled: boolean; compact?: boolean }) {
   return (
     <button
       type="button"
@@ -77,10 +68,10 @@ export function CapabilityToggleButton({
       aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className="capability-toggle relative isolate h-[24px] min-w-[44px] rounded-full px-[11px] text-xs font-semibold whitespace-nowrap text-cyber-text-secondary outline-none transition-colors focus-visible:ring-2 focus-visible:ring-cyber-accent"
-      style={keyStyle}
+      className={compact ? 'capability-switch is-compact' : 'capability-switch'}
     >
-      {label}
+      <span className="min-w-0 truncate">{label}</span>
+      <span aria-hidden="true" className="capability-switch-box" />
     </button>
   );
 }
@@ -92,18 +83,15 @@ export function CapabilitySelection({
   toggles: Omit<CapabilityToggle, 'hint'>[];
   disabled?: boolean;
 }) {
-  const root = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    if (root.current) return mountTabCanvas(root.current, undefined, true);
-  }, []);
   return (
-    <div
-      ref={root}
-      data-disabled={disabled}
-      className="capability-toggles relative isolate flex flex-wrap items-center gap-2"
-    >
+    <div className="flex flex-wrap items-center gap-2">
       {toggles.map((toggle) => (
-        <CapabilityToggleButton key={toggle.id ?? toggle.label} {...toggle} disabled={disabled} />
+        <CapabilityToggleButton
+          key={toggle.id ?? toggle.label}
+          {...toggle}
+          disabled={disabled}
+          compact
+        />
       ))}
     </div>
   );

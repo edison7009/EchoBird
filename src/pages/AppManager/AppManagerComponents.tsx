@@ -1206,7 +1206,7 @@ export const AppManagerPanel: React.FC = () => {
   );
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="app-manager-panel flex h-full min-h-0 flex-col">
       {/* Header */}
       <div className="flex h-10 items-center justify-between gap-2 bg-transparent px-2">
         <span

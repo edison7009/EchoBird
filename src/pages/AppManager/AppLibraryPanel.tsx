@@ -441,7 +441,7 @@ export function AppLibraryPanel({
                   {item.group || t('appLibrary.instructions')}
                 </h3>
               )}
-              <div className="flex min-h-[47px] items-center gap-2 rounded-lg bg-cyber-surface px-2 py-1.5">
+              <div className="sidebar-card flex min-h-[47px] items-center gap-2 rounded-lg bg-cyber-surface px-2 py-1.5">
                 <div className="min-w-0 grow">
                   <div className="truncate text-xs font-semibold">{item.name}</div>
                   {item.description && (

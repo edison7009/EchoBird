@@ -562,31 +562,38 @@ html.is-macos .usage-island.usage-island-theme-auto {
 .capability-toggles[data-tab-renderer='canvas'] > .capability-toggle[aria-pressed='true'] {
   background: transparent;
 }
-/* Capability switches on the desktop page (Web Search, Image, 1M): tiles as
-   wide as their names, each with a box right after the name. On,
-   the box turns blue (the switches' blue) with a check; hovering an on tile
-   shows a cross, since a click turns it off. The whole tile toggles. */
+/* Desktop capabilities and compact model choices share a checkbox tile.
+   Hovering a selected tile shows a cross because clicking it clears the check. */
 .capability-switch {
   display: inline-flex;
   height: 30px;
   flex: none;
   align-items: center;
   gap: 7px;
-  padding: 0 7px 0 10px;
+  padding: 0 6px 0 9px;
+  border: 1px dashed rgb(var(--text-primary-rgb) / 0.2);
   border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
   color: rgb(var(--text-secondary-rgb));
-  background-color: rgb(var(--bg-surface-rgb));
+  background-color: transparent;
   outline: none;
   transition:
     color 0.15s ease,
-    background-color 0.15s ease;
+    border-color 0.15s ease;
+}
+.capability-switch.is-compact {
+  height: 26px;
+  max-width: 100%;
+  gap: 5px;
+  padding: 0 4px 0 6px;
+  border-radius: 6px;
+  font-size: 13px;
 }
 .capability-switch:enabled:hover {
   color: rgb(var(--text-primary-rgb));
-  background-color: color-mix(in srgb, rgb(var(--bg-elevated-rgb)) 60%, rgb(var(--bg-surface-rgb)));
+  border-color: rgb(var(--text-primary-rgb) / 0.32);
 }
 .capability-switch:focus-visible {
   box-shadow: 0 0 0 2px rgb(var(--switch-on-rgb) / 0.6);
@@ -1182,12 +1189,24 @@ pre {
   );
 }
 
-/* Account rows keep the same selected surface as focus moves between them. */
+/* Right-hand lists share the active conversation's fine edge and short shadow. */
+:root {
+  --sidebar-card-edge: rgb(var(--text-primary-rgb) / 0.07);
+  --sidebar-card-drop-shadow: 0 2px 4px rgb(0 0 0 / 0.18);
+}
 .chat-row.is-active {
   box-shadow:
-    inset 0 0 0 1px rgb(var(--text-primary-rgb) / 0.07),
-    0 2px 4px rgb(0 0 0 / 0.18);
+    inset 0 0 0 1px var(--sidebar-card-edge),
+    var(--sidebar-card-drop-shadow);
 }
+.sidebar-card,
+.app-manager-panel :is(.account-pill, .brand-row) {
+  /* Paint outside the border box so a transparent border cannot inset the edge. */
+  --brand-row-shadow: 0 0 0 1px var(--sidebar-card-edge), var(--sidebar-card-drop-shadow);
+  box-shadow: var(--brand-row-shadow);
+}
+
+/* Account rows keep the same selected surface as focus moves between them. */
 
 .account-pill {
   color: #ffffff;

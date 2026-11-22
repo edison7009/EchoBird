@@ -98,7 +98,7 @@ function ModelChoicesSkeleton({ count = 6 }: { count?: number }) {
       {Array.from({ length: Math.min(12, Math.max(1, count)) }, (_, index) => (
         <div
           key={index}
-          className={`h-6 rounded-full bg-cyber-border/30 ${index % 3 === 0 ? 'w-24' : index % 3 === 1 ? 'w-28' : 'w-20'}`}
+          className={`h-[26px] rounded-button bg-cyber-border/30 ${index % 3 === 0 ? 'w-24' : index % 3 === 1 ? 'w-28' : 'w-20'}`}
         />
       ))}
     </div>
@@ -554,7 +554,7 @@ function QuickAddDialog({
               return (
                 <section
                   key={row.key}
-                  className="inline-block w-full min-w-0 break-inside-avoid py-4 align-top [&_.capability-toggle]:max-w-full [&_.capability-toggle]:truncate"
+                  className="inline-block w-full min-w-0 break-inside-avoid py-4 align-top"
                 >
                   <button
                     type="button"

@@ -364,7 +364,7 @@ export function MotherAgentPanel() {
                 setShowSSHModal(true);
               }}
               type="button"
-              className="brand-new-row"
+              className="brand-new-row rounded-card"
             >
               <span className="brand-deck-plus" aria-hidden="true">
                 <Plus size={14} strokeWidth={3} />

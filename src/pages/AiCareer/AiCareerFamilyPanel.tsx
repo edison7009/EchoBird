@@ -1,4 +1,3 @@
-import type { CSSProperties } from 'react';
 import { ExternalLink, RotateCcw } from 'lucide-react';
 import { useI18n } from '../../hooks/useI18n';
 import { useToast } from '../../components/Toast';
@@ -16,7 +15,7 @@ export function AiCareerFamilyPanel() {
   const selectedFamily = useAiCareerStore((s) => s.selectedFamily);
   const setSelectedFamily = useAiCareerStore((s) => s.setSelectedFamily);
   const cardClass = (selected: boolean) =>
-    'w-full h-14 shrink-0 flex border-2 rounded-card ' +
+    'sidebar-card w-full h-14 shrink-0 flex border-2 rounded-card ' +
     (selected ? 'is-selected' : 'border-transparent');
   const openWebsite = async (url: string) => {
     try {
@@ -35,18 +34,12 @@ export function AiCareerFamilyPanel() {
         type="button"
         aria-pressed={selectedFamily === null}
         onClick={() => setSelectedFamily(null)}
-        style={{ '--brand': 'rgb(var(--accent-rgb))' } as CSSProperties}
-        className={`brand-row relative overflow-hidden ${cardClass(selectedFamily === null)} items-center gap-3 px-[11px] text-left`}
+        className="brand-new-row rounded-card text-left"
       >
-        <RotateCcw
-          size={24}
-          strokeWidth={2.25}
-          className="flex-shrink-0 text-cyber-text"
-          aria-hidden="true"
-        />
-        <span className="text-base font-bold text-cyber-text truncate">
-          {t('aiCareer.overview')}
+        <span className="brand-deck-plus [--brand-action-icon-rotation:-60deg]" aria-hidden="true">
+          <RotateCcw className="origin-center rotate-[66deg]" size={14} strokeWidth={3} />
         </span>
+        <span className="truncate">{t('aiCareer.overview')}</span>
       </button>
       {CAREER_FAMILIES.map((family) => (
         <FamilyRow

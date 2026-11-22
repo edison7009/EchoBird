@@ -474,8 +474,6 @@ button.brand-deck-card:disabled:hover {
     color-mix(in srgb, var(--brand) var(--row-tint), rgb(var(--bg-surface-rgb))) 0%,
     color-mix(in srgb, var(--brand) 5%, rgb(var(--bg-surface-rgb))) 78%
   );
-  /* Flat: the tint alone draws the row. An inset hairline here would sit inside
-     the tinted border and read as a second edge. */
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease;
@@ -505,10 +503,14 @@ button.brand-deck-card:disabled:hover {
 /* Hover lightens with a wash over the tint; a filter here would make WebKit
    redraw the row's text and icons and nudge them. */
 .brand-row:not([aria-disabled='true']):hover {
-  box-shadow: inset 0 0 0 999px rgb(255 255 255 / 0.04);
+  box-shadow:
+    var(--brand-row-shadow, 0 0 transparent),
+    inset 0 0 0 999px rgb(255 255 255 / 0.04);
 }
 :root[data-theme='light'] .brand-row:not([aria-disabled='true']):hover {
-  box-shadow: inset 0 0 0 999px rgb(0 0 0 / 0.03);
+  box-shadow:
+    var(--brand-row-shadow, 0 0 transparent),
+    inset 0 0 0 999px rgb(0 0 0 / 0.03);
 }
 /* Chosen: a clearly stronger tint, no outline, so several chosen rows in a
    row stay calm. */
@@ -619,8 +621,7 @@ button.brand-deck-card:disabled:hover {
   }
 }
 
-/* ---------- New-item row (conversation list) ---------- */
-/* The light card with the accent plus, as at the top of the decks. */
+/* ---------- Light action row ---------- */
 .brand-new-row {
   display: flex;
   align-items: center;
@@ -628,7 +629,6 @@ button.brand-deck-card:disabled:hover {
   width: 100%;
   height: 44px;
   padding: 0 10px;
-  border-radius: 10px;
   font-size: 14px;
   font-weight: 700;
   color: #3b2c22;
@@ -644,7 +644,7 @@ button.brand-deck-card:disabled:hover {
     0 2px 8px rgb(0 0 0 / 0.1);
 }
 .brand-new-row:hover:enabled .brand-deck-plus {
-  transform: rotate(90deg);
+  transform: rotate(var(--brand-action-icon-rotation, 90deg));
 }
 .brand-new-row:disabled {
   opacity: 0.45;

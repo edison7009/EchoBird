@@ -268,7 +268,7 @@ function UsageSourceRow({
     <BrandRow
       iconSrc={missing ? null : icon}
       disabled={false}
-      className={`h-14 shrink-0 px-[11px] py-1 rounded-card flex items-center gap-3 border-2 ${
+      className={`sidebar-card h-14 shrink-0 px-[11px] py-1 rounded-card flex items-center gap-3 border-2 ${
         selected ? 'is-selected' : 'border-transparent'
       }`}
     >

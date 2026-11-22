@@ -151,7 +151,9 @@
   gap: 8px;
   min-height: 0;
   overflow-y: auto;
-  padding: 2px 0 16px;
+  /* Leave room for the outer card edge without shifting the cards. */
+  margin-inline: -1px;
+  padding: 2px 1px 16px;
 }
 .pets-card {
   display: flex;
@@ -161,7 +163,6 @@
   height: 3.5rem;
   flex-shrink: 0;
   border: 2px solid transparent;
-  border-radius: 12px;
   padding: 3px 11px;
   text-align: left;
   color: rgb(var(--text-primary-rgb));
