@@ -2,10 +2,9 @@
 // Tool names, API terms, and brand names stay in English
 
 import { en } from './en';
-import type { Translations } from './types';
+import type { TKey, Translations } from './types';
 
-export type TKey = keyof Translations;
-export type { Translations };
+export type { TKey, Translations } from './types';
 export { en };
 
 const loadedLocales: Record<string, Partial<Translations>> = { en };
@@ -50,10 +49,5 @@ export async function loadLocale(locale: string): Promise<void> {
 }
 
 export function translate(key: TKey, locale: string): string {
-  const dict = loadedLocales[locale] || en;
-  return (
-    (dict as Record<string, string>)[key as string] ||
-    (en as Record<string, string>)[key as string] ||
-    (key as string)
-  );
+  return loadedLocales[locale]?.[key] || en[key] || key;
 }
