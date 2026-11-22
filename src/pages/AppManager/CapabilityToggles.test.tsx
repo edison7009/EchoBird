@@ -2,7 +2,6 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import renderer, { act } from 'react-test-renderer';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { TAB_KEY_INSET } from '../../components/tabCanvas';
 import { CapabilityToggles, type CapabilityToggle } from './CapabilityToggles';
 
 const platform = vi.hoisted(() => ({ IS_MACOS: false }));
@@ -40,7 +39,7 @@ describe('CapabilityToggles', () => {
     expect(markup).not.toContain('cursor-');
   });
 
-  it('keeps the same button geometry and shares the canvas inset across states', () => {
+  it('keeps the same chip geometry across states, with a check box inside', () => {
     const initial = toggles();
     const tree = renderer.create(<CapabilityToggles toggles={initial} />);
     const buttons = () => tree.root.findAllByType('button');
@@ -54,10 +53,11 @@ describe('CapabilityToggles', () => {
     );
     expect(buttons().map((button) => button.props['aria-pressed'])).toEqual([false, true]);
     expect(buttons().map((button) => button.props.className)).toEqual(classes);
-    expect(buttons().map((button) => button.props.style)).toEqual([
-      { '--capability-key-inset': `${TAB_KEY_INSET}px` },
-      { '--capability-key-inset': `${TAB_KEY_INSET}px` },
-    ]);
+    expect(
+      buttons().every(
+        (button) => button.findAllByProps({ className: 'capability-switch-box' }).length === 1
+      )
+    ).toBe(true);
     act(() => tree.unmount());
   });
 
@@ -109,18 +109,14 @@ describe('CapabilityToggles', () => {
   });
 });
 
-it('uses one macOS canvas for multiple independent checked capabilities', () => {
+it('paints no tab canvas: each tile draws its own box', () => {
   platform.IS_MACOS = true;
-  const root = {};
   const tree = renderer.create(
-    <CapabilityToggles toggles={toggles().map((toggle) => ({ ...toggle, checked: true }))} />,
-    { createNodeMock: (node) => (node.type === 'div' ? root : null) }
+    <CapabilityToggles toggles={toggles().map((toggle) => ({ ...toggle, checked: true }))} />
   );
-  expect(canvas.mount).toHaveBeenCalledOnce();
-  expect(canvas.mount).toHaveBeenCalledWith(root, undefined, true);
+  expect(canvas.mount).not.toHaveBeenCalled();
   const buttons = tree.root.findAllByType('button');
   expect(buttons.every((button) => button.props['aria-pressed'] === true)).toBe(true);
   expect(buttons.every((button) => !button.props.className.includes('view-mode-tab'))).toBe(true);
   act(() => tree.unmount());
-  expect(canvas.cleanup).toHaveBeenCalledOnce();
 });

@@ -870,3 +870,21 @@ it('opens the EchoBird repository from the star entry on every page', async () =
   expect(mocks.open).toHaveBeenCalledExactlyOnceWith('https://github.com/edison7009/EchoBird');
   expect(mocks.save).not.toHaveBeenCalled();
 });
+
+it('toggles a feature from anywhere on its tile, but not from the help glyph', async () => {
+  await act(async () => {
+    view = create(<SettingsDialog {...props} />);
+  });
+  const tile = (label: string) => view.root.findByProps({ children: label }).parent!.parent!;
+  const click = (target: object, sw: { click: () => void }) =>
+    tile('settings.easterEgg').props.onClick({
+      target: { closest: (selector: string) => (selector.includes('button') ? target : null) },
+      currentTarget: { querySelector: () => sw },
+    });
+  const sw = { click: vi.fn() };
+  await act(async () => click(null as unknown as object, sw));
+  expect(sw.click).toHaveBeenCalledOnce();
+  // A click that lands on the switch or the "?" glyph is left to that control.
+  await act(async () => click({}, sw));
+  expect(sw.click).toHaveBeenCalledOnce();
+});

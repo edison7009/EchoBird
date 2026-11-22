@@ -110,6 +110,12 @@ button.settings-tile[aria-pressed='true']::after {
   line-height: 1;
 }
 
+/* A feature tile toggles from anywhere on it, so it answers hover like a button. */
+.settings-feature:hover {
+  color: rgb(var(--text-primary-rgb));
+  background-color: color-mix(in srgb, rgb(var(--bg-elevated-rgb)) 55%, rgb(var(--bg-surface-rgb)));
+}
+
 /* Feature switches: the icon top left, the switch top right, the name below. */
 .settings-feature {
   display: grid;

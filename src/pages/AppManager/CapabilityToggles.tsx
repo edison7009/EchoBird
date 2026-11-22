@@ -13,8 +13,8 @@ export interface CapabilityToggle {
   onChange: (value: boolean) => void;
 }
 
-// Independent on/off buttons, so each one carries its own highlight instead of
-// sharing a sliding tab indicator. All hints merge into one right-aligned glyph.
+// Independent on/off tiles, as wide as their names: the name, then a box that
+// turns blue with a check when on; the whole tile toggles it. All hints merge into one right-aligned glyph.
 export function CapabilityToggles({
   toggles,
   disabled = false,
@@ -23,24 +23,21 @@ export function CapabilityToggles({
   disabled?: boolean;
 }) {
   const merged = toggles.length > 1;
-  const root = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    if (root.current) return mountTabCanvas(root.current, undefined, true);
-  }, []);
   return (
-    <div
-      ref={root}
-      data-disabled={disabled}
-      className="capability-toggles relative isolate flex items-center gap-2 px-3"
-    >
+    <div data-disabled={disabled} className="capability-toggles flex items-center gap-2">
       {toggles.map(({ label, checked, onChange }) => (
-        <CapabilityToggleButton
+        <button
           key={label}
-          label={label}
-          checked={checked}
-          onChange={onChange}
+          type="button"
+          aria-pressed={checked}
+          aria-label={label}
           disabled={disabled}
-        />
+          onClick={() => onChange(!checked)}
+          className="capability-switch"
+        >
+          <span>{label}</span>
+          <span aria-hidden="true" className="capability-switch-box" />
+        </button>
       ))}
       <span className="ml-auto inline-flex">
         <RoutingHint

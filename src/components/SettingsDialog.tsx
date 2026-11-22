@@ -290,6 +290,14 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
     });
   }, []);
 
+  // A click anywhere on a feature tile flips its switch, through the switch
+  // itself so its disabled and pending rules still apply. Clicks on the switch,
+  // or on the help glyph, keep their own meaning.
+  const toggleFeatureTile = (event: React.MouseEvent<HTMLDivElement>) => {
+    if ((event.target as HTMLElement).closest('button, a, [role="switch"], [aria-label]')) return;
+    event.currentTarget.querySelector<HTMLButtonElement>('[role="switch"]')?.click();
+  };
+
   // Close with animation
   const handleClose = useCallback(() => {
     setIsAnimatingOut(true);
@@ -560,6 +568,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                   <div className="settings-label">{t('settings.features')}</div>
                   <div className="settings-features grid grid-cols-4 gap-2.5">
                     <div
+                      onClick={toggleFeatureTile}
                       className={`settings-tile settings-feature${launchAtStartup ? ' is-on' : ''}`}
                     >
                       <div className="settings-feature-label">
@@ -572,6 +581,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                       />
                     </div>
                     <div
+                      onClick={toggleFeatureTile}
                       className={`settings-tile settings-feature${autoClaimRewards ? ' is-on' : ''}`}
                     >
                       <div className="settings-feature-label">
@@ -581,6 +591,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                       <ToggleSwitch checked={autoClaimRewards} onChange={setAutoClaimRewards} />
                     </div>
                     <div
+                      onClick={toggleFeatureTile}
                       className={`settings-tile settings-feature${protectionEnabled ? ' is-on' : ''}`}
                     >
                       <div className="settings-feature-label">
@@ -613,6 +624,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                     ).map(([page, Icon, label]) => (
                       <div
                         key={page}
+                        onClick={toggleFeatureTile}
                         className={`settings-tile settings-feature${optionalPages[page] ? ' is-on' : ''}`}
                       >
                         <div className="settings-feature-label">
@@ -630,7 +642,10 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                         />
                       </div>
                     ))}
-                    <div className={`settings-tile settings-feature${easterEgg ? ' is-on' : ''}`}>
+                    <div
+                      onClick={toggleFeatureTile}
+                      className={`settings-tile settings-feature${easterEgg ? ' is-on' : ''}`}
+                    >
                       <div className="settings-feature-label">
                         <Sparkles size={17} />
                         <span>{t('settings.easterEgg')}</span>
