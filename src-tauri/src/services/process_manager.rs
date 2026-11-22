@@ -627,6 +627,16 @@ impl ProcessManager {
             })
             .flatten()
             .or_else(|| {
+                #[cfg(windows)]
+                if tool_id == "cline" && command == "cline" {
+                    return crate::services::tool_manager::get_tool_exe_path(tool_id).filter(
+                        |path| {
+                            std::path::Path::new(path)
+                                .file_name()
+                                .is_some_and(|name| name.eq_ignore_ascii_case("cline-cli.exe"))
+                        },
+                    );
+                }
                 if tool_id == "cursorcli" {
                     return crate::services::tool_manager::get_tool_exe_path(tool_id)
                         .filter(|path| command == "cursor-agent" || command == path);

@@ -2862,7 +2862,7 @@ async fn scan_single_tool(def: ToolDefinition) -> DetectedTool {
                 super::tool_config_manager::vscode::installed_version(Path::new(&path))
             });
         } else if version.is_none() && !pc.command.is_empty() && !pc.no_model_config {
-            let command = if matches!(def.id.as_str(), "kilo" | "copilot") {
+            let command = if matches!(def.id.as_str(), "cline" | "kilo" | "copilot" | "kimicode") {
                 installed_path.as_deref().unwrap_or(&pc.command)
             } else {
                 &pc.command

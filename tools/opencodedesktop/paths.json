@@ -16,6 +16,7 @@
     "requireConfigFile": false,
     "paths": {
         "win32": [
+            "%LOCALAPPDATA%\\Programs\\ai.opencode.desktop\\OpenCode.exe",
             "%LOCALAPPDATA%\\Programs\\OpenCode\\OpenCode.exe",
             "%LOCALAPPDATA%\\Programs\\opencode\\OpenCode.exe",
             "%LOCALAPPDATA%\\Programs\\OpenCode Beta\\OpenCode Beta.exe"

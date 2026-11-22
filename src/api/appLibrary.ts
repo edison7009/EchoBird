@@ -29,6 +29,8 @@ export function appLibraryOwner(toolId: string, kind?: LibraryKind): string {
       return 'codex';
     case 'kimidesktop':
       return 'kimicode';
+    case 'opencodedesktop':
+      return 'opencode';
     default:
       return toolId;
   }

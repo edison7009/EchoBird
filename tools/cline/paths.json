@@ -14,7 +14,8 @@
         "win32": [
             "%APPDATA%\\npm\\cline.cmd",
             "%LOCALAPPDATA%\\pnpm\\cline.cmd",
-            "%USERPROFILE%\\.bun\\bin\\cline.exe"
+            "%USERPROFILE%\\.bun\\bin\\cline.exe",
+            "%LOCALAPPDATA%\\Cline\\cline-cli.exe"
         ],
         "darwin": [
             "/usr/local/bin/cline",

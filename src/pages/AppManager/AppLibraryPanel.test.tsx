@@ -143,6 +143,25 @@ describe('application resources', () => {
     expect(libraryKinds('qoder')).toEqual(['skills', 'mcp']);
   });
 
+  it('exposes CLI resources for Cline and Devin without aliasing their desktop apps', () => {
+    for (const id of ['cline', 'devincli']) {
+      expect(libraryKinds(id)).toEqual(['skills', 'mcp', 'memory']);
+    }
+    for (const id of ['clinedesktop', 'devin']) {
+      expect(libraryKinds(id)).toEqual([]);
+    }
+  });
+
+  it('exposes the same local resource tabs for Kimi Code and OpenCode desktop and CLI', () => {
+    for (const [cli, desktop] of [
+      ['kimicode', 'kimidesktop'],
+      ['opencode', 'opencodedesktop'],
+    ]) {
+      expect(libraryKinds(cli)).toEqual(['skills', 'mcp', 'plugins', 'memory']);
+      expect(libraryKinds(desktop)).toEqual(libraryKinds(cli));
+    }
+  });
+
   it('uses the same resource snapshot for Codex CLI and ChatGPT Desktop', async () => {
     expect(libraryKinds('chatgptdesktop')).toEqual(libraryKinds('codex'));
     expect(libraryKinds('claudedesktop')).toEqual(['skills', 'mcp', 'memory']);

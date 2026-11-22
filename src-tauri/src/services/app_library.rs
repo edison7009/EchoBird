@@ -2,6 +2,7 @@
 mod claude_desktop;
 mod config;
 mod dsh_mcp;
+mod opencode_resources;
 mod pi_resources;
 
 use crate::services::{claude_code_accounts, codex_accounts};
@@ -58,7 +59,7 @@ struct App {
     mcp_file: PathBuf,
 }
 
-const TOOL_IDS: [&str; 13] = [
+const TOOL_IDS: [&str; 17] = [
     "antigravity",
     "antigravitydesktop",
     "dsh",
@@ -67,11 +68,15 @@ const TOOL_IDS: [&str; 13] = [
     "codex",
     "chatgptdesktop",
     "cursor",
+    "cline",
+    "devincli",
     "qoder",
     "workbuddy",
     "kimicode",
     "kimidesktop",
     "pi",
+    "opencode",
+    "opencodedesktop",
 ];
 
 impl App {
@@ -113,6 +118,31 @@ impl App {
                 let directory = home.join(".cursor");
                 ("cursor", directory.clone(), directory.join("mcp.json"))
             }
+            ("cline", _) => {
+                let directory = configured_home("CLINE_DIR", home.join(".cline"));
+                let data = configured_home("CLINE_DATA_DIR", directory.join("data"));
+                let mcp = configured_home(
+                    "CLINE_MCP_SETTINGS_PATH",
+                    data.join("settings/cline_mcp_settings.json"),
+                );
+                ("cline", directory, mcp)
+            }
+            ("devincli", _) => {
+                let config = if cfg!(windows) {
+                    dirs::config_dir().ok_or("unsupported")?
+                } else {
+                    std::env::var_os("XDG_CONFIG_HOME")
+                        .map(PathBuf::from)
+                        .filter(|path| path.is_absolute())
+                        .unwrap_or_else(|| home.join(".config"))
+                };
+                let directory = config.join("devin");
+                (
+                    "devincli",
+                    directory.clone(),
+                    directory.join("mcp_config.json"),
+                )
+            }
             ("pi", _) => {
                 let directory = std::env::var_os("PI_CODING_AGENT_DIR")
                     .filter(|value| !value.is_empty())
@@ -131,6 +161,14 @@ impl App {
             ("kimicode" | "kimidesktop", _) => {
                 let directory = configured_home("KIMI_CODE_HOME", home.join(".kimi-code"));
                 ("kimicode", directory.clone(), directory.join("mcp.json"))
+            }
+            ("opencode" | "opencodedesktop", _) => {
+                let directory = super::tool_config_manager::opencode::opencode_config_dir();
+                (
+                    "opencode",
+                    directory.clone(),
+                    directory.join("opencode.jsonc"),
+                )
             }
             _ => return Err("unsupported".into()),
         };
@@ -152,10 +190,21 @@ impl App {
     fn supports(&self, kind: Kind) -> bool {
         match kind {
             Kind::Skills | Kind::Mcp => true,
-            Kind::Plugins => matches!(self.id, "claudecode" | "codex" | "pi"),
+            Kind::Plugins => matches!(
+                self.id,
+                "claudecode" | "codex" | "pi" | "kimicode" | "opencode"
+            ),
             Kind::Memory => matches!(
                 self.id,
-                "claudecode" | "codex" | "antigravitydesktop" | "dsh" | "pi"
+                "claudecode"
+                    | "codex"
+                    | "antigravitydesktop"
+                    | "dsh"
+                    | "pi"
+                    | "cline"
+                    | "devincli"
+                    | "kimicode"
+                    | "opencode"
             ),
         }
     }
@@ -163,12 +212,19 @@ impl App {
     fn skill_roots(&self) -> Vec<PathBuf> {
         let mut roots = vec![self.primary_skills()];
         match self.id {
-            "codex" | "pi" => {
+            "codex" | "pi" | "kimicode" | "opencode" => {
                 let shared = self.home.join(".agents/skills");
                 if shared != roots[0] {
                     roots.push(shared);
                 }
+                if self.id == "opencode" {
+                    roots.push(self.home.join(".claude/skills"));
+                }
             }
+            "devincli" => roots.extend([
+                self.directory.with_file_name("cognition").join("skills"),
+                self.home.join(".agents/skills"),
+            ]),
             "antigravity" => roots.extend([
                 self.home.join(".gemini/antigravity-cli/skills"),
                 self.home.join(".gemini/skills"),
@@ -188,6 +244,8 @@ impl App {
         match self.id {
             "claudecode" => Some(self.directory.join("CLAUDE.md")),
             "dsh" => Some(self.directory.join("AGENTS.md")),
+            "cline" => Some(self.directory.join("rules/AGENTS.md")),
+            "devincli" | "kimicode" | "opencode" => Some(self.directory.join("AGENTS.md")),
             "pi" => Some(pi_resources::instructions(&self.directory)),
             "antigravitydesktop" => {
                 let gemini = self.directory.join("GEMINI.md");
@@ -217,6 +275,7 @@ impl App {
             Kind::Skills => self.skills()?,
             Kind::Mcp => config::mcp_entries(self)?,
             Kind::Plugins if self.id == "pi" => pi_resources::extensions(&self.directory)?,
+            Kind::Plugins if self.id == "opencode" => opencode_resources::plugins(&self.directory)?,
             Kind::Plugins => config::plugin_entries(self)?,
             Kind::Memory => self.memory()?,
         };
@@ -325,6 +384,20 @@ impl App {
             }
         } else if self.id == "codex" {
             add_memory_files(&mut entries, &self.directory.join("memories"), "Codex")?;
+        } else if self.id == "cline" {
+            add_memory_file(&mut entries, self.home.join(".agents/AGENTS.md"), "");
+            for root in [
+                self.directory.join("rules"),
+                self.home.join("Documents/Cline/Rules"),
+                self.home.join("Cline/Rules"),
+            ] {
+                add_memory_files(&mut entries, &root, "")?;
+            }
+        } else if self.id == "devincli" {
+            add_memory_files(&mut entries, &self.directory.join("rules"), "")?;
+            let legacy = self.home.join(".devin");
+            add_memory_file(&mut entries, legacy.join("global_rules.md"), "");
+            add_memory_files(&mut entries, &legacy.join("rules"), "")?;
         }
         let mut listed = std::collections::HashSet::new();
         entries.retain(|entry| listed.insert(entry.path.clone()));
@@ -657,10 +730,195 @@ mod tests {
                 "codex" => "config.toml",
                 "claudedesktop" => "claude_desktop_config.json",
                 "qoder" => "settings.json",
+                "cline" => "data/settings/cline_mcp_settings.json",
+                "devincli" => "mcp_config.json",
+                "opencode" => "opencode.jsonc",
                 _ => "mcp.json",
             }),
             directory,
         }
+    }
+
+    #[test]
+    fn opencode_adds_to_the_existing_legacy_mcp_table() {
+        let root = tempfile::tempdir().unwrap();
+        let app = fixture("opencode", root.path());
+        fs::create_dir_all(&app.directory).unwrap();
+        fs::write(
+            &app.mcp_file,
+            r#"{"mcp":{"old":{"type":"local","command":["node"]}}}"#,
+        )
+        .unwrap();
+
+        config::add_mcp(&app, "sample", json!({"command":"runner"})).unwrap();
+        config::toggle(&app, Kind::Mcp, "sample", false).unwrap();
+        let document: Value = serde_json::from_slice(&fs::read(&app.mcp_file).unwrap()).unwrap();
+        assert_eq!(document["mcp"]["sample"]["command"], json!(["runner"]));
+        assert_eq!(document["mcp"]["sample"]["enabled"], false);
+        assert!(document["mcp"].get("servers").is_none());
+    }
+
+    #[test]
+    fn opencode_combines_user_configs_and_preserves_jsonc_when_editing() {
+        let root = tempfile::tempdir().unwrap();
+        let app = fixture("opencode", root.path());
+        let kimi = fixture("kimicode", root.path());
+        fs::create_dir_all(&app.directory).unwrap();
+        let json = app.directory.join("opencode.json");
+        fs::write(&json, r#"{"mcp":{"legacy":{"type":"local","command":["node","probe.js"],"enabled":false},"duplicate":{"type":"remote","url":"https://one.test"}}}"#).unwrap();
+        fs::write(
+            &app.mcp_file,
+            r#"{
+  // preserve provider settings
+  "model": "fixture/model",
+  "mcp": {
+    "servers": {
+      "duplicate": {"type":"remote","url":"https://two.test"},
+    },
+  },
+}"#,
+        )
+        .unwrap();
+        let entries = app.assets(Kind::Mcp).unwrap();
+        assert_eq!(entries[0].description.as_deref(), Some("two.test"));
+        assert!(!entries[0].can_remove);
+        assert_eq!(entries[1].enabled, Some(false));
+        config::toggle(&app, Kind::Mcp, "legacy", true).unwrap();
+        config::copy_mcp(&app, &kimi, "legacy").unwrap();
+        let copied: Value = serde_json::from_slice(&fs::read(&kimi.mcp_file).unwrap()).unwrap();
+        assert_eq!(copied["mcpServers"]["legacy"]["command"], "node");
+        assert_eq!(copied["mcpServers"]["legacy"]["args"], json!(["probe.js"]));
+
+        config::add_mcp(&app, "sample", json!({"command":"node", "env":{"A":"B"}})).unwrap();
+        config::toggle(&app, Kind::Mcp, "sample", false).unwrap();
+        let text = fs::read_to_string(&app.mcp_file).unwrap();
+        assert!(text.contains("// preserve provider settings"));
+        let value =
+            jsonc_parser::parse_to_serde_value::<Value>(&text, &Default::default()).unwrap();
+        assert_eq!(value["model"], "fixture/model");
+        let server = &value["mcp"]["servers"]["sample"];
+        assert_eq!(server["command"], json!(["node"]));
+        assert_eq!(server["environment"], json!({"A":"B"}));
+        assert_eq!(server["disabled"], true);
+        config::remove_mcp(&app, "sample").unwrap();
+        assert_eq!(app.assets(Kind::Mcp).unwrap().len(), 2);
+    }
+
+    #[test]
+    fn kimi_and_pi_list_native_user_package_declarations() {
+        let root = tempfile::tempdir().unwrap();
+        let kimi = fixture("kimicode", root.path());
+        fs::create_dir_all(kimi.directory.join("plugins")).unwrap();
+        fs::write(kimi.directory.join("AGENTS.md"), "# User instructions").unwrap();
+        fs::write(kimi.directory.join("plugins/installed.json"), json!({
+            "version": 1, "plugins": [{"id": "sample", "enabled": false, "root": kimi.directory}]
+        }).to_string()).unwrap();
+        assert_eq!(kimi.assets(Kind::Memory).unwrap()[0].name, "AGENTS.md");
+        let plugins = kimi.assets(Kind::Plugins).unwrap();
+        assert_eq!(plugins[0].id, "sample");
+        assert_eq!(plugins[0].enabled, Some(false));
+
+        let pi = fixture("pi", root.path());
+        fs::create_dir_all(&pi.directory).unwrap();
+        fs::write(pi.directory.join("settings.json"), r#"{"packages":["npm:example",{"source":"npm:example","skills":[]},{"source":"./local"}]}"#).unwrap();
+        let packages = pi.assets(Kind::Plugins).unwrap();
+        assert_eq!(
+            packages
+                .iter()
+                .map(|entry| entry.name.as_str())
+                .collect::<Vec<_>>(),
+            ["./local", "npm:example"]
+        );
+    }
+
+    #[test]
+    fn cline_and_devin_mcp_use_their_native_transports_and_preserve_config() {
+        let root = tempfile::tempdir().unwrap();
+        let cline = fixture("cline", root.path());
+        let devin = fixture("devincli", root.path());
+        fs::create_dir_all(cline.mcp_file.parent().unwrap()).unwrap();
+        let original = json!({
+            "keep": ["settings"],
+            "mcpServers": {
+                "legacy": {"url": "https://example.test/events", "disabled": false},
+                "native": {"transport": {"type": "stdio", "command": "node"}, "timeout": 60}
+            }
+        });
+        fs::write(&cline.mcp_file, original.to_string()).unwrap();
+
+        config::add_mcp(&cline, "echo", json!({"url": "https://example.test/mcp"})).unwrap();
+        assert_eq!(
+            cline.assets(Kind::Mcp).unwrap()[0].description.as_deref(),
+            Some("example.test")
+        );
+        let cline_config: Value =
+            serde_json::from_slice(&fs::read(&cline.mcp_file).unwrap()).unwrap();
+        assert_eq!(
+            cline_config["mcpServers"]["echo"]["transport"],
+            json!({"type":"streamableHttp","url":"https://example.test/mcp"})
+        );
+        config::copy_mcp(&cline, &devin, "echo").unwrap();
+        config::copy_mcp(&cline, &devin, "legacy").unwrap();
+        config::toggle(&devin, Kind::Mcp, "echo", false).unwrap();
+        assert!(!devin.assets(Kind::Mcp).unwrap()[0].enabled.unwrap());
+        config::toggle(&devin, Kind::Mcp, "echo", true).unwrap();
+        let devin_config: Value =
+            serde_json::from_slice(&fs::read(&devin.mcp_file).unwrap()).unwrap();
+        assert_eq!(
+            devin_config["mcpServers"]["echo"],
+            json!({"transport":"http","url":"https://example.test/mcp"})
+        );
+        assert_eq!(devin_config["mcpServers"]["legacy"]["transport"], "sse");
+
+        config::toggle(&cline, Kind::Mcp, "native", false).unwrap();
+        let cline_config: Value =
+            serde_json::from_slice(&fs::read(&cline.mcp_file).unwrap()).unwrap();
+        assert_eq!(cline_config["mcpServers"]["native"]["disabled"], true);
+        assert_eq!(cline_config["mcpServers"]["native"]["timeout"], 60);
+        config::toggle(&cline, Kind::Mcp, "native", true).unwrap();
+        config::remove_mcp(&cline, "echo").unwrap();
+        config::copy_mcp(&devin, &cline, "echo").unwrap();
+        config::remove_mcp(&cline, "echo").unwrap();
+        let cline_config: Value =
+            serde_json::from_slice(&fs::read(&cline.mcp_file).unwrap()).unwrap();
+        assert_eq!(cline_config["keep"], original["keep"]);
+        assert_eq!(
+            cline_config["mcpServers"]["legacy"],
+            original["mcpServers"]["legacy"]
+        );
+        assert_eq!(cline_config["mcpServers"]["native"]["timeout"], 60);
+        assert_eq!(cline_config["mcpServers"]["native"]["disabled"], false);
+        assert!(cline_config["mcpServers"].get("echo").is_none());
+    }
+
+    #[test]
+    fn cline_and_devin_list_user_skills_and_rules_from_their_native_roots() {
+        let root = tempfile::tempdir().unwrap();
+        let cline = fixture("cline", root.path());
+        let devin = fixture("devincli", root.path());
+        for app in [&cline, &devin] {
+            let skill = app.primary_skills().join("echo");
+            fs::create_dir_all(&skill).unwrap();
+            fs::write(skill.join("SKILL.md"), "# Fixture").unwrap();
+            let rule = app.directory.join("rules/global.md");
+            fs::create_dir_all(rule.parent().unwrap()).unwrap();
+            fs::write(&rule, "# Global directions").unwrap();
+            assert_eq!(
+                app.assets(Kind::Skills).unwrap()[0].path.as_ref(),
+                Some(&skill)
+            );
+            assert_eq!(
+                app.assets(Kind::Memory).unwrap()[0].path.as_ref(),
+                Some(&rule)
+            );
+        }
+        let shared = root.path().join(".agents/skills/shared");
+        fs::create_dir_all(&shared).unwrap();
+        fs::write(shared.join("SKILL.md"), "# Shared fixture").unwrap();
+        let skills = devin.assets(Kind::Skills).unwrap();
+        assert_eq!(skills.len(), 2);
+        assert!(skills[0].can_remove);
+        assert!(!skills[1].can_remove);
     }
 
     #[test]
@@ -1216,6 +1474,36 @@ mod tests {
         assert!(app.assets(Kind::Mcp).unwrap()[0].can_remove);
         config::remove_mcp(&app, "echo").unwrap();
         assert_eq!(app.assets(Kind::Mcp).unwrap()[0].name, "native");
+    }
+
+    #[test]
+    fn dsh_adds_the_first_mcp_to_an_empty_commented_native_profile() {
+        let root = tempfile::tempdir().unwrap();
+        let app = fixture("dsh", root.path());
+        fs::create_dir_all(&app.directory).unwrap();
+        for eol in ["\n", "\r\n"] {
+            let comments = format!("# Profile patch{eol}# Add additional operations below.{eol}");
+            let original = format!("{comments}[]{eol}");
+            fs::write(&app.mcp_file, &original).unwrap();
+
+            config::add_mcp(&app, "echo", json!({"command":"runner"})).unwrap();
+            assert_eq!(app.assets(Kind::Mcp).unwrap()[0].name, "echo");
+            assert!(fs::read_to_string(&app.mcp_file)
+                .unwrap()
+                .starts_with(&comments));
+
+            config::remove_mcp(&app, "echo").unwrap();
+            assert_eq!(fs::read_to_string(&app.mcp_file).unwrap(), original);
+        }
+
+        let original = "\u{feff}[]\r\n";
+        fs::write(&app.mcp_file, original).unwrap();
+        config::add_mcp(&app, "echo", json!({"command":"runner"})).unwrap();
+        assert!(fs::read_to_string(&app.mcp_file)
+            .unwrap()
+            .starts_with('\u{feff}'));
+        config::remove_mcp(&app, "echo").unwrap();
+        assert_eq!(fs::read_to_string(&app.mcp_file).unwrap(), original);
     }
 
     #[test]

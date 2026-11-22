@@ -314,10 +314,12 @@ pub(super) fn restore_opencode_to_official() -> ApplyResult {
     }
 }
 
-fn opencode_config_dir() -> PathBuf {
+pub(in crate::services) fn opencode_config_dir() -> PathBuf {
     opencode_config_dir_from(
         dirs::home_dir(),
-        std::env::var_os("OPENCODE_CONFIG_DIR").map(PathBuf::from),
+        std::env::var_os("OPENCODE_CONFIG_DIR")
+            .filter(|value| !value.is_empty())
+            .map(PathBuf::from),
         std::env::var_os("XDG_CONFIG_HOME")
             .filter(|value| !value.is_empty())
             .map(PathBuf::from),

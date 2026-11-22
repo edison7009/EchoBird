@@ -5,6 +5,15 @@ use std::io::Write;
 const TARGET: &str = "gemini:antigravity";
 
 #[cfg(windows)]
+pub(super) fn check_size(value: &str) -> Result<(), String> {
+    // CRED_MAX_CREDENTIAL_BLOB_SIZE from wincred.h.
+    if value.len() > 5 * 512 {
+        return Err("accountError.write".into());
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
 mod windows_credential {
     use std::{ffi::c_void, os::windows::ffi::OsStrExt, ptr};
 
@@ -77,6 +86,7 @@ mod windows_credential {
     }
 
     pub(super) fn write(value: &str) -> Result<(), String> {
+        super::check_size(value)?;
         let target = wide(super::TARGET);
         let user = wide("antigravity");
         let blob = value.as_bytes();
@@ -106,6 +116,20 @@ mod windows_credential {
             return Err("accountError.keychain".into());
         }
         Ok(())
+    }
+}
+
+#[cfg(all(test, windows))]
+mod tests {
+    use super::check_size;
+
+    #[test]
+    fn windows_credential_limit_counts_utf8_bytes() {
+        assert!(check_size(&"é".repeat(1280)).is_ok());
+        assert_eq!(
+            check_size(&"é".repeat(1281)),
+            Err("accountError.write".into())
+        );
     }
 }
 

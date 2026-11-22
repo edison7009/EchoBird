@@ -239,7 +239,8 @@
           "pathHints": [
             "%APPDATA%\\npm\\cline.cmd",
             "%LOCALAPPDATA%\\pnpm\\cline.cmd",
-            "%USERPROFILE%\\.bun\\bin\\cline.exe"
+            "%USERPROFILE%\\.bun\\bin\\cline.exe",
+            "%LOCALAPPDATA%\\Cline\\cline-cli.exe"
           ],
           "nativeVerified": false
         },
@@ -1284,6 +1285,7 @@
       "platforms": {
         "windows": {
           "pathHints": [
+            "%LOCALAPPDATA%\\Programs\\ai.opencode.desktop\\OpenCode.exe",
             "%LOCALAPPDATA%\\Programs\\OpenCode\\OpenCode.exe",
             "%LOCALAPPDATA%\\Programs\\opencode\\OpenCode.exe",
             "%LOCALAPPDATA%\\Programs\\OpenCode Beta\\OpenCode Beta.exe"

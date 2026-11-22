@@ -17,7 +17,7 @@ pub(super) fn input(value: &Value) -> CstInputValue {
     }
 }
 
-pub(super) fn set(object: &CstObject, key: &str, value: &Value) {
+pub(in crate::services) fn set(object: &CstObject, key: &str, value: &Value) {
     if let Some(property) = object.get(key) {
         property.set_value(input(value));
     } else {

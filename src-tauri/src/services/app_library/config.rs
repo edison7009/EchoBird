@@ -1,4 +1,4 @@
-use super::{dsh_mcp, markdown_field, App, Entry, Kind};
+use super::{dsh_mcp, markdown_field, opencode_resources, App, Entry, Kind};
 use crate::services::native_account_files::{self, DirectoryLock};
 use serde::Deserialize;
 use serde_json::{json, Map, Value};
@@ -333,13 +333,38 @@ fn raw_mcp(app: &App) -> Result<Map<String, Value>, &'static str> {
     if app.id == "dsh" {
         return Ok(dsh_mcp::read(&app.mcp_file)?.entries);
     }
+    if app.id == "opencode" {
+        return Ok(opencode_resources::servers(&app.directory)?
+            .into_iter()
+            .map(|(name, server)| (name, server.value))
+            .collect());
+    }
     Config::read(&app.mcp_file, app.id == "codex")?.entries(mcp_table(app))
+}
+
+fn uses_disabled_mcp_flag(app: &App) -> bool {
+    matches!(
+        app.id,
+        "workbuddy" | "antigravitydesktop" | "qoder" | "cline" | "devincli" | "opencode"
+    )
 }
 
 pub(super) fn mcp_entries(app: &App) -> Result<Vec<Entry>, String> {
     let (servers, removable) = if app.id == "dsh" {
         let native = dsh_mcp::read(&app.mcp_file)?;
         (native.entries, native.removable)
+    } else if app.id == "opencode" {
+        let mut removable = std::collections::HashSet::new();
+        let servers = opencode_resources::servers(&app.directory)?
+            .into_iter()
+            .map(|(name, server)| {
+                if !server.duplicate {
+                    removable.insert(name.clone());
+                }
+                (name, server.value)
+            })
+            .collect();
+        (servers, removable)
     } else {
         (raw_mcp(app)?, Default::default())
     };
@@ -351,10 +376,11 @@ pub(super) fn mcp_entries(app: &App) -> Result<Vec<Entry>, String> {
             entry.description = server["url"]
                 .as_str()
                 .or_else(|| server["serverUrl"].as_str())
+                .or_else(|| server["transport"]["url"].as_str())
                 .and_then(|value| reqwest::Url::parse(value).ok())
                 .and_then(|url| url.host_str().map(str::to_owned));
             let connector = app.id == "workbuddy" && server["managedBy"] == "connector";
-            entry.enabled = if matches!(app.id, "workbuddy" | "antigravitydesktop" | "qoder") {
+            entry.enabled = if uses_disabled_mcp_flag(app) {
                 Some(server["disabled"] != true)
             } else {
                 server["enabled"]
@@ -366,12 +392,11 @@ pub(super) fn mcp_entries(app: &App) -> Result<Vec<Entry>, String> {
                 && normalize_transport(app, &server)
                     .and_then(|server| portable(&server, app.id == "codex", false))
                     .is_ok();
-            entry.can_remove = !connector && (app.id != "dsh" || removable.contains(&entry.id));
+            entry.can_remove = !connector
+                && (!matches!(app.id, "dsh" | "opencode") || removable.contains(&entry.id));
             entry.can_toggle = !connector
-                && matches!(
-                    app.id,
-                    "codex" | "kimicode" | "workbuddy" | "antigravitydesktop" | "qoder" | "pi"
-                );
+                && (app.id != "opencode" || removable.contains(&entry.id))
+                && (uses_disabled_mcp_flag(app) || matches!(app.id, "codex" | "kimicode" | "pi"));
             entry
         })
         .collect())
@@ -379,25 +404,51 @@ pub(super) fn mcp_entries(app: &App) -> Result<Vec<Entry>, String> {
 
 fn normalize_transport(app: &App, server: &Value) -> Result<Value, &'static str> {
     let mut data = server.as_object().cloned().ok_or("invalidConfig")?;
+    if uses_disabled_mcp_flag(app)
+        && data
+            .remove("disabled")
+            .is_some_and(|disabled| disabled == true)
+    {
+        return Err("unsupported");
+    }
     match app.id {
+        "opencode" => return opencode_resources::portable(data),
         "workbuddy" | "qoder" => {
-            if server["managedBy"] == "connector" || server["disabled"] == true {
+            if server["managedBy"] == "connector" {
                 return Err("unsupported");
             }
-            data.remove("disabled");
         }
         "antigravitydesktop" => {
-            if data
-                .remove("disabled")
-                .is_some_and(|disabled| disabled == true)
-            {
-                return Err("unsupported");
-            }
             if let Some(url) = data.remove("serverUrl") {
                 if data.get("url").is_some_and(|existing| existing != &url) {
                     return Err("invalidConfig");
                 }
                 data.insert("url".into(), url);
+            }
+        }
+        "cline" => {
+            if let Some(transport) = data.remove("transport") {
+                let Value::Object(fields) = transport else {
+                    return Err("invalidConfig");
+                };
+                for (key, value) in fields {
+                    if data.insert(key, value).is_some() {
+                        return Err("invalidConfig");
+                    }
+                }
+            }
+            if data
+                .get("type")
+                .is_some_and(|kind| kind == "streamableHttp")
+            {
+                data.insert("type".into(), json!("http"));
+            } else if !data.contains_key("type") && data.contains_key("url") {
+                data.insert("type".into(), json!("sse"));
+            }
+        }
+        "devincli" => {
+            if let Some(transport) = data.remove("transport") {
+                data.insert("type".into(), transport);
             }
         }
         "pi" => {
@@ -558,6 +609,13 @@ fn insert_mcp(app: &App, id: &str, mut definition: Value) -> Result<(), &'static
     if app.id == "dsh" {
         return dsh_mcp::add(&app.mcp_file, id, definition);
     }
+    if app.id == "opencode" {
+        return opencode_resources::change(
+            &app.directory,
+            id,
+            opencode_resources::Change::Add(definition),
+        );
+    }
     if app.id == "antigravitydesktop" {
         let fields = definition.as_object_mut().ok_or("invalidConfig")?;
         if fields.remove("type").is_some_and(|kind| kind == "sse") {
@@ -591,6 +649,16 @@ fn insert_mcp(app: &App, id: &str, mut definition: Value) -> Result<(), &'static
             return Err("unsupported");
         }
     }
+    if app.id == "cline" {
+        if definition["type"] == "http" {
+            definition["type"] = json!("streamableHttp");
+        }
+        definition = json!({"transport": definition});
+    } else if app.id == "devincli" {
+        let fields = definition.as_object_mut().ok_or("invalidConfig")?;
+        let transport = fields.remove("type").ok_or("invalidConfig")?;
+        fields.insert("transport".into(), transport);
+    }
     let key = mcp_table(app);
     edit(&app.mcp_file, app.id == "codex", |document| {
         let entries = document.entries(key)?;
@@ -613,6 +681,10 @@ pub(super) fn remove_mcp(app: &App, id: &str) -> Result<(), String> {
     if app.id == "dsh" {
         return dsh_mcp::remove(&app.mcp_file, id).map_err(str::to_owned);
     }
+    if app.id == "opencode" {
+        return opencode_resources::change(&app.directory, id, opencode_resources::Change::Remove)
+            .map_err(str::to_owned);
+    }
     let key = mcp_table(app);
     edit(&app.mcp_file, app.id == "codex", |document| {
         let entries = document.entries(key)?;
@@ -626,6 +698,28 @@ pub(super) fn remove_mcp(app: &App, id: &str) -> Result<(), String> {
 }
 
 pub(super) fn plugin_entries(app: &App) -> Result<Vec<Entry>, String> {
+    if app.id == "kimicode" {
+        let path = app.directory.join("plugins/installed.json");
+        let Some(bytes) = native_account_files::read_optional(&path).map_err(|_| "readFailed")?
+        else {
+            return Ok(Vec::new());
+        };
+        let value: Value = serde_json::from_slice(&bytes).map_err(|_| "invalidConfig")?;
+        let plugins = value["plugins"].as_array().ok_or("invalidConfig")?;
+        return Ok(plugins
+            .iter()
+            .filter_map(|plugin| {
+                let id = plugin["id"].as_str()?;
+                let root = plugin["root"]
+                    .as_str()
+                    .map(PathBuf::from)
+                    .filter(|path| path.is_absolute() && path.is_dir());
+                let mut entry = Entry::new(id.into(), root);
+                entry.enabled = plugin["enabled"].as_bool();
+                Some(entry)
+            })
+            .collect());
+    }
     if app.id == "codex" {
         return codex_plugins(app);
     }
@@ -740,12 +834,15 @@ fn directories(root: &Path) -> Result<Vec<std::path::PathBuf>, String> {
 }
 
 pub(super) fn toggle(app: &App, kind: Kind, id: &str, enabled: bool) -> Result<(), String> {
-    if kind == Kind::Mcp
-        && matches!(
-            app.id,
-            "workbuddy" | "kimicode" | "antigravitydesktop" | "pi" | "qoder"
+    if app.id == "opencode" && kind == Kind::Mcp {
+        return opencode_resources::change(
+            &app.directory,
+            id,
+            opencode_resources::Change::Toggle(enabled),
         )
-    {
+        .map_err(str::to_owned);
+    }
+    if kind == Kind::Mcp && (uses_disabled_mcp_flag(app) || matches!(app.id, "kimicode" | "pi")) {
         let key = mcp_table(app);
         return edit(&app.mcp_file, false, |document| {
             let mut server = document.entries(key)?.remove(id).ok_or("missing")?;
@@ -759,6 +856,8 @@ pub(super) fn toggle(app: &App, kind: Kind, id: &str, enabled: bool) -> Result<(
             }
             if matches!(app.id, "kimicode" | "pi") {
                 fields.insert("enabled".into(), json!(enabled));
+            } else if app.id == "devincli" && enabled {
+                fields.remove("disabled");
             } else {
                 fields.insert("disabled".into(), json!(!enabled));
             }

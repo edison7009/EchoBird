@@ -69,11 +69,17 @@ fn save_at(path: &Path, accounts: &BTreeMap<String, Saved>) -> Result<(), String
 
 fn identity(raw: &str) -> Result<(String, String), String> {
     let credential: Value = serde_json::from_str(raw).map_err(|_| "accountError.format")?;
-    if credential["token"]["refresh_token"]
+    identity_document(&credential)
+}
+
+fn refresh_token(credential: &Value) -> Option<&str> {
+    credential["token"]["refresh_token"]
         .as_str()
         .filter(|s| !s.is_empty())
-        .is_none()
-    {
+}
+
+fn identity_document(credential: &Value) -> Result<(String, String), String> {
+    if refresh_token(credential).is_none() {
         return Err("accountError.invalidAccount".into());
     }
     let token = credential["id_token"]
@@ -116,6 +122,38 @@ fn unprotect(value: &str) -> Result<String, String> {
         return Err("accountError.keychain".into());
     }
     Ok(plain)
+}
+
+fn active_account_id(
+    raw: &str,
+    accounts: &BTreeMap<String, Saved>,
+    decode: fn(&str) -> Result<String, String>,
+) -> Option<String> {
+    let credential: Value = serde_json::from_str(raw).ok()?;
+    if !credential["id_token"].is_null() {
+        return identity_document(&credential).ok().map(|(id, _)| id);
+    }
+    let email = credential["id_token_email"]
+        .as_str()
+        .filter(|s| !s.is_empty())?;
+    let token = refresh_token(&credential)?;
+    let mut matches = accounts.iter().filter(|(id, saved)| {
+        if !saved.email.eq_ignore_ascii_case(email) {
+            return false;
+        }
+        let Some(document) = decode(&saved.credential)
+            .ok()
+            .and_then(|raw| serde_json::from_str::<Value>(&raw).ok())
+        else {
+            return false;
+        };
+        refresh_token(&document) == Some(token)
+            && identity_document(&document).is_ok_and(|(subject, email_claim)| {
+                subject == **id && email_claim.eq_ignore_ascii_case(email)
+            })
+    });
+    let (id, _) = matches.next()?;
+    matches.next().is_none().then(|| id.clone())
 }
 
 fn summary(id: &str, saved: &Saved, active: Option<&str>) -> Account {
@@ -171,7 +209,9 @@ pub async fn list() -> Result<Vec<Account>, String> {
     } else {
         None
     };
-    let active = current.as_deref().map(identity).transpose()?.map(|v| v.0);
+    let active = current
+        .as_deref()
+        .and_then(|raw| active_account_id(raw, &accounts, unprotect));
     let rows = accounts
         .iter()
         .map(|(id, saved)| summary(id, saved, active.as_deref()))
@@ -362,12 +402,20 @@ pub async fn switch(id: &str) -> Result<Account, String> {
     if identity(&raw)?.0 != id {
         return Err("accountError.invalidAccount".into());
     }
+    #[cfg(windows)]
+    native::check_size(&raw)?;
     let protected = protect(&raw)?;
     let previous = native::read()?;
     if let Some(current) = previous.as_deref() {
-        let current_id = identity(current)?.0;
-        if !accounts.contains_key(&current_id) {
-            capture(current, &mut accounts, true)?;
+        match identity(current) {
+            Ok((current_id, _)) if !accounts.contains_key(&current_id) => {
+                capture(current, &mut accounts, true)?;
+            }
+            Ok(_) => {}
+            Err(error) if active_account_id(current, &accounts, unprotect).is_none() => {
+                return Err(error);
+            }
+            Err(_) => {}
         }
     }
     ensure_cli_closed().await?;
@@ -400,7 +448,7 @@ fn restore_native(previous: Option<&str>) -> Result<(), String> {
 pub async fn refresh(id: &str) -> Result<Account, String> {
     let _guard = ACCOUNT_LOCK.lock().await;
     let mut accounts = load()?;
-    let saved = accounts.get_mut(id).ok_or("accountError.invalidAccount")?;
+    let saved = accounts.get(id).ok_or("accountError.invalidAccount")?;
     let mut document: Value =
         serde_json::from_str(&unprotect(&saved.credential)?).map_err(|_| "accountError.format")?;
     if identity(&document.to_string())?.0 != id {
@@ -411,14 +459,13 @@ pub async fn refresh(id: &str) -> Result<Account, String> {
         return Err("accountError.invalidAccount".into());
     }
     let (plan, quotas) = quota::fetch(&document).await?;
+    let active = native::read()?
+        .as_deref()
+        .and_then(|raw| active_account_id(raw, &accounts, unprotect));
+    let saved = accounts.get_mut(id).ok_or("accountError.invalidAccount")?;
     saved.credential = protect(&document.to_string())?;
     saved.plan = plan;
     saved.quotas = quotas;
-    let active = native::read()?
-        .as_deref()
-        .map(identity)
-        .transpose()?
-        .map(|v| v.0);
     let result = summary(id, saved, active.as_deref());
     save(&accounts)?;
     super::account_proxy::forget_preparation_metadata(
@@ -432,6 +479,14 @@ pub(crate) async fn import_native() -> Result<Option<bool>, String> {
     let Some(raw) = native::read()? else {
         return Ok(None);
     };
+    if let Err(error) = identity(&raw) {
+        let _guard = ACCOUNT_LOCK.lock().await;
+        return if active_account_id(&raw, &load()?, unprotect).is_some() {
+            Ok(Some(false))
+        } else {
+            Err(error)
+        };
+    }
     import_snapshot(&raw).await.map(Some)
 }
 
@@ -449,6 +504,52 @@ mod tests {
 
     fn fixture_secret(value: &str) -> Result<String, String> {
         Ok(value.to_owned())
+    }
+
+    #[test]
+    fn compact_native_credential_requires_a_unique_saved_identity() {
+        let full = |subject: &str| {
+            let claims = URL_SAFE_NO_PAD
+                .encode(json!({"sub": subject, "email": "fixture@example.test"}).to_string());
+            json!({
+                "id_token": format!("x.{claims}.y"),
+                "token": {"refresh_token": "fixture-refresh"}
+            })
+            .to_string()
+        };
+        let raw = full("fixture-id");
+        let (id, email) = identity(&raw).unwrap();
+        let saved = |credential| Saved {
+            email: email.clone(),
+            credential,
+            plan: None,
+            quotas: vec![],
+        };
+        let mut accounts = BTreeMap::from([(id.clone(), saved(raw.clone()))]);
+        let mut compact = json!({
+            "id_token_email": "Fixture@Example.test",
+            "token": {"refresh_token": "fixture-refresh"}
+        });
+        let active = |credential: &Value, accounts: &BTreeMap<String, Saved>| {
+            active_account_id(&credential.to_string(), accounts, fixture_secret)
+        };
+        assert_eq!(
+            active_account_id(&raw, &accounts, fixture_secret),
+            Some(id.clone())
+        );
+        assert_eq!(active(&compact, &accounts), Some(id));
+        assert!(identity(&compact.to_string()).is_err());
+
+        compact["token"]["refresh_token"] = json!("other-refresh");
+        assert_eq!(active(&compact, &accounts), None);
+        compact["token"]["refresh_token"] = json!("fixture-refresh");
+        compact["id_token"] = json!("malformed");
+        assert_eq!(active(&compact, &accounts), None);
+        compact.as_object_mut().unwrap().remove("id_token");
+
+        let other = full("other-id");
+        accounts.insert(identity(&other).unwrap().0, saved(other));
+        assert_eq!(active(&compact, &accounts), None);
     }
 
     #[tokio::test]

@@ -27,9 +27,12 @@ const toolTabs: Partial<Record<string, readonly LibraryKind[]>> = {
   antigravitydesktop: ['skills', 'mcp', 'memory'],
   dsh: ['skills', 'mcp', 'memory'],
   cursor: ['skills', 'mcp'],
+  cline: ['skills', 'mcp', 'memory'],
+  devincli: ['skills', 'mcp', 'memory'],
   qoder: ['skills', 'mcp'],
   workbuddy: ['skills', 'mcp'],
-  kimicode: ['skills', 'mcp'],
+  kimicode: ['skills', 'mcp', 'plugins', 'memory'],
+  opencode: ['skills', 'mcp', 'plugins', 'memory'],
   pi: ['skills', 'mcp', 'plugins', 'memory'],
 };
 

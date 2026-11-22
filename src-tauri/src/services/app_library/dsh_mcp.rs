@@ -163,12 +163,16 @@ fn edit(
     fs::create_dir_all(path.parent().ok_or("writeFailed")?).map_err(|_| "writeFailed")?;
     let _lock = DirectoryLock::acquire_existing(path).map_err(|_| "writeFailed")?;
     let original = read_profile(path)?;
-    let profile = parse_profile(&original)?;
+    let body = original.strip_prefix('\u{feff}').unwrap_or(&original);
+    let profile = parse_profile(body)?;
     let current = inspect(&profile)?;
-    let updated = change(&original, &profile, &current)?;
+    let mut updated = change(body, &profile, &current)?;
     inspect(&parse_profile(&updated)?)?;
     if read_profile(path)? != original {
         return Err("writeFailed");
+    }
+    if original.starts_with('\u{feff}') {
+        updated.insert(0, '\u{feff}');
     }
     native_account_files::write_private_file(path, updated.as_bytes()).map_err(|_| "writeFailed")
 }
@@ -198,16 +202,20 @@ pub(super) fn add(path: &Path, name: &str, definition: Value) -> Result<(), &'st
         {
             return Err("exists");
         }
-        let mut text = if original.trim() == "[]" {
-            String::new()
-        } else {
-            original.to_owned()
-        };
         let row = serde_json::to_string(&insert).map_err(|_| "invalidConfig")?;
         let eol = if original.contains("\r\n") {
             "\r\n"
         } else {
             "\n"
+        };
+        let mut text = if profile.as_sequence().is_some_and(Vec::is_empty) {
+            // The native empty template puts a standalone `[]` after its comments.
+            original
+                .split_inclusive('\n')
+                .filter(|line| line.trim() != "[]")
+                .collect::<String>()
+        } else {
+            original.to_owned()
         };
         if !text.is_empty() && !text.ends_with('\n') {
             text.push_str(eol);
@@ -231,12 +239,20 @@ pub(super) fn remove(path: &Path, name: &str) -> Result<(), &'static str> {
             .ok_or("unsupported")?;
         let range = row_range(original, index, row)?;
         let mut updated = original.to_owned();
-        updated.replace_range(range, "");
+        let remaining = profile.as_sequence().map(Vec::len).unwrap_or_default() - 1;
+        let replacement = if remaining != 0 {
+            ""
+        } else if original.contains("\r\n") {
+            "[]\r\n"
+        } else {
+            "[]\n"
+        };
+        updated.replace_range(range, replacement);
         if parse_profile(&updated)?
             .as_sequence()
             .map(Vec::len)
             .unwrap_or_default()
-            != profile.as_sequence().map(Vec::len).unwrap_or_default() - 1
+            != remaining
         {
             return Err("invalidConfig");
         }

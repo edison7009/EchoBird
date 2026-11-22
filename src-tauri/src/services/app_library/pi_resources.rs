@@ -89,7 +89,7 @@ fn add_skill(
 }
 
 pub(super) fn extensions(directory: &Path) -> Result<Vec<Entry>, String> {
-    Ok(children(&directory.join("extensions"))?
+    let mut entries: Vec<_> = children(&directory.join("extensions"))?
         .into_iter()
         .filter_map(|path| {
             let name = path.file_name()?.to_str()?;
@@ -115,5 +115,26 @@ pub(super) fn extensions(directory: &Path) -> Result<Vec<Entry>, String> {
                     }));
             (extension || package).then(|| Entry::new(name.into(), Some(path.clone())))
         })
-        .collect())
+        .collect();
+    let settings = directory.join("settings.json");
+    if let Some(bytes) =
+        crate::services::native_account_files::read_optional(&settings).map_err(|_| "readFailed")?
+    {
+        let value: Value =
+            serde_json::from_slice(bytes.strip_prefix(b"\xef\xbb\xbf").unwrap_or(&bytes))
+                .map_err(|_| "invalidConfig")?;
+        if let Some(packages) = value["packages"].as_array() {
+            let mut seen = std::collections::HashSet::new();
+            for package in packages {
+                if let Some(source) = package.as_str().or_else(|| package["source"].as_str()) {
+                    if seen.insert(source) {
+                        let mut entry = Entry::new(source.into(), Some(settings.clone()));
+                        entry.id = format!("package/{source}");
+                        entries.push(entry);
+                    }
+                }
+            }
+        }
+    }
+    Ok(entries)
 }
