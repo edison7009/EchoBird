@@ -1335,7 +1335,7 @@ img[src$='/icons/tools/opendesign.png'] {
   }
 }
 
-/* Sweep across the wait label, then pause with the highlight outside the text. */
+/* Sweep a translucent band across the wait label, then pause outside the text. */
 @keyframes spinnerShimmer {
   0% {
     background-position: 130% center;
@@ -1347,11 +1347,12 @@ img[src$='/icons/tools/opendesign.png'] {
 }
 
 .spinner-shimmer {
+  --spinner-sweep-alpha: 0.6;
   background-image: linear-gradient(
     70deg,
     rgb(var(--accent-rgb) / 0.88) 0%,
     rgb(var(--accent-rgb) / 0.88) 38%,
-    rgb(var(--text-primary-rgb) / 1) 50%,
+    rgb(var(--accent-rgb) / var(--spinner-sweep-alpha)) 50%,
     rgb(var(--accent-rgb) / 0.88) 62%,
     rgb(var(--accent-rgb) / 0.88) 100%
   );
@@ -1361,6 +1362,10 @@ img[src$='/icons/tools/opendesign.png'] {
   -webkit-text-fill-color: transparent;
   color: transparent;
   animation: spinnerShimmer 4.6s linear infinite;
+}
+
+[data-theme='dark'] .spinner-shimmer {
+  --spinner-sweep-alpha: 0.48;
 }
 
 /* Three-dot working mark: a 110-frame sheet stepped inside a fixed box, so the
