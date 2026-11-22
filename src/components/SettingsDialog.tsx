@@ -4,12 +4,16 @@ import {
   X,
   Globe,
   ExternalLink,
-  Check,
   Palette,
+  Star,
+  Sun,
+  Moon,
+  SunMoon,
+  ArrowDownToLine,
+  CircleHelp,
   Settings2,
   Sparkles,
   Power,
-  Monitor,
   Gift,
   ShieldCheck,
   Newspaper,
@@ -19,8 +23,6 @@ import {
 import { AutoImportSettings } from './AutoImportSettings';
 import { getVersion } from '@tauri-apps/api/app';
 import { enable, disable, isEnabled } from '@tauri-apps/plugin-autostart';
-import { ViewModeTabs } from './ViewModeTabs';
-import { ViewModeTabGroup } from './ViewModeTabGroup';
 import { useBackgroundStore } from '../stores/backgroundStore';
 import { useI18n } from '../hooks/useI18n';
 import * as api from '../api/tauri';
@@ -39,6 +41,7 @@ import {
 } from '../stores/optionalPages';
 import { useLocalServerStatusStore } from '../stores/localServerStatusStore';
 import { useProtectionStore } from '../stores/protectionStore';
+import './SettingsDialog.css';
 
 // All supported locales
 const LOCALE_OPTIONS = [
@@ -49,6 +52,11 @@ const LOCALE_OPTIONS = [
 ];
 
 type SettingsTab = 'general' | 'appearance' | 'language';
+
+const GITHUB_URL = 'https://github.com/edison7009/EchoBird';
+
+// A few characters for the character-stream sample.
+const CHARACTER_SAMPLE = '7f3a.kc>_ ai 0x1e be ~/ $ go::run 42 fn ok λ ⌁ ::';
 
 const UI_SCALE_TICKS = [70, 80, 90, 100, 110, 120, 130, 140, 150];
 
@@ -309,19 +317,19 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
         isAnimatingOut ? 'opacity-0' : 'opacity-100'
       }`}
     >
-      {/* Backdrop */}
-      <div className="absolute inset-0" onClick={handleClose} />
+      {/* Backdrop: dims the page so the dialog stands clear of the app's background. */}
+      <div className="settings-backdrop absolute inset-0" onClick={handleClose} />
 
       {/* Dialog */}
       <div
         ref={dialogRef}
-        className={`relative flex h-[72vh] w-[clamp(800px,62vw,1000px)] max-w-[92vw] overflow-hidden rounded-xl border border-cyber-border/30 bg-cyber-bg shadow-2xl transition-all duration-200 ${
+        className={`settings-dialog relative flex overflow-hidden rounded-xl border border-cyber-border bg-cyber-bg shadow-2xl transition-all duration-200 ${
           isAnimatingOut ? 'scale-95 opacity-0' : 'scale-100 opacity-100'
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <aside className="flex w-[168px] flex-shrink-0 flex-col p-3">
-          <div className="px-3 pt-2 pb-4 text-[16px] font-semibold tracking-wide text-cyber-text-muted">
+        <aside className="flex w-[196px] flex-shrink-0 flex-col gap-1 border-r border-cyber-border/60 bg-cyber-surface/50 p-3">
+          <div className="px-2.5 pt-1 pb-3.5 text-[16px] font-bold tracking-wide text-cyber-text">
             {t('settings.title')}
           </div>
           <nav className="space-y-1">
@@ -336,11 +344,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                 key={id}
                 type="button"
                 onClick={() => setActiveTab(id)}
-                className={`flex h-10 w-full items-center gap-2.5 rounded-md px-3 text-[14px] transition-colors ${
-                  activeTab === id
-                    ? 'bg-cyber-elevated font-semibold text-cyber-text'
-                    : 'text-cyber-text-secondary hover:bg-cyber-elevated/60 hover:text-cyber-text'
-                }`}
+                className={`settings-nav${activeTab === id ? ' is-active' : ''}`}
               >
                 <Icon size={16} />
                 {label}
@@ -348,22 +352,33 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
             ))}
           </nav>
 
-          <div className="mt-auto border-t border-cyber-border/50 px-3 pt-3">
-            <div className="mb-2 text-[12px] font-mono text-cyber-text-muted">
-              {appVersion ? `v${appVersion}` : '—'}
-            </div>
+          <div className="mt-auto grid gap-2.5">
             <button
               type="button"
-              onClick={() => api.openExternal('https://echobird.ai')}
-              className="flex items-center gap-1.5 text-[13px] font-medium text-cyber-text-secondary transition-colors hover:text-cyber-text"
+              onClick={() => api.openExternal(GITHUB_URL)}
+              className="settings-star"
             >
-              EchoBird <ExternalLink size={12} />
+              <b>
+                {t('settings.starOnGithub')}
+                <Star size={12} aria-hidden="true" />
+              </b>
+              <small>{t('settings.starOnGithubHint')}</small>
             </button>
+            <div className="flex items-center justify-between px-1 text-[11px] text-cyber-text-muted">
+              <span className="font-mono">{appVersion ? `v${appVersion}` : '—'}</span>
+              <button
+                type="button"
+                onClick={() => api.openExternal('https://echobird.ai')}
+                className="flex items-center gap-1 transition-colors hover:text-cyber-text"
+              >
+                EchoBird <ExternalLink size={11} />
+              </button>
+            </div>
           </div>
         </aside>
 
         <section className="flex min-w-0 flex-1 flex-col">
-          <header className="flex h-[58px] flex-shrink-0 items-center justify-between border-b border-cyber-border/50 px-5">
+          <header className="flex h-[58px] flex-shrink-0 items-center justify-between border-b border-cyber-border/50 px-6">
             <span className="text-[16px] font-semibold text-cyber-text">
               {t(`settings.${activeTab}`)}
             </span>
@@ -376,217 +391,201 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
             </button>
           </header>
 
-          {/* Content */}
-          <div className="page-scroll flex-1 overflow-y-auto px-5 py-5">
+          {/* Content: each page opens at its top. */}
+          <div key={activeTab} className="page-scroll flex-1 overflow-y-auto px-6 py-5">
             {activeTab === 'general' ? (
-              <div className="space-y-5">
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between gap-4">
-                    <label
-                      htmlFor="ui-scale"
-                      className="flex items-center gap-2 text-[14px] font-medium text-cyber-text-secondary"
-                    >
-                      <Monitor size={14} />
-                      {t('settings.uiScale')}
-                    </label>
+              <div className="space-y-6">
+                <div>
+                  <label htmlFor="ui-scale" className="settings-label">
+                    {t('settings.uiScale')}
+                  </label>
+                  <div className="settings-tile settings-scale">
                     <div className="flex items-center gap-3">
                       <button
                         type="button"
                         aria-pressed={scalePreference === 'auto'}
                         onClick={() => void uiScale.setPreference('auto')}
-                        className={`rounded px-2.5 py-1 text-[13px] transition-colors ${scalePreference === 'auto' ? 'bg-cyber-accent/10 text-cyber-accent' : 'text-cyber-text-secondary hover:bg-cyber-elevated'}`}
+                        className="settings-chip"
                       >
                         {t('settings.uiScaleAuto')}
                       </button>
-                      <span className="w-12 text-right text-[14px] tabular-nums text-cyber-text">
-                        {scalePercent}%
-                      </span>
+                      <span className="settings-scale-value">{scalePercent}%</span>
                     </div>
-                  </div>
-                  <div>
-                    <input
-                      id="ui-scale"
-                      type="range"
-                      min={70}
-                      max={150}
-                      step="any"
-                      value={sliderPercent}
-                      aria-valuetext={`${scalePercent}%`}
-                      className="ui-scale-slider relative block w-full"
-                      style={
-                        {
-                          '--ui-scale-progress': `${((sliderPercent - 70) / 80) * 100}%`,
-                        } as React.CSSProperties
-                      }
-                      onChange={(event) => {
-                        if (!scaleDrag.current) changeScale(Number(event.target.value));
-                      }}
-                      onKeyDown={(event) => {
-                        let percent: number;
-                        switch (event.key) {
-                          case 'ArrowRight':
-                          case 'ArrowUp':
-                          case 'PageUp':
-                            percent = scalePercent + 10;
-                            break;
-                          case 'ArrowLeft':
-                          case 'ArrowDown':
-                          case 'PageDown':
-                            percent = scalePercent - 10;
-                            break;
-                          case 'Home':
-                            percent = 70;
-                            break;
-                          case 'End':
-                            percent = 150;
-                            break;
-                          default:
-                            return;
+                    <div>
+                      <input
+                        id="ui-scale"
+                        type="range"
+                        min={70}
+                        max={150}
+                        step="any"
+                        value={sliderPercent}
+                        aria-valuetext={`${scalePercent}%`}
+                        className="ui-scale-slider relative block w-full"
+                        style={
+                          {
+                            '--ui-scale-progress': `${((sliderPercent - 70) / 80) * 100}%`,
+                          } as React.CSSProperties
                         }
-                        event.preventDefault();
-                        if (!scaleDrag.current) changeScale(percent);
-                      }}
-                      onPointerDown={(event) => {
-                        if (event.button !== 0) return;
-                        event.preventDefault();
-                        event.currentTarget.focus();
-                        event.currentTarget.setPointerCapture(event.pointerId);
-                        const rect = event.currentTarget.getBoundingClientRect();
-                        const width = rect.width - 14;
-                        const percent = Math.max(
-                          70,
-                          Math.min(150, 70 + ((event.clientX - rect.left - 7) / width) * 80)
-                        );
-                        const tick = Math.round(percent / 10) * 10;
-                        // Keep a screen-space baseline while zoom and window bounds move the track.
-                        scaleDrag.current = {
-                          screenX: event.screenX,
-                          percent,
-                          width: width * uiScale.scale,
-                          tick,
-                        };
-                        setDragPercent(percent);
-                        changeScale(tick);
-                      }}
-                      onPointerMove={(event) => {
-                        const drag = scaleDrag.current;
-                        if (drag) {
+                        onChange={(event) => {
+                          if (!scaleDrag.current) changeScale(Number(event.target.value));
+                        }}
+                        onKeyDown={(event) => {
+                          let percent: number;
+                          switch (event.key) {
+                            case 'ArrowRight':
+                            case 'ArrowUp':
+                            case 'PageUp':
+                              percent = scalePercent + 10;
+                              break;
+                            case 'ArrowLeft':
+                            case 'ArrowDown':
+                            case 'PageDown':
+                              percent = scalePercent - 10;
+                              break;
+                            case 'Home':
+                              percent = 70;
+                              break;
+                            case 'End':
+                              percent = 150;
+                              break;
+                            default:
+                              return;
+                          }
+                          event.preventDefault();
+                          if (!scaleDrag.current) changeScale(percent);
+                        }}
+                        onPointerDown={(event) => {
+                          if (event.button !== 0) return;
+                          event.preventDefault();
+                          event.currentTarget.focus();
+                          event.currentTarget.setPointerCapture(event.pointerId);
+                          const rect = event.currentTarget.getBoundingClientRect();
+                          const width = rect.width - 14;
                           const percent = Math.max(
                             70,
-                            Math.min(
-                              150,
-                              drag.percent + ((event.screenX - drag.screenX) / drag.width) * 80
-                            )
+                            Math.min(150, 70 + ((event.clientX - rect.left - 7) / width) * 80)
                           );
+                          const tick = Math.round(percent / 10) * 10;
+                          // Keep a screen-space baseline while zoom and window bounds move the track.
+                          scaleDrag.current = {
+                            screenX: event.screenX,
+                            percent,
+                            width: width * uiScale.scale,
+                            tick,
+                          };
                           setDragPercent(percent);
-                          // The thumb moves freely; only crossing a tick changes the UI/window.
-                          const tick =
-                            percent >= drag.tick
-                              ? Math.floor(percent / 10) * 10
-                              : Math.ceil(percent / 10) * 10;
-                          if (tick !== drag.tick) {
-                            drag.tick = tick;
-                            changeScale(tick);
+                          changeScale(tick);
+                        }}
+                        onPointerMove={(event) => {
+                          const drag = scaleDrag.current;
+                          if (drag) {
+                            const percent = Math.max(
+                              70,
+                              Math.min(
+                                150,
+                                drag.percent + ((event.screenX - drag.screenX) / drag.width) * 80
+                              )
+                            );
+                            setDragPercent(percent);
+                            // The thumb moves freely; only crossing a tick changes the UI/window.
+                            const tick =
+                              percent >= drag.tick
+                                ? Math.floor(percent / 10) * 10
+                                : Math.ceil(percent / 10) * 10;
+                            if (tick !== drag.tick) {
+                              drag.tick = tick;
+                              changeScale(tick);
+                            }
                           }
-                        }
-                      }}
-                      onPointerUp={finishScaleDrag}
-                      onPointerCancel={finishScaleDrag}
-                      onLostPointerCapture={finishScaleDrag}
-                    />
-                    <div
-                      aria-hidden={true}
-                      data-scale-ticks={true}
-                      className="pointer-events-none relative mx-[7px] mt-1 h-2"
-                    >
-                      {UI_SCALE_TICKS.map((tick) => (
-                        <span
-                          key={tick}
-                          data-scale-tick={tick}
-                          style={{ left: `${((tick - 70) / 80) * 100}%` }}
-                          className={`absolute top-0 w-0.5 -translate-x-1/2 rounded-full ${tick === 100 ? 'h-1.5 bg-cyber-text-secondary/70' : 'h-1 bg-cyber-text-muted/45'}`}
-                        />
-                      ))}
-                    </div>
-                    <div className="relative mx-[7px] h-4 text-[12px] leading-4 tabular-nums text-cyber-text-muted">
-                      <span className="absolute left-0">70%</span>
-                      <span className="absolute left-[37.5%] -translate-x-1/2 text-cyber-text-secondary">
-                        100%
-                      </span>
-                      <span className="absolute right-0">150%</span>
+                        }}
+                        onPointerUp={finishScaleDrag}
+                        onPointerCancel={finishScaleDrag}
+                        onLostPointerCapture={finishScaleDrag}
+                      />
+                      <div
+                        aria-hidden={true}
+                        data-scale-ticks={true}
+                        className="pointer-events-none relative mx-[7px] mt-1 h-2"
+                      >
+                        {UI_SCALE_TICKS.map((tick) => (
+                          <span
+                            key={tick}
+                            data-scale-tick={tick}
+                            style={{ left: `${((tick - 70) / 80) * 100}%` }}
+                            className={`absolute top-0 w-0.5 -translate-x-1/2 rounded-full ${tick === 100 ? 'h-1.5 bg-cyber-text-secondary/70' : 'h-1 bg-cyber-text-muted/45'}`}
+                          />
+                        ))}
+                      </div>
+                      <div className="relative mx-[7px] h-4 text-[12px] leading-4 tabular-nums text-cyber-text-muted">
+                        <span className="absolute left-0">70%</span>
+                        <span className="absolute left-[37.5%] -translate-x-1/2 text-cyber-text-secondary">
+                          100%
+                        </span>
+                        <span className="absolute right-0">150%</span>
+                      </div>
                     </div>
                   </div>
                   {uiScale.failed && (
-                    <p role="alert" className="text-[13px] text-red-400">
+                    <p role="alert" className="mt-2 text-[13px] text-red-400">
                       {t('settings.uiScaleError')}
                     </p>
                   )}
                 </div>
 
-                <div className="h-px bg-cyber-border/50" />
-
-                <div className="space-y-2.5">
-                  <div className="flex items-center gap-2">
-                    <X size={14} className="text-cyber-text-secondary" />
-                    <span className="text-[14px] font-medium text-cyber-text-secondary">
-                      {t('settings.closeWindowBehavior')}
-                    </span>
-                  </div>
-                  <ViewModeTabGroup className="view-mode-tabs flex border border-cyber-border rounded-button overflow-hidden">
+                <div>
+                  <div className="settings-label">{t('settings.closeWindowBehavior')}</div>
+                  <div className="grid grid-cols-3 gap-2.5">
                     {(
                       [
-                        [false, t('settings.closeDirectly')],
-                        [true, t('settings.closeToTray')],
-                        [null, t('settings.alwaysAsk')],
+                        [false, X, t('settings.closeDirectly')],
+                        [true, ArrowDownToLine, t('settings.closeToTray')],
+                        [null, CircleHelp, t('settings.alwaysAsk')],
                       ] as const
-                    ).map(([value, label]) => (
+                    ).map(([value, Icon, label]) => (
                       <button
                         key={String(value)}
+                        type="button"
                         onClick={() => handleCloseToTrayChange(value)}
                         aria-pressed={closeToTray === value}
-                        className={`view-mode-tab cjk-btn flex-1 h-11 flex items-center justify-center text-[13px] transition-[color] ${
-                          closeToTray === value
-                            ? 'bg-cyber-elevated text-cyber-text'
-                            : 'text-cyber-text-secondary hover:text-cyber-text'
-                        }`}
+                        className="settings-tile settings-big"
                       >
-                        {label}
+                        <Icon size={24} aria-hidden="true" />
+                        <span>{label}</span>
                       </button>
                     ))}
-                  </ViewModeTabGroup>
+                  </div>
                 </div>
 
-                <div className="h-px bg-cyber-border/50" />
-
-                <div className="grid grid-cols-1 min-[700px]:grid-cols-2 min-[880px]:grid-cols-3 gap-x-4 gap-y-6">
-                  <div className="flex items-center justify-between px-2">
-                    <div className="flex items-center gap-2">
-                      <Power size={14} className="text-cyber-text-secondary" />
-                      <span className="text-[14px] font-medium text-cyber-text-secondary">
-                        {t('settings.launchAtStartup')}
-                      </span>
+                <div>
+                  <div className="settings-label">{t('settings.features')}</div>
+                  <div className="settings-features grid grid-cols-4 gap-2.5">
+                    <div
+                      className={`settings-tile settings-feature${launchAtStartup ? ' is-on' : ''}`}
+                    >
+                      <div className="settings-feature-label">
+                        <Power size={17} />
+                        <span>{t('settings.launchAtStartup')}</span>
+                      </div>
+                      <ToggleSwitch
+                        checked={launchAtStartup}
+                        onChange={handleLaunchAtStartupChange}
+                      />
                     </div>
-                    <ToggleSwitch
-                      checked={launchAtStartup}
-                      onChange={handleLaunchAtStartupChange}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between px-2">
-                    <div className="flex items-center gap-2">
-                      <Gift size={14} className="text-cyber-text-secondary" />
-                      <span className="text-[14px] font-medium text-cyber-text-secondary">
-                        {t('settings.autoClaimRewards')}
-                      </span>
+                    <div
+                      className={`settings-tile settings-feature${autoClaimRewards ? ' is-on' : ''}`}
+                    >
+                      <div className="settings-feature-label">
+                        <Gift size={17} />
+                        <span>{t('settings.autoClaimRewards')}</span>
+                      </div>
+                      <ToggleSwitch checked={autoClaimRewards} onChange={setAutoClaimRewards} />
                     </div>
-                    <ToggleSwitch checked={autoClaimRewards} onChange={setAutoClaimRewards} />
-                  </div>
-                  <div className="px-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <ShieldCheck size={14} className="text-cyber-text-secondary" />
-                        <span className="text-[14px] font-medium text-cyber-text-secondary">
-                          {t('settings.sensitiveInfoProtection')}
-                        </span>
+                    <div
+                      className={`settings-tile settings-feature${protectionEnabled ? ' is-on' : ''}`}
+                    >
+                      <div className="settings-feature-label">
+                        <ShieldCheck size={17} />
+                        <span>{t('settings.sensitiveInfoProtection')}</span>
                       </div>
                       <RoutingToggle
                         label={t('settings.sensitiveInfoProtection')}
@@ -599,146 +598,144 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                         pending={protectionPending}
                         onChange={(value) => void handleProtectionChange(value)}
                       />
+                      {protectionError && (
+                        <p role="alert" className="text-xs font-normal text-red-400">
+                          {t('settings.sensitiveInfoProtectionError')}
+                        </p>
+                      )}
                     </div>
-                    {protectionError && (
-                      <p role="alert" className="mt-1 text-xs text-red-400">
-                        {t('settings.sensitiveInfoProtectionError')}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between gap-2 px-2">
-                    <div className="flex items-center gap-2">
-                      <Newspaper size={14} className="shrink-0 text-cyber-text-secondary" />
-                      <span className="text-[14px] font-medium text-cyber-text-secondary">
-                        {t('nav.aiNews')}
-                      </span>
+                    {(
+                      [
+                        ['aiNews', Newspaper, t('nav.aiNews')],
+                        ['aiCareer', Trophy, t('nav.aiCareer')],
+                        ['localLlm', Server, t('nav.localServer')],
+                      ] as const
+                    ).map(([page, Icon, label]) => (
+                      <div
+                        key={page}
+                        className={`settings-tile settings-feature${optionalPages[page] ? ' is-on' : ''}`}
+                      >
+                        <div className="settings-feature-label">
+                          <Icon size={17} />
+                          <span>{label}</span>
+                        </div>
+                        <RoutingToggle
+                          label={label}
+                          hideLabel
+                          dimWhenDisabled={!settingsReady}
+                          checked={optionalPages[page]}
+                          disabled={!settingsReady || protectionPending}
+                          pending={optionalPending === page}
+                          onChange={(value) => void handleOptionalChange(page, value)}
+                        />
+                      </div>
+                    ))}
+                    <div className={`settings-tile settings-feature${easterEgg ? ' is-on' : ''}`}>
+                      <div className="settings-feature-label">
+                        <Sparkles size={17} />
+                        <span>{t('settings.easterEgg')}</span>
+                      </div>
+                      <ToggleSwitch checked={easterEgg} onChange={setEasterEgg} />
                     </div>
-                    <RoutingToggle
-                      label={t('nav.aiNews')}
-                      hideLabel
-                      dimWhenDisabled={!settingsReady}
-                      checked={optionalPages.aiNews}
-                      disabled={!settingsReady || protectionPending}
-                      pending={optionalPending === 'aiNews'}
-                      onChange={(value) => void handleOptionalChange('aiNews', value)}
-                    />
                   </div>
-                  <div className="flex items-center justify-between gap-2 px-2">
-                    <div className="flex items-center gap-2">
-                      <Trophy size={14} className="shrink-0 text-cyber-text-secondary" />
-                      <span className="text-[14px] font-medium text-cyber-text-secondary">
-                        {t('nav.aiCareer')}
-                      </span>
-                    </div>
-                    <RoutingToggle
-                      label={t('nav.aiCareer')}
-                      hideLabel
-                      dimWhenDisabled={!settingsReady}
-                      checked={optionalPages.aiCareer}
-                      disabled={!settingsReady || protectionPending}
-                      pending={optionalPending === 'aiCareer'}
-                      onChange={(value) => void handleOptionalChange('aiCareer', value)}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between gap-2 px-2">
-                    <div className="flex items-center gap-2">
-                      <Server size={14} className="shrink-0 text-cyber-text-secondary" />
-                      <span className="text-[14px] font-medium text-cyber-text-secondary">
-                        {t('nav.localServer')}
-                      </span>
-                    </div>
-                    <RoutingToggle
-                      label={t('nav.localServer')}
-                      hideLabel
-                      dimWhenDisabled={!settingsReady}
-                      checked={optionalPages.localLlm}
-                      disabled={!settingsReady || protectionPending}
-                      pending={optionalPending === 'localLlm'}
-                      onChange={(value) => void handleOptionalChange('localLlm', value)}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between px-2">
-                    <div className="flex items-center gap-2">
-                      <Sparkles size={14} className="text-cyber-text-secondary" />
-                      <span className="text-[14px] font-medium text-cyber-text-secondary">
-                        {t('settings.easterEgg')}
-                      </span>
-                    </div>
-                    <ToggleSwitch checked={easterEgg} onChange={setEasterEgg} />
-                  </div>
+                  {optionalError && (
+                    <p role="alert" className="mt-2 text-xs text-red-400">
+                      {t('settings.optionalFeaturesError')}
+                    </p>
+                  )}
                 </div>
-                {optionalError && (
-                  <p role="alert" className="text-xs text-red-400">
-                    {t('settings.optionalFeaturesError')}
-                  </p>
-                )}
-                <div className="h-px bg-cyber-border/50" />
-                <AutoImportSettings />
+
+                <div className="settings-tile px-2 py-4">
+                  <AutoImportSettings />
+                </div>
               </div>
             ) : activeTab === 'appearance' ? (
-              <div className="space-y-5">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <span className="text-[12px] font-semibold text-cyber-text-secondary">
-                    {t('settings.background')}
-                  </span>
-                  <ViewModeTabs
-                    value={background}
-                    onChange={setBackground}
-                    options={[
-                      { value: 'none', label: t('settings.backgroundNone') },
-                      { value: 'characters', label: t('settings.backgroundCharacters') },
-                      { value: 'carbon', label: t('settings.backgroundCarbon') },
-                      { value: 'basalt', label: t('settings.backgroundBasalt') },
-                      { value: 'monogram', label: t('settings.backgroundMonogram') },
-                    ]}
-                  />
+              <div className="space-y-6">
+                <div>
+                  <div className="settings-label">{t('settings.themeMode')}</div>
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {(
+                      [
+                        ['light', Sun, t('settings.themeLight')],
+                        ['dark', Moon, t('settings.themeDark')],
+                        ['system', SunMoon, t('settings.themeSystem')],
+                      ] as const
+                    ).map(([mode, Icon, label]) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setThemeMode(mode)}
+                        aria-pressed={themeMode === mode}
+                        className="settings-tile settings-big"
+                      >
+                        <Icon size={24} aria-hidden="true" />
+                        <span>{label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="h-px bg-cyber-border/50" />
-
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-[12px] font-semibold text-cyber-text-secondary">
-                    {t('settings.colorTheme')}
-                  </span>
-                  <ThemeSegmented
-                    value={themeMode}
-                    onChange={setThemeMode}
-                    labels={{
-                      light: t('settings.themeLight'),
-                      dark: t('settings.themeDark'),
-                      system: t('settings.themeSystem'),
-                    }}
-                  />
+                <div>
+                  <div className="settings-label">{t('settings.background')}</div>
+                  <div className="grid grid-cols-5 gap-2.5">
+                    {(
+                      [
+                        ['none', t('settings.backgroundNone')],
+                        ['characters', t('settings.backgroundCharacters')],
+                        ['carbon', t('settings.backgroundCarbon')],
+                        ['basalt', t('settings.backgroundBasalt')],
+                        ['monogram', t('settings.backgroundMonogram')],
+                      ] as const
+                    ).map(([mode, label]) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setBackground(mode)}
+                        aria-pressed={background === mode}
+                        className="settings-tile settings-filled settings-background"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={`settings-background-sample is-${mode}`}
+                        >
+                          {mode === 'characters' ? CHARACTER_SAMPLE : null}
+                        </span>
+                        <span>{label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <ColorThemePicker
-                  value={colorTheme}
-                  mode={themeMode}
-                  locale={locale}
-                  onChange={setColorTheme}
-                />
+                <div>
+                  <div className="settings-label">{t('settings.colorTheme')}</div>
+                  <ColorThemePicker
+                    value={colorTheme}
+                    mode={themeMode}
+                    locale={locale}
+                    onChange={setColorTheme}
+                  />
+                </div>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
-                {LOCALE_OPTIONS.map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    lang={option.id}
-                    aria-pressed={locale === option.id}
-                    onClick={() => onLocaleChange(option.id)}
-                    className={`flex min-h-12 items-center gap-2.5 rounded-lg border-2 px-[11px] py-[9px] text-[13px] transition-colors ${locale === option.id ? 'border-cyber-accent/70 bg-cyber-accent/10 text-cyber-text' : 'border-transparent text-cyber-text-secondary hover:bg-cyber-elevated/60 hover:text-cyber-text'}`}
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="w-[22px] flex-shrink-0 text-center text-[15px]"
+              <div>
+                <div className="settings-label">{t('settings.interfaceLanguage')}</div>
+                <div className="grid grid-cols-4 gap-2.5">
+                  {LOCALE_OPTIONS.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      lang={option.id}
+                      aria-pressed={locale === option.id}
+                      onClick={() => onLocaleChange(option.id)}
+                      className="settings-tile settings-big h-[112px]"
                     >
-                      {option.glyph}
-                    </span>
-                    <span className="flex-1 text-left">{option.label}</span>
-                    {locale === option.id && <Check aria-hidden="true" size={14} />}
-                  </button>
-                ))}
+                      <span aria-hidden="true" className="settings-big-glyph">
+                        {option.glyph}
+                      </span>
+                      <span>{option.label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -748,48 +745,13 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
   );
 };
 
-// Compact segmented tabs for the theme mode: Light / Dark / System.
-const ThemeSegmented: React.FC<{
-  value: ThemeMode;
-  onChange: (mode: ThemeMode) => void;
-  labels: { light: string; dark: string; system: string };
-}> = ({ value, onChange, labels }) => {
-  const opts: Array<{ id: ThemeMode; label: string }> = [
-    { id: 'light', label: labels.light },
-    { id: 'dark', label: labels.dark },
-    { id: 'system', label: labels.system },
-  ];
-  return (
-    <ViewModeTabGroup className="view-mode-tabs flex flex-shrink-0 border border-cyber-border rounded-button overflow-hidden">
-      {opts.map((o) => {
-        const active = value === o.id;
-        return (
-          <button
-            key={o.id}
-            type="button"
-            onClick={() => onChange(o.id)}
-            aria-pressed={active}
-            className={`view-mode-tab cjk-btn whitespace-nowrap px-3 py-1.5 text-[12px] transition-[color] ${
-              active
-                ? 'bg-cyber-elevated text-cyber-text'
-                : 'text-cyber-text-muted hover:text-cyber-text-secondary'
-            }`}
-          >
-            {o.label}
-          </button>
-        );
-      })}
-    </ViewModeTabGroup>
-  );
-};
-
 const ColorThemePicker: React.FC<{
   value: ColorThemeId;
   mode: ThemeMode;
   locale: string;
   onChange: (theme: ColorThemeId) => void;
 }> = ({ value, mode, locale, onChange }) => (
-  <div className="grid max-h-[360px] grid-cols-6 gap-x-3 gap-y-3.5 overflow-y-auto pr-1">
+  <div className="grid grid-cols-6 gap-2.5">
     {COLOR_THEME_GRID.flat().map((id) => {
       const theme = getColorTheme(id);
       const active = value === theme.id;
@@ -805,35 +767,17 @@ const ColorThemePicker: React.FC<{
           aria-pressed={active}
           aria-label={label}
           onClick={() => onChange(theme.id)}
-          className="flex min-w-0 flex-col gap-1.5 bg-transparent"
+          className="settings-tile settings-filled settings-swatch"
         >
           <span
-            className={`relative flex h-[46px] w-full overflow-hidden rounded-lg border-2 ${
-              active ? 'border-cyber-accent' : 'border-transparent'
-            }`}
-          >
-            <span
-              className="block h-full w-full"
-              style={{
-                backgroundImage:
-                  mode === 'system'
-                    ? `linear-gradient(135deg, ${theme.light.canvas} 0%, ${theme.light.tertiary} 35%, ${theme.dark.tertiary} 65%, ${theme.dark.canvas} 100%)`
-                    : `linear-gradient(135deg, ${theme[mode].canvas} 0%, ${theme[mode].secondary} 45%, ${theme[mode].tertiary} 100%)`,
-              }}
-            />
-            {active && (
-              <span className="absolute top-1 right-1 flex h-[15px] w-[15px] items-center justify-center rounded-full bg-cyber-accent text-white">
-                <Check size={9} strokeWidth={3.5} />
-              </span>
-            )}
-          </span>
-          <span
-            className={`truncate text-center text-[11px] ${
-              active ? 'text-cyber-text' : 'text-cyber-text-secondary'
-            }`}
-          >
-            {label}
-          </span>
+            style={{
+              backgroundImage:
+                mode === 'system'
+                  ? `linear-gradient(135deg, ${theme.light.canvas} 0%, ${theme.light.tertiary} 35%, ${theme.dark.tertiary} 65%, ${theme.dark.canvas} 100%)`
+                  : `linear-gradient(135deg, ${theme[mode].canvas} 0%, ${theme[mode].secondary} 45%, ${theme[mode].tertiary} 100%)`,
+            }}
+          />
+          <span>{label}</span>
         </button>
       );
     })}

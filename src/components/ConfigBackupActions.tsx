@@ -157,7 +157,7 @@ export function ConfigBackupActions() {
         type="button"
         disabled={disabled}
         onClick={() => void choose('backup', t('backup.directoryTitle'))}
-        className="rounded bg-cyber-accent/10 px-2.5 py-1 text-[13px] text-cyber-accent transition-colors hover:bg-cyber-accent/15"
+        className="settings-chip is-key"
       >
         {t('backup.action')}
       </button>
@@ -165,7 +165,7 @@ export function ConfigBackupActions() {
         type="button"
         disabled={disabled}
         onClick={() => void choose('restore', t('backup.fileTitle'))}
-        className="rounded bg-cyber-accent/10 px-2.5 py-1 text-[13px] text-cyber-accent transition-colors hover:bg-cyber-accent/15"
+        className="settings-chip is-key"
       >
         {t('backup.restore')}
       </button>

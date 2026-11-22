@@ -57,6 +57,7 @@ export function AutoImportSettings() {
         <>
           <div className="col-start-2 row-span-2 row-start-1 h-14 w-40">
             <DesktopPrimaryButton
+              className="settings-import-button"
               disabled={backupBusy}
               onClick={() => {
                 useConfigBackupStore.setState({ outcome: null, error: null });
@@ -68,7 +69,7 @@ export function AutoImportSettings() {
           </div>
           <p
             role={error ? 'alert' : progress ? 'status' : undefined}
-            className={`col-start-1 row-start-2 min-h-10 pl-[22px] text-[12px] leading-5 ${error ? 'text-red-500' : 'text-cyber-text-secondary'}`}
+            className={`col-start-1 row-start-2 min-h-5 pl-[22px] text-[12px] leading-5 ${error ? 'text-red-500' : 'text-cyber-text-secondary'}`}
           >
             {backupFeedback ? (
               <ConfigBackupStatus />

@@ -8,7 +8,7 @@ import { useRewardClaimStore } from '../stores/rewardClaimStore';
 import { useProtectionStore } from '../stores/protectionStore';
 import { useNavigationStore } from '../stores/navigationStore';
 
-const mocks = vi.hoisted(() => ({ zoom: vi.fn(), save: vi.fn(), get: vi.fn() }));
+const mocks = vi.hoisted(() => ({ zoom: vi.fn(), save: vi.fn(), get: vi.fn(), open: vi.fn() }));
 vi.mock('@tauri-apps/api/app', () => ({ getVersion: async () => '' }));
 vi.mock('@tauri-apps/api/webview', () => ({ getCurrentWebview: () => ({ setZoom: mocks.zoom }) }));
 vi.mock('@tauri-apps/api/window', async (importOriginal) => ({
@@ -17,7 +17,11 @@ vi.mock('@tauri-apps/api/window', async (importOriginal) => ({
   getCurrentWindow: () => ({}),
 }));
 vi.mock('@tauri-apps/plugin-autostart', () => ({ isEnabled: async () => false }));
-vi.mock('../api/tauri', () => ({ getSettings: mocks.get, saveSettings: mocks.save }));
+vi.mock('../api/tauri', () => ({
+  getSettings: mocks.get,
+  saveSettings: mocks.save,
+  openExternal: mocks.open,
+}));
 vi.mock('../hooks/useI18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
 vi.mock('../stores/themeStore', () => ({
   useThemeStore: (select: (state: unknown) => unknown) =>
@@ -64,6 +68,13 @@ async function tab(label: string) {
       .find((button) => button.props.children.includes(label))!
       .props.onClick();
   });
+}
+
+// A choice tile: the button whose label span reads `label`.
+function optionButton(label: string) {
+  return view.root
+    .findAllByType('button')
+    .find((button) => button.findAll((node) => node.props.children === label).length > 0)!;
 }
 
 function protectionSwitch() {
@@ -202,9 +213,7 @@ it('keeps the background and Easter Egg controls independent', async () => {
   expect(useEasterEggStore.getState().enabled).toBe(false);
   expect(useBackgroundStore.getState().mode).toBe('characters');
   await tab('settings.appearance');
-  const none = view.root
-    .findAllByType('button')
-    .find((button) => button.props.children === 'settings.backgroundNone')!;
+  const none = optionButton('settings.backgroundNone');
   await act(async () => {
     none.props.onClick();
   });
@@ -226,7 +235,7 @@ it('offers carbon and basalt as separate appearance backgrounds', async () => {
   await tab('settings.appearance');
   const labels = view.root
     .findAllByType('button')
-    .map((button) => button.props.children)
+    .flatMap((button) => button.findAllByType('span').map((span) => span.props.children))
     .filter((value) => typeof value === 'string' && value.startsWith('settings.background'));
   expect(labels).toEqual([
     'settings.backgroundNone',
@@ -236,9 +245,7 @@ it('offers carbon and basalt as separate appearance backgrounds', async () => {
     'settings.backgroundMonogram',
   ]);
   const select = async (label: string, mode: string) => {
-    const button = view.root
-      .findAllByType('button')
-      .find((candidate) => candidate.props.children === label)!;
+    const button = optionButton(label);
     await act(async () => {
       button.props.onClick();
     });
@@ -336,7 +343,7 @@ function EasterEggObserver() {
   return <span data-easter-egg-state>{String(enabled)}</span>;
 }
 
-it('keeps global protection independent in the three-column General preferences', async () => {
+it('keeps global protection independent among the General feature tiles', async () => {
   await act(async () => {
     view = create(<SettingsDialog {...props} />);
   });
@@ -346,7 +353,7 @@ it('keeps global protection independent in the three-column General preferences'
   ).toHaveLength(1);
   expect(
     view.root.findAllByProps({
-      className: 'grid grid-cols-1 min-[700px]:grid-cols-2 min-[880px]:grid-cols-3 gap-x-4 gap-y-6',
+      className: 'settings-features grid grid-cols-4 gap-2.5',
     })
   ).toHaveLength(1);
   expect(mocks.save).not.toHaveBeenCalled();
@@ -819,11 +826,7 @@ it.each([false, true, null] as const)(
       view = create(<SettingsDialog {...props} />);
     });
     const labels = ['settings.closeDirectly', 'settings.closeToTray', 'settings.alwaysAsk'];
-    const buttons = () =>
-      labels.map(
-        (label) =>
-          view.root.findAllByType('button').find((button) => button.props.children === label)!
-      );
+    const buttons = () => labels.map(optionButton);
     expect(buttons().every((button) => button.props['aria-pressed'] === false)).toBe(true);
     expect(mocks.save).not.toHaveBeenCalled();
     await act(async () => restore({ closeToTray: saved, closeWindowBehaviorSet: true }));
@@ -852,3 +855,18 @@ it.each([false, true, null] as const)(
     expect(mocks.save).toHaveBeenCalledTimes(1);
   }
 );
+
+it('opens the EchoBird repository from the star entry on every page', async () => {
+  await act(async () => {
+    view = create(<SettingsDialog {...props} />);
+  });
+  for (const label of ['settings.general', 'settings.appearance', 'settings.language']) {
+    await tab(label);
+    expect(view.root.findAllByProps({ className: 'settings-star' })).toHaveLength(1);
+  }
+  await act(async () => {
+    view.root.findByProps({ className: 'settings-star' }).props.onClick();
+  });
+  expect(mocks.open).toHaveBeenCalledExactlyOnceWith('https://github.com/edison7009/EchoBird');
+  expect(mocks.save).not.toHaveBeenCalled();
+});

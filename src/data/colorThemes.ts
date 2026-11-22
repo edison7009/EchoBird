@@ -1,5 +1,4 @@
 export type ColorThemeId =
-  | 'ocean'
   | 'oatgray'
   | 'terracotta'
   | 'aurora'
@@ -523,52 +522,6 @@ export const COLOR_THEMES: ColorTheme[] = [
       input: '#3A544B',
     },
   },
-  {
-    id: 'ocean',
-    labelZh: '海洋',
-    labelEn: 'Ocean',
-    labelJa: 'オーシャン',
-    light: {
-      shell: '#F0F7FA',
-      canvas: '#F0F7FA',
-      secondary: '#E4EFF4',
-      tertiary: '#D6E6ED',
-      input: '#F9FCFD',
-    },
-    dark: {
-      shell: '#14232B',
-      canvas: '#14232B',
-      secondary: '#1B303B',
-      tertiary: '#24404D',
-      input: '#192E37',
-    },
-    palette: {
-      light: {
-        background: '#F0F7FA',
-        surface: '#E4EFF4',
-        elevated: '#D6E6ED',
-        input: '#F9FCFD',
-        border: '#B8CED8',
-        text: '#183544',
-        textSecondary: '#476775',
-        textMuted: '#708994',
-        accent: '#16889A',
-        accentSecondary: '#3377AA',
-      },
-      dark: {
-        background: '#14232B',
-        surface: '#1B303B',
-        elevated: '#24404D',
-        input: '#192E37',
-        border: '#345361',
-        text: '#E7F1F5',
-        textSecondary: '#AAC5D1',
-        textMuted: '#7F9BA8',
-        accent: '#46BEC5',
-        accentSecondary: '#7BAAE6',
-      },
-    },
-  },
 ];
 
 export const isColorThemeId = (value: unknown): value is ColorThemeId =>
@@ -583,5 +536,4 @@ export const COLOR_THEME_GRID: readonly (readonly ColorThemeId[])[] = [
   ['limestone', 'honey', 'sage', 'jade', 'cobalt', 'rosewood'],
   ['inkwash', 'terracotta', 'olive', 'aurora', 'indigo', 'lavender'],
   ['charcoal', 'ember', 'pine', 'copper', 'midnight', 'twilight'],
-  ['ocean'],
 ];

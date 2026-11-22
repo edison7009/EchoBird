@@ -57,7 +57,6 @@ pub mod json_repair;
 pub(crate) mod json_store;
 pub mod kilo_accounts;
 pub mod kiro_accounts;
-pub(crate) mod legacy_features;
 pub mod llm_client;
 pub mod local_llm;
 pub(crate) mod local_proxy;
