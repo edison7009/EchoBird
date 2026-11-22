@@ -3386,7 +3386,7 @@ describe.each(['qoder', 'qodercn'] as const)('%s model capabilities', (tool) => 
     expect(api.applyModelToTool).not.toHaveBeenCalled();
     expect(api.startTool).not.toHaveBeenCalled();
   });
-  it('uses both saved values for staged choices and the normal apply button', async () => {
+  it('applies the staged capabilities and honors the launch preference', async () => {
     vi.useFakeTimers();
     await mount();
     act(() => context.handleSelectModel(tool, 'fixture'));
@@ -3410,7 +3410,11 @@ describe.each(['qoder', 'qodercn'] as const)('%s model capabilities', (tool) => 
       tool,
       expect.objectContaining({ imageInput: false, oneMContext: true })
     );
-    expect(api.startTool).toHaveBeenCalledTimes(1);
+    expect(api.startTool).not.toHaveBeenCalled();
+
+    act(() => context.setLaunchAfterApply(true));
+    await act(async () => context.handleLaunch());
+    expect(api.startTool).toHaveBeenCalledExactlyOnceWith(tool, undefined, undefined);
   });
   it('locks both controls while pending and reports failure without launching', async () => {
     await mount();

@@ -505,6 +505,34 @@ describe('VS Code model panel', () => {
   });
 });
 
+it.each([
+  ['qoder', qoderDefinition],
+  ['qodercn', qoderCnDefinition],
+  ['claudescience', claudeScienceDefinition],
+] as const)(
+  'offers Modify Only for %s when direct launch is off',
+  async (selectedTool, definition) => {
+    const { AppManagerBottom } = await import('./AppManagerComponents');
+    const context = {
+      selectedTool,
+      selectedToolData: { ...tool, ...definition, id: selectedTool, installed: true },
+      qoderAccounts: { selectedId: null, busy: false },
+      toolModelConfig: { [selectedTool]: 'cloud-model' },
+      viewMode: 'desktop',
+      launchAfterApply: false,
+      agreedConfigPolicy: true,
+      isLaunching: false,
+    } as unknown as AppManagerContextType;
+    const markup = renderToStaticMarkup(
+      <AppManagerContext.Provider value={context}>
+        <AppManagerBottom />
+      </AppManagerContext.Provider>
+    );
+    expect(markup).toContain('btn.modifyOnly');
+    expect(markup).not.toContain('btn.launchApp');
+  }
+);
+
 describe('account launch options', () => {
   const accountTools = [
     ['chatgptdesktop', 'selectedCodexAccountId'],

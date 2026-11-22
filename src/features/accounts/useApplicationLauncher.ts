@@ -237,7 +237,7 @@ export function useApplicationLauncher({
       return typeof picked === 'string' && picked ? picked : null;
     };
 
-    // An account switch honors "launch directly"; only model flows force-launch.
+    // Account and model changes honor "launch directly".
     let accountApplied = false;
     // An OpenAI account and a third-party API model are one exclusive choice.
     // Applying a Codex account commits the official route and sign-in together.
@@ -774,12 +774,8 @@ export function useApplicationLauncher({
       }
       return;
     }
-    // Launch tool when "launch directly" is checked, or unconditionally for desktop apps
-    if (
-      launchAfterApply ||
-      (!accountApplied &&
-        (noModelConfig || ['qoder', 'qodercn', 'claudescience'].includes(selectedTool)))
-    ) {
+    // Apps without an applicable configuration can still launch on their own.
+    if (launchAfterApply || (!accountApplied && noModelConfig)) {
       // CLI clients may request a working directory before launch.
       let cwd: string | undefined;
       try {

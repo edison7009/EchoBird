@@ -1545,10 +1545,7 @@ export const AppManagerBottom: React.FC = () => {
   // forcing model selection just to start a CLI was the long-standing bug.
   const willApply =
     hasAccountSelected || (!noModelConfig && agreedConfigPolicy && hasModelSelected);
-  const willLaunch =
-    launchAfterApply ||
-    (!hasAccountSelected &&
-      (noModelConfig || ['qoder', 'qodercn', 'claudescience'].includes(selectedTool ?? '')));
+  const willLaunch = launchAfterApply || (!hasAccountSelected && noModelConfig);
   const primaryMuted = !selectedToolData || (!isUninstalled && !willApply && !willLaunch);
   const buttonDisabled =
     !selectedToolData ||
