@@ -98,6 +98,9 @@ export const selectionLanguages = [
   'fr',
   'de',
   'es',
+  'pt',
+  'ru',
+  'vi',
 ] as const;
 export interface SelectionTranslation {
   mode?: 'closed' | 'toolbar' | 'card' | 'manual';

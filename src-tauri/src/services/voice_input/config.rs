@@ -76,13 +76,8 @@ pub(super) fn language_name(language: &str) -> Option<&'static str> {
     match language {
         "zh-Hans" => Some("Simplified Chinese (use simplified characters)"),
         "zh-Hant" => Some("Traditional Chinese (use traditional characters)"),
-        "en" => Some("English"),
-        "ja" => Some("Japanese"),
-        "ko" => Some("Korean"),
-        "fr" => Some("French"),
-        "de" => Some("German"),
-        "es" => Some("Spanish"),
-        _ => None,
+        "zh" => None,
+        _ => crate::desktop_locale::language_name(language),
     }
 }
 

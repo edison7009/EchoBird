@@ -234,6 +234,8 @@ async function bootAndRender(): Promise<void> {
   ]);
   import.meta.hot?.dispose(disposeUiScale);
 
+  void api.syncDesktopLocale(locale).catch(() => {});
+
   // Sync <html lang> before render so :lang(zh) CJK overrides apply on the
   // first paint instead of triggering a reflow when I18nProvider's effect
   // runs post-mount.

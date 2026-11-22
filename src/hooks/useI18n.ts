@@ -1,43 +1,57 @@
 // Lightweight i18n React Hook + Context (lazy-loaded language packs)
-import React, { useContext, useState, useCallback, useEffect } from 'react';
-import { translate, loadLocale, detectLocale, TKey } from '../i18n';
+import React, { useContext, useState, useCallback, useEffect, useRef } from 'react';
+import { translate, loadLocale, detectLocale, resolveLocale, type TKey } from '../i18n';
+import { LOCALE_STORAGE_KEY } from '../i18n/locales';
 import * as api from '../api/tauri';
 import { I18nContext } from './i18nContext';
 
 interface I18nProviderProps {
   children: React.ReactNode;
-  /** Pre-resolved locale from main.tsx boot. When provided, skip the
-   *  detect → fetch-settings → load-pack flicker chain entirely. */
+  /** main.tsx loads this language pack before the first paint. */
   initialLocale?: string;
 }
 
 export const I18nProvider: React.FC<I18nProviderProps> = ({ children, initialLocale }) => {
-  const [locale, setLocaleState] = useState(() => initialLocale ?? detectLocale());
-  // If main.tsx pre-loaded the pack we're already ready; otherwise English
-  // is always bundled so it's instantly ready, and any non-en locale will
-  // flip ready=false during its load below.
-  const [ready, setReady] = useState(true);
+  const [locale, setActiveLocale] = useState(() => resolveLocale(initialLocale ?? 'en'));
+  const generation = useRef(0);
+  const saveQueue = useRef(Promise.resolve());
 
-  // Load language pack when locale changes (e.g. user switches language at runtime).
-  useEffect(() => {
-    if (locale === 'en') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setReady(true);
-      return;
+  const activate = useCallback(async (tag: string, save: boolean) => {
+    const request = ++generation.current;
+    const next = resolveLocale(tag);
+    await loadLocale(next);
+    if (request !== generation.current) return;
+    setActiveLocale(next);
+    if (!save) return;
+    try {
+      localStorage.setItem(LOCALE_STORAGE_KEY, next);
+    } catch {
+      // Rust settings are the persistent source of truth.
     }
-    setReady(false);
-    loadLocale(locale).then(() => setReady(true));
-  }, [locale]);
-
-  const setLocale = useCallback((newLocale: string) => {
-    setLocaleState(newLocale);
-    // Persist to Rust backend
-    void api.saveSettings({ locale: newLocale }).catch(() => {});
+    saveQueue.current = saveQueue.current
+      .then(async () => {
+        if (request === generation.current) await api.saveSettings({ locale: next });
+      })
+      .catch(() => {});
   }, []);
 
-  const t = useCallback((key: TKey) => translate(key, ready ? locale : 'en'), [locale, ready]);
+  useEffect(() => {
+    if (!initialLocale) void activate(detectLocale(), false);
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === LOCALE_STORAGE_KEY && event.newValue) {
+        void activate(event.newValue, false);
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => {
+      generation.current += 1;
+      window.removeEventListener('storage', onStorage);
+    };
+  }, [activate, initialLocale]);
 
-  // Sync document lang attribute
+  const setLocale = useCallback((tag: string) => void activate(tag, true), [activate]);
+  const t = useCallback((key: TKey) => translate(key, locale), [locale]);
+
   useEffect(() => {
     document.documentElement.lang = locale;
   }, [locale]);

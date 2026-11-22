@@ -1,3 +1,13 @@
+import { LOCALE_OPTIONS } from '../i18n/locales';
+
+const NOTE_CODES = new Map<string, string>(
+  LOCALE_OPTIONS.map(({ id, label }) => [
+    label,
+    id === 'zh-Hans' ? 'zh-cn' : id === 'zh-Hant' ? 'zh-tw' : id,
+  ])
+);
+NOTE_CODES.set('中文', 'zh-cn');
+
 export const MANIFEST_SOURCES = [
   'https://cnb.cool/echobird/echobird-releases/-/git/raw/main/manifest.json',
   'https://api.gitcode.com/api/v5/repos/edison7009/echobird-releases/raw/manifest.json?ref=main',
@@ -28,16 +38,10 @@ function parseManifest(value: unknown): UpdateManifest | null {
   if (typeof item.version !== 'string' || !SEMVER.test(item.version.replace(/^v/, ''))) return null;
   const notes = typeof item.releaseNotes === 'string' ? item.releaseNotes : undefined;
   const languages: Record<string, string> = {};
-  const labels: Record<string, string> = {
-    中文: 'zh-cn',
-    English: 'en',
-    繁體中文: 'zh-tw',
-    日本語: 'ja',
-  };
   for (const match of (notes ?? '').matchAll(
     /<details\b[^>]*>\s*<summary\b[^>]*>([^<]+)<\/summary>([\s\S]*?)<\/details>/gi
   )) {
-    const code = labels[match[1].trim()];
+    const code = NOTE_CODES.get(match[1].trim());
     if (code) languages[code] = match[2].trim();
   }
   if (item.releaseNotesI18n && typeof item.releaseNotesI18n === 'object') {

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { notesForRelease } from '../release-notes.mjs';
+import { notesForRelease, renderReleaseBody } from '../release-notes.mjs';
 test('uses matching canonical localized notes and extracts GitHub language blocks on fallback', () => {
   const release = {
     tag_name: 'v6.2.1',
@@ -20,4 +20,15 @@ test('uses matching canonical localized notes and extracts GitHub language block
   assert.equal(fallback.releaseDate, '2026-11-06');
   assert.equal(fallback.releaseNotes, '中文日志');
   assert.ok(!JSON.stringify(fallback).includes('<details>'));
+});
+
+test('round-trips all supported release note languages before the canonical manifest advances', () => {
+  const notes = Object.fromEntries(
+    ['zh-cn', 'en', 'zh-tw', 'ja', 'ko', 'es', 'fr', 'de', 'pt', 'ru', 'vi'].map((code) => [
+      code,
+      `- Notes for ${code}`,
+    ])
+  );
+  const release = { tag_name: 'v6.4.7', body: renderReleaseBody(notes) };
+  assert.deepEqual(notesForRelease(release, { version: '6.4.6' }).releaseNotesI18n, notes);
 });

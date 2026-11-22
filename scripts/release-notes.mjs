@@ -1,3 +1,34 @@
+const NOTES_LABELS = {
+  'zh-cn': '中文',
+  en: 'English',
+  'zh-tw': '繁體中文',
+  ja: '日本語',
+  ko: '한국어',
+  es: 'Español',
+  fr: 'Français',
+  de: 'Deutsch',
+  pt: 'Português',
+  ru: 'Русский',
+  vi: 'Tiếng Việt',
+};
+
+const NOTES_CODES = new Map(Object.entries(NOTES_LABELS).map(([code, label]) => [label, code]));
+
+export function renderReleaseBody(notes) {
+  return Object.entries(NOTES_LABELS)
+    .filter(([code]) => typeof notes[code] === 'string' && notes[code].trim())
+    .map(([code, label]) => {
+      const open = code === 'zh-cn' ? ' open' : '';
+      return `<details${open}>
+<summary>${label}</summary>
+
+${notes[code].trim()}
+
+</details>`;
+    })
+    .join('\n\n');
+}
+
 // Shared by full installer syncs and metadata-only corrections.
 export function notesForRelease(release, canonical) {
   const version = release.tag_name.replace(/^v/, '');
@@ -13,12 +44,11 @@ export function notesForRelease(release, canonical) {
       releaseNotesI18n: clean,
     };
   }
-  const codes = { 中文: 'zh-cn', English: 'en', 繁體中文: 'zh-tw', 日本語: 'ja' };
   const languages = {};
   for (const match of (release.body ?? '').matchAll(
     /<details\b[^>]*>\s*<summary\b[^>]*>([^<]+)<\/summary>([\s\S]*?)<\/details>/gi
   )) {
-    const code = codes[match[1].trim()];
+    const code = NOTES_CODES.get(match[1].trim());
     if (code) languages[code] = match[2].trim();
   }
   return {

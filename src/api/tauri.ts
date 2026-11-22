@@ -222,6 +222,10 @@ export async function getSettings(): Promise<AppSettings> {
   return invoke('get_settings');
 }
 
+export function syncDesktopLocale(locale: string): Promise<void> {
+  return invoke('sync_desktop_locale', { locale });
+}
+
 export async function saveSettings(settings: AppSettings): Promise<void> {
   return invoke('save_settings', { settings });
 }

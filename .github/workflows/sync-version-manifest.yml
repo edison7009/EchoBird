@@ -113,19 +113,17 @@ jobs:
             echo "Release $TAG not found; skipping body sync."
             exit 0
           fi
-          ZH="$(jq -r '.releaseNotesI18n["zh-cn"] // empty' "$MANIFEST")"
-          EN="$(jq -r '.releaseNotesI18n.en // empty' "$MANIFEST")"
-          if [ -z "$EN" ]; then
-            echo "No English notes in manifest; skipping body sync."
+          node --input-type=module - <<'JS'
+          import { readFileSync, writeFileSync } from 'node:fs';
+          import { renderReleaseBody } from './scripts/release-notes.mjs';
+          const manifest = JSON.parse(readFileSync('docs/api/version/index.json', 'utf8'));
+          const body = renderReleaseBody(manifest.releaseNotesI18n ?? {});
+          if (body) writeFileSync('body.md', body + '\n');
+          JS
+          if [ ! -s body.md ]; then
+            echo "No localized notes in manifest; skipping body sync."
             exit 0
           fi
-          {
-            printf '<details><summary>中文</summary>\n\n'
-            printf '%s\n' "$ZH"
-            printf '\n</details>\n\n<details><summary>English</summary>\n\n'
-            printf '%s\n' "$EN"
-            printf '\n</details>'
-          } > body.md
           gh release edit "$TAG" --repo "$REPO" --notes-file body.md
           echo "Synced collapsible release body for $TAG"
 

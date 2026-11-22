@@ -8,6 +8,7 @@
 
 mod app_lifecycle;
 pub mod commands;
+mod desktop_locale;
 #[cfg(target_os = "macos")]
 mod macos_appearance;
 pub mod models;
@@ -79,44 +80,6 @@ fn load_tray_icon() -> tauri::image::Image<'static> {
     tauri::image::Image::new_owned(rgba.into_raw(), width, height)
 }
 
-/// Get localized tray string
-fn tray_t(locale: &str, key: &str) -> String {
-    match (locale, key) {
-        // English
-        ("en", "show") => "Show EchoBird".into(),
-        ("en", "quit") => "Quit".into(),
-        // Simplified Chinese
-        ("zh-Hans", "show") => "显示 EchoBird".into(),
-        ("zh-Hans", "quit") => "退出".into(),
-        // Fallback to English
-        (_, key) => tray_t("en", key),
-    }
-}
-
-/// Localized labels for the macOS application menu. Only the user-facing custom
-/// items need this — predefined items (Quit, Copy, Paste, …) are localized by
-/// the OS automatically. Mirrors [`tray_t`]: English + Simplified Chinese, with
-/// every other locale falling back to English.
-#[allow(dead_code)] // only reachable from install_macos_menu (macOS-only call site)
-fn menu_t(locale: &str, key: &str) -> String {
-    match (locale, key) {
-        ("zh-Hans", "settings") => "设置…".into(),
-        ("zh-Hans", "feedback") => "问题反馈".into(),
-        ("zh-Hans", "edit") => "编辑".into(),
-        ("zh-Hans", "view") => "视图".into(),
-        ("zh-Hans", "window") => "窗口".into(),
-        ("zh-Hans", "help") => "帮助".into(),
-        ("en", "settings") => "Settings…".into(),
-        ("en", "feedback") => "Feedback".into(),
-        ("en", "edit") => "Edit".into(),
-        ("en", "view") => "View".into(),
-        ("en", "window") => "Window".into(),
-        ("en", "help") => "Help".into(),
-        // Fallback to English
-        (_, key) => menu_t("en", key),
-    }
-}
-
 /// Build and install EchoBird's macOS application menu (the screen-top menu bar).
 ///
 /// Tauri auto-creates a default menu on macOS, but it has no Settings entry, so
@@ -127,15 +90,16 @@ fn menu_t(locale: &str, key: &str) -> String {
 /// in-window controls (so ⌘W honors the close-to-tray setting just like the X
 /// button). Called on macOS only: Windows/Linux render menus inside the window,
 /// which would clash with the custom frameless title bar.
-#[allow(dead_code)] // call site is gated to macOS; kept un-cfg'd so it type-checks everywhere
-fn install_macos_menu(app: &tauri::App, locale: &str) -> tauri::Result<()> {
+#[cfg(target_os = "macos")]
+fn install_macos_menu(app: &tauri::AppHandle, locale: &str) -> tauri::Result<()> {
     use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder};
 
-    let settings_item = MenuItemBuilder::with_id("menu-open-settings", menu_t(locale, "settings"))
+    let [settings, feedback, edit, view, window, help] =
+        desktop_locale::desktop_labels(locale).mac_menu;
+    let settings_item = MenuItemBuilder::with_id("menu-open-settings", settings)
         .accelerator("CmdOrCtrl+,")
         .build(app)?;
-    let feedback_item =
-        MenuItemBuilder::with_id("menu-open-feedback", menu_t(locale, "feedback")).build(app)?;
+    let feedback_item = MenuItemBuilder::with_id("menu-open-feedback", feedback).build(app)?;
 
     // App menu — macOS uses the app name as the title automatically.
     let app_menu = SubmenuBuilder::new(app, "EchoBird")
@@ -152,7 +116,7 @@ fn install_macos_menu(app: &tauri::App, locale: &str) -> tauri::Result<()> {
         .item(&PredefinedMenuItem::quit(app, None)?)
         .build()?;
 
-    let edit_menu = SubmenuBuilder::new(app, menu_t(locale, "edit"))
+    let edit_menu = SubmenuBuilder::new(app, edit)
         .item(&PredefinedMenuItem::undo(app, None)?)
         .item(&PredefinedMenuItem::redo(app, None)?)
         .separator()
@@ -162,18 +126,18 @@ fn install_macos_menu(app: &tauri::App, locale: &str) -> tauri::Result<()> {
         .item(&PredefinedMenuItem::select_all(app, None)?)
         .build()?;
 
-    let view_menu = SubmenuBuilder::new(app, menu_t(locale, "view"))
+    let view_menu = SubmenuBuilder::new(app, view)
         .item(&PredefinedMenuItem::fullscreen(app, None)?)
         .build()?;
 
-    let window_menu = SubmenuBuilder::new(app, menu_t(locale, "window"))
+    let window_menu = SubmenuBuilder::new(app, window)
         .item(&PredefinedMenuItem::minimize(app, None)?)
         .item(&PredefinedMenuItem::maximize(app, None)?)
         .separator()
         .item(&PredefinedMenuItem::close_window(app, None)?)
         .build()?;
 
-    let help_menu = SubmenuBuilder::new(app, menu_t(locale, "help"))
+    let help_menu = SubmenuBuilder::new(app, help)
         .item(&feedback_item)
         .build()?;
 
@@ -219,15 +183,16 @@ pub fn rebuild_tray_menu(app: &tauri::AppHandle) {
     };
 
     // Build menu items
+    let labels = desktop_locale::desktop_labels(&locale);
     let app_name = "EchoBird";
     let brand_item = MenuItemBuilder::with_id("brand", app_name)
         .enabled(false)
         .build(app)
         .unwrap();
-    let show_item = MenuItemBuilder::with_id("show", tray_t(&locale, "show"))
+    let show_item = MenuItemBuilder::with_id("show", labels.show)
         .build(app)
         .unwrap();
-    let quit_item = MenuItemBuilder::with_id("quit", tray_t(&locale, "quit"))
+    let quit_item = MenuItemBuilder::with_id("quit", labels.quit)
         .build(app)
         .unwrap();
 
@@ -249,6 +214,11 @@ pub fn rebuild_tray_menu(app: &tauri::AppHandle) {
 
     // Update tooltip
     let _ = tray.set_tooltip(Some(app_name));
+
+    #[cfg(target_os = "macos")]
+    if let Err(error) = install_macos_menu(app, &locale) {
+        log::warn!("[Menu] Could not update menu locale: {error}");
+    }
 
     log::info!("[Tray] Menu rebuilt: locale={}", locale);
 }
@@ -692,14 +662,14 @@ pub fn run() {
                 .locale
                 .unwrap_or_else(|| "en".to_string());
 
+            let labels = desktop_locale::desktop_labels(&user_locale);
+
             // Build initial tray menu with user's locale
             let brand_item = MenuItemBuilder::with_id("brand", "EchoBird")
                 .enabled(false)
                 .build(app)?;
-            let show_item =
-                MenuItemBuilder::with_id("show", tray_t(&user_locale, "show")).build(app)?;
-            let quit_item =
-                MenuItemBuilder::with_id("quit", tray_t(&user_locale, "quit")).build(app)?;
+            let show_item = MenuItemBuilder::with_id("show", labels.show).build(app)?;
+            let quit_item = MenuItemBuilder::with_id("quit", labels.quit).build(app)?;
             let tray_menu = MenuBuilder::new(app)
                 .item(&brand_item)
                 .separator()
@@ -761,7 +731,7 @@ pub fn run() {
                 let menu_locale = settings_commands::get_settings()
                     .locale
                     .unwrap_or_else(|| "en".to_string());
-                if let Err(e) = install_macos_menu(app, &menu_locale) {
+                if let Err(e) = install_macos_menu(app.handle(), &menu_locale) {
                     log::warn!("[macOS] Failed to install application menu: {e}");
                 }
 
@@ -1207,6 +1177,7 @@ pub fn run() {
                 process_commands::list_engine_release_options,
                 settings_commands::get_settings,
                 settings_commands::save_settings,
+                settings_commands::sync_desktop_locale,
                 ssh_commands::ssh_test_connection,
                 ssh_commands::load_ssh_servers,
                 ssh_commands::save_ssh_server,

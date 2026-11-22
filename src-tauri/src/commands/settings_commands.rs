@@ -113,18 +113,30 @@ pub async fn save_settings(
     }
     crate::services::developer_preview::configure(&app, settings.developer_mode_enabled());
 
-    // Update tray menu locale if locale changed
     if let Some(locale) = &settings.locale {
-        let state = app.state::<crate::TrayState>();
-        let mut current_locale = state.locale.lock().unwrap();
-        if *current_locale != *locale {
-            *current_locale = locale.clone();
-            drop(current_locale); // Release lock before calling rebuild
-            crate::rebuild_tray_menu(&app);
-        }
+        apply_desktop_locale(&app, locale);
     }
 
     Ok(())
+}
+
+/// Apply the locale selected at startup without saving a system-language preference.
+#[tauri::command]
+pub fn sync_desktop_locale(app: tauri::AppHandle, locale: String) {
+    if crate::desktop_locale::language_name(&locale).is_some() {
+        apply_desktop_locale(&app, &locale);
+    }
+}
+
+fn apply_desktop_locale(app: &tauri::AppHandle, locale: &str) {
+    let state = app.state::<crate::TrayState>();
+    let mut current = state.locale.lock().unwrap();
+    if *current == locale {
+        return;
+    }
+    *current = locale.to_owned();
+    drop(current);
+    crate::rebuild_tray_menu(app);
 }
 
 fn patch_settings_at(

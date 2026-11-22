@@ -41,15 +41,8 @@ import {
 } from '../stores/optionalPages';
 import { useLocalServerStatusStore } from '../stores/localServerStatusStore';
 import { useProtectionStore } from '../stores/protectionStore';
+import { LOCALE_OPTIONS } from '../i18n/locales';
 import './SettingsDialog.css';
-
-// All supported locales
-const LOCALE_OPTIONS = [
-  { id: 'en', glyph: 'A', label: 'English' },
-  { id: 'zh-Hans', glyph: '简', label: '简体中文' },
-  { id: 'zh-Hant', glyph: '繁', label: '繁體中文' },
-  { id: 'ja', glyph: 'あ', label: '日本語' },
-];
 
 type SettingsTab = 'general' | 'appearance' | 'language';
 
@@ -765,36 +758,39 @@ const ColorThemePicker: React.FC<{
   mode: ThemeMode;
   locale: string;
   onChange: (theme: ColorThemeId) => void;
-}> = ({ value, mode, locale, onChange }) => (
-  <div className="grid grid-cols-6 gap-2.5">
-    {COLOR_THEME_GRID.flat().map((id) => {
-      const theme = getColorTheme(id);
-      const active = value === theme.id;
-      const label = locale.startsWith('zh')
-        ? theme.labelZh
-        : locale === 'ja'
-          ? theme.labelJa
-          : theme.labelEn;
-      return (
-        <button
-          key={theme.id}
-          type="button"
-          aria-pressed={active}
-          aria-label={label}
-          onClick={() => onChange(theme.id)}
-          className="settings-tile settings-filled settings-swatch"
-        >
-          <span
-            style={{
-              backgroundImage:
-                mode === 'system'
-                  ? `linear-gradient(135deg, ${theme.light.canvas} 0%, ${theme.light.tertiary} 35%, ${theme.dark.tertiary} 65%, ${theme.dark.canvas} 100%)`
-                  : `linear-gradient(135deg, ${theme[mode].canvas} 0%, ${theme[mode].secondary} 45%, ${theme[mode].tertiary} 100%)`,
-            }}
-          />
-          <span>{label}</span>
-        </button>
-      );
-    })}
-  </div>
-);
+}> = ({ value, mode, locale, onChange }) => {
+  const { t } = useI18n();
+  return (
+    <div className="grid grid-cols-6 gap-2.5">
+      {COLOR_THEME_GRID.flat().map((id) => {
+        const theme = getColorTheme(id);
+        const active = value === theme.id;
+        const label = locale.startsWith('zh')
+          ? theme.labelZh
+          : locale === 'ja'
+            ? theme.labelJa
+            : t(`settings.theme.${id}`);
+        return (
+          <button
+            key={theme.id}
+            type="button"
+            aria-pressed={active}
+            aria-label={label}
+            onClick={() => onChange(theme.id)}
+            className="settings-tile settings-filled settings-swatch"
+          >
+            <span
+              style={{
+                backgroundImage:
+                  mode === 'system'
+                    ? `linear-gradient(135deg, ${theme.light.canvas} 0%, ${theme.light.tertiary} 35%, ${theme.dark.tertiary} 65%, ${theme.dark.canvas} 100%)`
+                    : `linear-gradient(135deg, ${theme[mode].canvas} 0%, ${theme[mode].secondary} 45%, ${theme[mode].tertiary} 100%)`,
+              }}
+            />
+            <span>{label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+};

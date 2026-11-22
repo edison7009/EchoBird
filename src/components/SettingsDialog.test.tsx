@@ -186,19 +186,31 @@ it('places scale in General and offers languages directly on their own page', as
   expect(view.root.findAllByProps({ id: 'ui-scale' })).toHaveLength(0);
   await tab('settings.language');
   const languages = view.root.findAllByType('button').filter((button) => button.props.lang);
-  expect(languages.map((button) => button.props.lang)).toEqual(['en', 'zh-Hans', 'zh-Hant', 'ja']);
+  expect(languages.map((button) => button.props.lang)).toEqual([
+    'en',
+    'zh-Hans',
+    'zh-Hant',
+    'ja',
+    'ko',
+    'es',
+    'fr',
+    'de',
+    'pt',
+    'ru',
+    'vi',
+  ]);
   expect(
     languages.filter((button) => button.props['aria-pressed']).map((button) => button.props.lang)
   ).toEqual(['en']);
   expect(props.onLocaleChange).not.toHaveBeenCalled();
   await act(async () => {
-    languages[3].props.onClick();
+    languages.find((button) => button.props.lang === 'vi')!.props.onClick();
   });
-  expect(props.onLocaleChange).toHaveBeenCalledExactlyOnceWith('ja');
+  expect(props.onLocaleChange).toHaveBeenCalledExactlyOnceWith('vi');
   await act(async () => {
-    view.update(<SettingsDialog {...props} locale="ja" />);
+    view.update(<SettingsDialog {...props} locale="vi" />);
   });
-  expect(view.root.findByProps({ lang: 'ja' }).props['aria-pressed']).toBe(true);
+  expect(view.root.findByProps({ lang: 'vi' }).props['aria-pressed']).toBe(true);
   expect(mocks.zoom).not.toHaveBeenCalled();
   expect(mocks.save).not.toHaveBeenCalled();
 });
