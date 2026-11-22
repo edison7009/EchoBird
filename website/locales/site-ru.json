@@ -13,6 +13,7 @@
   "hero.download": "Скачать EchoBird",
   "hero.star": "Поставить звезду",
   "hero.history": "С 2026.01 &nbsp; · &nbsp; Переписано на Rust в 2026.03 &nbsp; · &nbsp; Умная маршрутизация с 2026.08",
+  "hero.source": "Украдите наши идеи и код (легально)",
   "relay.sidrune": "Доступ к моделям Claude и GPT с пробным балансом 3 доллара при регистрации. CC Max — около 15% официальной цены, GPT — от 1,5%.",
   "relay.ccvibe": "API для Claude, GPT и других моделей для программирования",
   "relay.88api": "Claude Opus 5.5, GPT-6.1 Sol и другие",
