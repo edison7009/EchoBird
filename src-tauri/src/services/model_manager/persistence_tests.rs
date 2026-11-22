@@ -39,12 +39,13 @@ fn detached_voice_models_and_their_keys_are_removed_without_touching_other_scope
 }
 
 #[test]
-fn imports_deduplicate_by_key_across_urls_and_preserve_existing_bytes() {
+fn imports_distinct_models_and_endpoints_with_a_shared_key() {
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("models.json");
     let input = AddModelInput {
         name: Some("original".into()),
         base_url: Some("https://first.example/v1".into()),
+        model_id: Some("first-model".into()),
         api_key: Some("synthetic-key".into()),
         ..Default::default()
     };
@@ -53,13 +54,17 @@ fn imports_deduplicate_by_key_across_urls_and_preserve_existing_bytes() {
     let before = fs::read(&path).unwrap();
     let mut other = input;
     other.name = Some("another source".into());
-    other.base_url = Some("https://second.example/v1".into());
+    other.base_url = Some("https://first.example/v1/".into());
     assert!(!import_model_at_with(&path, other.clone(), protect).unwrap());
     assert_eq!(fs::read(&path).unwrap(), before);
-    other.api_key = Some("different-key".into());
-    assert!(import_model_at_with(&path, other, protect).unwrap());
+    other.model_id = Some("second-model".into());
+    assert!(import_model_at_with(&path, other.clone(), protect).unwrap());
+    other.base_url = Some("https://second.example/v1".into());
+    assert!(import_model_at_with(&path, other.clone(), protect).unwrap());
+    assert!(!import_model_at_with(&path, other, protect).unwrap());
     let models: Vec<ModelConfig> = super::super::json_store::read(&path).unwrap();
-    assert_eq!(models.len(), 2);
+    assert_eq!(models.len(), 3);
+    assert_eq!(models[0].name, "original");
     fs::write(&path, b"malformed {").unwrap();
     assert!(import_model_at_with(
         &path,

@@ -283,7 +283,11 @@ fn read_at(home: &Path) -> Option<ModelInfo> {
     serde_json::from_value(json!({
         "model":id, "name":provider["models"][id]["name"].as_str().unwrap_or(id),
         "baseUrl":provider["options"]["baseURL"], "apiKey":provider["options"]["apiKey"],
-        "protocol":if provider["api"] == "anthropic-messages" {"anthropic"} else {"openai"},
+        "protocol":match provider["api"].as_str() {
+            Some("anthropic-messages") => "anthropic",
+            Some("openai-responses") => "openai-responses",
+            _ => "openai",
+        },
         "imageInput":provider["models"][id]["modalities"]["input"].as_array().map(|inputs| inputs.contains(&json!("image"))),
         "oneMContext":provider["models"][id]["limit"]["context"].as_u64().map(|context| context == 1_000_000)
     }))

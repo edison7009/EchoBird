@@ -282,10 +282,10 @@ fn apply_at(home: &Path, model_info: &ModelInfo) -> Result<(), String> {
     // openai-completions. `endpoint` is always set after this block (mirror
     // apply_openscience: the anthropic arm early-returns on an empty URL).
     let is_anthropic = model_info.protocol.as_deref() == Some("anthropic");
-    let api = if is_anthropic {
-        "anthropic-messages"
-    } else {
-        "openai-completions"
+    let api = match model_info.protocol.as_deref() {
+        Some("anthropic") => "anthropic-messages",
+        Some("openai-responses") => "openai-responses",
+        _ => "openai-completions",
     };
     let endpoint = if is_anthropic {
         match model_info
@@ -436,25 +436,45 @@ pub(super) fn read_dsh() -> Option<ModelInfo> {
 }
 
 fn read_at(home: &Path) -> Option<ModelInfo> {
+    read_model_at(home, false)
+}
+
+pub(super) fn read_for_import() -> Option<ModelInfo> {
+    let _guard = CONFIG_LOCK.lock().ok()?;
+    read_model_at(&dsh_config_dir(), true)
+}
+
+fn read_model_at(home: &Path, for_import: bool) -> Option<ModelInfo> {
     let settings = settings_at(home).ok()?;
     let selector = yaml_get(&settings, "agent-default-model")?;
-    if yaml_get(selector, "provider")?.as_str()? != "echobird" {
-        // Not our provider - show as unconfigured so the user can apply.
+    let provider = yaml_get(selector, "provider")?.as_str()?;
+    if !for_import && provider != "echobird" {
         return None;
     }
     let model_id = yaml_get(selector, "model")?.as_str()?;
 
     let route = yaml_get(
         yaml_get(yaml_get(&settings, "llm-pi-ai")?, "providers")?,
-        "echobird",
+        provider,
     )?;
     let api = yaml_get(route, "api")
         .and_then(|v| v.as_str())
         .unwrap_or("openai-completions");
-    let protocol = if api == "anthropic-messages" {
-        "anthropic"
+    let protocol = match api {
+        "anthropic-messages" => "anthropic",
+        "openai-responses" if for_import => "openai-responses",
+        "openai-completions" | "openai-responses" => "openai",
+        _ if for_import => return None,
+        _ => "openai",
+    };
+    let api_key = if for_import {
+        let reference = yaml_get(route, "apiKeyEnv").and_then(|value| value.as_str());
+        reference.and_then(|reference| {
+            let credentials = credentials_at(home).ok()?;
+            credentials["refs"][reference].as_str().map(str::to_owned)
+        })
     } else {
-        "openai"
+        None
     };
     let base_url = yaml_get(route, "baseURL")
         .and_then(|v| v.as_str())
@@ -481,7 +501,7 @@ fn read_at(home: &Path) -> Option<ModelInfo> {
         name: Some(name),
         model: Some(model_id.to_string()),
         base_url,
-        api_key: None,
+        api_key,
         anthropic_url,
         protocol: Some(protocol.to_string()),
         display_model: None,

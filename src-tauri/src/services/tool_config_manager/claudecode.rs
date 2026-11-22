@@ -675,6 +675,48 @@ pub(super) fn read_claudecode() -> Option<ModelInfo> {
     read_claudecode_at(&settings_path, &echobird_dir().join("claudecode.json"))
 }
 
+pub(super) fn read_for_import() -> Option<ModelInfo> {
+    let settings = config_dir().ok()?.join("settings.json");
+    read_model_for_import(&settings, &echobird_dir().join("claudecode.json"))
+}
+
+fn read_model_for_import(settings: &Path, relay: &Path) -> Option<ModelInfo> {
+    let (_, config) = read_object(settings).ok()?;
+    let env = config.get("env")?.as_object()?;
+    // A managed local gateway can be resolved to the actual upstream.
+    if uses_local_bridge(env) {
+        return read_claudecode_at(settings, relay);
+    }
+    let base = env
+        .get("ANTHROPIC_BASE_URL")?
+        .as_str()?
+        .trim()
+        .trim_end_matches('/');
+    let base = base.strip_suffix("/v1").unwrap_or(base);
+    let model = env
+        .get("ANTHROPIC_MODEL")
+        .and_then(Value::as_str)
+        .or_else(|| config.get("model").and_then(Value::as_str))
+        .map(|model| model.strip_suffix("[1m]").unwrap_or(model));
+    let key = ["ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_API_KEY"]
+        .into_iter()
+        .filter_map(|name| env.get(name).and_then(Value::as_str))
+        .find(|key| !key.trim().is_empty());
+    Some(ModelInfo {
+        name: None,
+        model: model.map(str::to_owned),
+        base_url: None,
+        api_key: key.map(str::to_owned),
+        anthropic_url: Some(base.to_owned()),
+        protocol: Some("anthropic".into()),
+        display_model: None,
+        relay_mode: None,
+        web_search: None,
+        image_input: None,
+        one_m_context: None,
+    })
+}
+
 fn read_claudecode_at(settings_path: &Path, relay_path: &Path) -> Option<ModelInfo> {
     // Source of truth is the relay file (written in both modes), NOT
     // settings.json — mirrors read_claudedesktop. Surfaces the real upstream
@@ -958,6 +1000,24 @@ mod regression_tests;
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn imports_manually_configured_model_without_an_echobird_relay() {
+        let root = tempfile::tempdir().unwrap();
+        let settings = root.path().join("settings.json");
+        let relay = root.path().join("claudecode.json");
+        let original = br#"{"env":{"ANTHROPIC_BASE_URL":"https://relay.example/v1/","ANTHROPIC_API_KEY":"fixture","ANTHROPIC_MODEL":"vendor/model[1m]"}}"#;
+        fs::write(&settings, original).unwrap();
+        let model = read_model_for_import(&settings, &relay).unwrap();
+        assert_eq!(model.model.as_deref(), Some("vendor/model"));
+        assert_eq!(
+            model.anthropic_url.as_deref(),
+            Some("https://relay.example")
+        );
+        assert_eq!(model.api_key.as_deref(), Some("fixture"));
+        assert_eq!(fs::read(&settings).unwrap(), original);
+        assert!(!relay.exists());
+    }
 
     #[test]
     fn applies_and_restores_within_the_selected_config_directory() {

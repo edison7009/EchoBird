@@ -9,3 +9,35 @@ export function isDirectModelAllowedForTool(model: ModelConfig, toolId: string |
   if (toolId === 'codex' || toolId === 'chatgptdesktop') return !id.startsWith('claude-');
   return true;
 }
+
+const RESPONSES_TOOLS = new Set([
+  'codex',
+  'chatgptdesktop',
+  'cline',
+  'clinedesktop',
+  'vscode',
+  'openclaw',
+  'hermes',
+  'dsh',
+  'minimaxcode',
+  'minimaxdesktop',
+]);
+
+export function directModelProtocol(
+  model: ModelConfig,
+  toolId: string | null,
+  toolProtocols: readonly string[]
+): 'openai' | 'openai-responses' | 'anthropic' | undefined {
+  if (!isDirectModelAllowedForTool(model, toolId)) return undefined;
+  if (model.internalId === 'local-server' && (toolId === 'codex' || toolId === 'chatgptdesktop')) {
+    return undefined;
+  }
+  for (const protocol of toolProtocols) {
+    if (protocol === 'anthropic' && model.anthropicUrl) return 'anthropic';
+    if (protocol === 'openai' && model.baseUrl) {
+      if (!model.openaiResponses) return 'openai';
+      if (toolId && RESPONSES_TOOLS.has(toolId)) return 'openai-responses';
+    }
+  }
+  return undefined;
+}

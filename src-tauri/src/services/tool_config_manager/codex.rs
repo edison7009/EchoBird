@@ -569,49 +569,56 @@ fn write_codex_files(
 
 pub(super) fn read_codex() -> Option<ModelInfo> {
     let codex_dir = codex_accounts::codex_home().ok()?;
-    let content = fs::read_to_string(codex_dir.join("config.toml")).ok()?;
+    read_codex_at(&codex_dir, |name| std::env::var(name).ok())
+}
 
-    let model_from_toml = toml_read_top(&content, "model");
-    if model_from_toml.is_empty() {
+fn read_codex_at(codex_dir: &Path, env: impl Fn(&str) -> Option<String>) -> Option<ModelInfo> {
+    use toml_edit::{DocumentMut, Item};
+    let content = fs::read_to_string(codex_dir.join("config.toml")).ok()?;
+    let document = content.parse::<DocumentMut>().ok()?;
+    let model = document.get("model")?.as_str()?.trim().to_owned();
+    if model.is_empty() {
         return None;
     }
-
-    let provider_id = toml_read_top(&content, "model_provider");
-    let base_url = if provider_id.is_empty() {
+    let provider_id = document
+        .get("model_provider")
+        .and_then(Item::as_str)
+        .unwrap_or("openai");
+    let provider = document
+        .get("model_providers")
+        .and_then(|providers| providers.get(provider_id));
+    let builtin_openai = provider_id.eq_ignore_ascii_case("openai");
+    let field = |key: &str| provider.and_then(|p| p.get(key)).and_then(Item::as_str);
+    let base_url = field("base_url")
+        .or_else(|| {
+            builtin_openai
+                .then(|| document.get("openai_base_url").and_then(Item::as_str))
+                .flatten()
+        })
+        .filter(|value| !value.trim().is_empty())
+        .map(str::to_owned);
+    let api_key = if provider.is_some_and(|item| {
+        ["auth", "aws", "gateway_oauth"]
+            .iter()
+            .any(|name| item.get(name).is_some())
+    }) {
         None
+    } else if let Some(env_key) = field("env_key") {
+        // Codex requires the configured environment key before considering a literal token.
+        env(env_key)
+    } else if let Some(token) =
+        field("experimental_bearer_token").filter(|key| !key.trim().is_empty())
+    {
+        Some(token.to_owned())
+    } else if provider
+        .and_then(|item| item.get("requires_openai_auth"))
+        .and_then(Item::as_bool)
+        .unwrap_or(builtin_openai)
+    {
+        read_codex_auth_key(codex_dir)
     } else {
-        let value = toml_read_table_value(
-            &content,
-            &format!("model_providers.{}", provider_id),
-            "base_url",
-        );
-        if value.is_empty() {
-            None
-        } else {
-            Some(value)
-        }
+        None
     };
-
-    let model = model_from_toml;
-
-    // API key now lives in ~/.codex/auth.json (preferred_auth_method=apikey).
-    // Fall back to the legacy env_key path for configs written before this change.
-    let api_key = read_codex_auth_key(&codex_dir).or_else(|| {
-        let env_key = if provider_id.is_empty() {
-            String::new()
-        } else {
-            toml_read_table_value(
-                &content,
-                &format!("model_providers.{}", provider_id),
-                "env_key",
-            )
-        };
-        if env_key.is_empty() {
-            None
-        } else {
-            std::env::var(&env_key).ok()
-        }
-    });
 
     Some(ModelInfo {
         name: Some(model.clone()),
@@ -619,7 +626,14 @@ pub(super) fn read_codex() -> Option<ModelInfo> {
         base_url,
         api_key,
         anthropic_url: None,
-        protocol: Some("openai".to_string()),
+        protocol: Some(
+            if field("wire_api") == Some("chat") {
+                "openai"
+            } else {
+                "openai-responses"
+            }
+            .into(),
+        ),
         display_model: None,
         relay_mode: None,
         web_search: None,
@@ -825,6 +839,71 @@ pub(super) fn restore_codex_to_official(tool_id: &str, config_path: &Path) -> Ap
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn imports_native_codex_provider_and_uses_its_own_credential() {
+        let root = tempfile::tempdir().unwrap();
+        let config = root.path().join("config.toml");
+        let original = r#"model = "vendor/model"
+model_provider = "my-relay"
+[model_providers.my-relay]
+base_url = "https://relay.example/v1"
+wire_api = "responses"
+env_key = "FIXTURE_RELAY_KEY"
+experimental_bearer_token = "inline-key"
+"#;
+        fs::write(&config, original).unwrap();
+        fs::write(
+            root.path().join("auth.json"),
+            r#"{"OPENAI_API_KEY":"unrelated-key"}"#,
+        )
+        .unwrap();
+        let info = read_codex_at(root.path(), |_| Some("env-key".into())).unwrap();
+        assert_eq!(info.api_key.as_deref(), Some("env-key"));
+        assert_eq!(info.model.as_deref(), Some("vendor/model"));
+        assert_eq!(info.base_url.as_deref(), Some("https://relay.example/v1"));
+        assert_eq!(info.protocol.as_deref(), Some("openai-responses"));
+        assert_eq!(fs::read_to_string(&config).unwrap(), original);
+
+        let no_env = read_codex_at(root.path(), |_| None).unwrap();
+        assert!(no_env.api_key.is_none());
+
+        fs::write(
+            &config,
+            original.replace("env_key = \"FIXTURE_RELAY_KEY\"\n", ""),
+        )
+        .unwrap();
+        let inline = read_codex_at(root.path(), |_| None).unwrap();
+        assert_eq!(inline.api_key.as_deref(), Some("inline-key"));
+
+        let (without_credentials, _) = original.rsplit_once("env_key").unwrap();
+        fs::write(&config, without_credentials).unwrap();
+        assert!(read_codex_at(root.path(), |_| None)
+            .unwrap()
+            .api_key
+            .is_none());
+        fs::write(
+            &config,
+            format!("{without_credentials}requires_openai_auth = true\n"),
+        )
+        .unwrap();
+        assert_eq!(
+            read_codex_at(root.path(), |_| None)
+                .unwrap()
+                .api_key
+                .as_deref(),
+            Some("unrelated-key"),
+        );
+        fs::write(
+            &config,
+            format!("{without_credentials}requires_openai_auth = true\ngateway_oauth = {{}}\n"),
+        )
+        .unwrap();
+        assert!(read_codex_at(root.path(), |_| None)
+            .unwrap()
+            .api_key
+            .is_none());
+    }
 
     fn publish_codex_files(
         codex_dir: &Path,

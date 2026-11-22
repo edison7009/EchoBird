@@ -19,7 +19,7 @@ import {
   type DesktopIconProps,
 } from '../../components/DesktopToolIcon';
 import { isSmartRouterId, SMART_ROUTER_SWITCH_TOOLS } from '../../utils/smartRouter';
-import { isDirectModelAllowedForTool } from '../../utils/directModelPolicy';
+import { directModelProtocol } from '../../utils/directModelPolicy';
 import { CursorAccountSection } from './CursorAccountSection';
 import { AntigravityAccountSection } from './AntigravityAccountSection';
 import {
@@ -710,20 +710,6 @@ interface ModelListSectionProps {
   t: (key: TKey) => string;
 }
 
-function isModelCompatibleWithTool(
-  model: ModelConfig,
-  toolProtocols: string[],
-  selectedTool: string | null
-): boolean {
-  if (!isDirectModelAllowedForTool(model, selectedTool)) return false;
-  const requiresResponses = selectedTool === 'codex' || selectedTool === 'chatgptdesktop';
-  if (requiresResponses && model.internalId === 'local-server') return false;
-
-  const hasOpenAI = toolProtocols.includes('openai') && !!model.baseUrl;
-  const hasAnthropic = toolProtocols.includes('anthropic') && !!model.anthropicUrl;
-  return hasOpenAI || hasAnthropic;
-}
-
 export const ModelListSection: React.FC<ModelListSectionProps> = ({
   smartRouterEnabled = true,
   selectedToolData,
@@ -747,7 +733,7 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
   const { smartRouterModels, localModels, cloudModels } = useMemo(() => {
     const compatible = userModels.filter(
       (model) =>
-        isModelCompatibleWithTool(model, toolProtocols, selectedTool) &&
+        directModelProtocol(model, selectedTool, toolProtocols) &&
         (!isSmartRouterId(model.internalId) || smartRouterEnabled)
     );
     return {
@@ -761,21 +747,8 @@ export const ModelListSection: React.FC<ModelListSectionProps> = ({
 
   const renderModelCard = (model: (typeof userModels)[0], badge?: 'smart' | 'local') => {
     const isSelected = selectedTool ? toolModelConfig[selectedTool] === model.internalId : false;
-    const modelHasBoth = !!(model.baseUrl && model.anthropicUrl);
-    // Use the same default as applyModelConfig: a model with one URL uses that
-    // URL's protocol; a model with both URLs follows the tool's first protocol.
-    const currentProtocol = modelHasBoth
-      ? toolProtocols[0] === 'anthropic'
-        ? 'anthropic'
-        : 'openai'
-      : model.anthropicUrl
-        ? 'anthropic'
-        : 'openai';
-
-    const displayUrl =
-      currentProtocol === 'anthropic'
-        ? model.anthropicUrl || model.baseUrl
-        : model.baseUrl || model.anthropicUrl;
+    const currentProtocol = directModelProtocol(model, selectedTool, toolProtocols);
+    const displayUrl = currentProtocol === 'anthropic' ? model.anthropicUrl : model.baseUrl;
     const apiPath = (() => {
       try {
         const url = new URL(displayUrl || '');
@@ -1128,7 +1101,7 @@ export const AppManagerPanel: React.FC = () => {
   const selectedToolProtocols = selectedToolData?.apiProtocol || ['openai', 'anthropic'];
   const hasVisibleModels = userModels.some(
     (model) =>
-      isModelCompatibleWithTool(model, selectedToolProtocols, selectedTool) &&
+      directModelProtocol(model, selectedTool, selectedToolProtocols) &&
       (!isSmartRouterId(model.internalId) || smartRouterEnabled)
   );
 

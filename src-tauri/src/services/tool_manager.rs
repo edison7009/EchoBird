@@ -2146,6 +2146,17 @@ pub fn merge_override_seed(
     }
 }
 
+/// Catalog entries with a model configuration surface, as in the app desktop.
+pub(super) fn model_config_tools() -> Vec<ToolDefinition> {
+    get_definitions()
+        .iter()
+        .filter(|def| {
+            !def.paths_config.no_model_config && !def.paths_config.api_protocol.is_empty()
+        })
+        .cloned()
+        .collect()
+}
+
 pub(crate) fn model_config_paths() -> (Vec<PathBuf>, Vec<String>) {
     let mut paths = Vec::new();
     let mut errors = Vec::new();

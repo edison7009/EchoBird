@@ -114,11 +114,16 @@ fn apply_at(path: &Path, info: &ModelInfo) -> Result<(), String> {
     for field in ["key_cmd", "key_env", "api_key_env"] {
         route.remove(yaml_str(field));
     }
+    let api_mode = if info.protocol.as_deref() == Some("openai-responses") {
+        "codex_responses"
+    } else {
+        "chat_completions"
+    };
     for (field, value) in [
         ("name", PROVIDER),
         ("base_url", endpoint),
         ("api_key", key),
-        ("api_mode", "chat_completions"),
+        ("api_mode", api_mode),
     ] {
         route.insert(yaml_str(field), yaml_str(value));
     }
@@ -182,6 +187,15 @@ pub(super) fn apply(info: &ModelInfo) -> ApplyResult {
 }
 
 fn read_at(path: &Path) -> Option<ModelInfo> {
+    read_model_at(path, false)
+}
+
+pub(super) fn read_for_import() -> Option<ModelInfo> {
+    let _guard = CONFIG_LOCK.lock().ok()?;
+    read_model_at(&config_path(), true)
+}
+
+fn read_model_at(path: &Path, for_import: bool) -> Option<ModelInfo> {
     let document = load(path).ok()?;
     let selected = document.get("model")?;
     let model = selected.as_str().or_else(|| {
@@ -199,6 +213,15 @@ fn read_at(path: &Path) -> Option<ModelInfo> {
     if model.is_empty() {
         return None;
     }
+    let api_key = if for_import {
+        selected
+            .get("api_key")
+            .or_else(|| route?.get("api_key"))
+            .and_then(Value::as_str)
+            .map(str::to_owned)
+    } else {
+        None
+    };
     Some(ModelInfo {
         name: Some(model.into()),
         model: Some(model.into()),
@@ -209,11 +232,12 @@ fn read_at(path: &Path) -> Option<ModelInfo> {
             .and_then(Value::as_str)
         {
             Some("anthropic_messages") => Some("anthropic".into()),
+            Some("codex_responses") if for_import => Some("openai-responses".into()),
             Some("chat_completions" | "codex_responses") => Some("openai".into()),
             _ if provider == Some("openai-api") => Some("openai".into()),
             _ => None,
         },
-        api_key: None,
+        api_key,
         anthropic_url: None,
         display_model: None,
         relay_mode: None,

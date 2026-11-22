@@ -80,6 +80,7 @@ export interface ModelConfig {
   apiKey: string;
   accountSource?: AccountSource;
   anthropicUrl?: string;
+  openaiResponses?: boolean;
   modelType?: 'CLOUD' | 'LOCAL' | 'TUNNEL' | 'DEMO';
   openaiTested?: boolean;
   anthropicTested?: boolean;

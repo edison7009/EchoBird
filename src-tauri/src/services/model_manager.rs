@@ -328,6 +328,7 @@ fn models_from_user(models: Vec<ModelConfig>) -> Vec<ModelConfig> {
             name: server_info.model_name.clone(),
             model_id: Some(server_info.model_name.clone()),
             base_url: format!("http://127.0.0.1:{}/v1", server_info.port),
+            openai_responses: None,
             api_key: server_info.api_key.clone(),
             account_source: None,
             anthropic_url: Some(format!("http://127.0.0.1:{}/anthropic", server_info.port)),
@@ -388,6 +389,8 @@ pub struct AddModelInput {
     #[serde(default)]
     pub anthropic_url: Option<String>,
     #[serde(default)]
+    pub openai_responses: Option<bool>,
+    #[serde(default)]
     pub api_key: Option<String>,
     #[serde(default)]
     pub account_source: Option<crate::models::model::AccountSource>,
@@ -401,7 +404,7 @@ pub fn add_model(input: AddModelInput) -> Result<ModelConfig, String> {
     add_model_at(&models_config_path(), input)
 }
 
-/// Import never replaces an existing model, including a model in another scope.
+/// Import adds to the model library without overwriting an existing entry.
 pub(crate) fn import_model(input: AddModelInput) -> Result<bool, String> {
     import_model_at(&models_config_path(), input)
 }
@@ -420,13 +423,26 @@ fn import_model_at_with(
         return Err("Missing API credential".into());
     }
     super::json_store::mutate(path, |models: &mut Vec<ModelConfig>| {
+        fn normalize(endpoint: &str) -> &str {
+            endpoint.trim().trim_end_matches('/')
+        }
+        let base = normalize(input.base_url.as_deref().unwrap_or_default());
+        let anthropic = normalize(input.anthropic_url.as_deref().unwrap_or_default());
+        let model_id = input.model_id.as_deref().unwrap_or_default().trim();
         for model in models.iter().filter(|model| model.account_source.is_none()) {
-            let saved = super::secret_store::decrypt(&model.api_key)?;
-            if saved.trim() == key {
+            if model.scope == input.scope
+                && model.model_id.as_deref().unwrap_or_default().trim() == model_id
+                && normalize(&model.base_url) == base
+                && normalize(model.anthropic_url.as_deref().unwrap_or_default()) == anthropic
+                && model.openai_responses.unwrap_or(false)
+                    == input.openai_responses.unwrap_or(false)
+                && super::secret_store::decrypt(&model.api_key)?.trim() == key
+            {
                 return Ok((false, false));
             }
         }
-        let mut model = new_model_from(input.clone(), generate_internal_id());
+        let id = format!("m-{}", uuid::Uuid::new_v4().simple());
+        let mut model = new_model_from(input.clone(), id);
         model.api_key = protect(key)?;
         models.push(model);
         Ok((true, true))
@@ -447,13 +463,15 @@ fn new_model_from(input: AddModelInput, internal_id: String) -> ModelConfig {
     } else {
         input.base_url.unwrap_or_default()
     };
-    let auto_type = detect_model_type(&base_url);
+    let auto_type = detect_model_type(&base_url)
+        .or_else(|| detect_model_type(input.anthropic_url.as_deref().unwrap_or_default()));
     ModelConfig {
         internal_id,
         router_icon: None,
         name: input.name.unwrap_or_default(),
         model_id: input.model_id,
         base_url,
+        openai_responses: input.openai_responses,
         api_key: if input.account_source.is_some() {
             String::new()
         } else {
@@ -567,6 +585,9 @@ fn apply_model_updates(model: &mut ModelConfig, updates: UpdateModelInput) {
         model.name = name;
     }
     if let Some(url) = &updates.base_url {
+        if model.base_url.trim_end_matches('/') != url.trim_end_matches('/') {
+            model.openai_responses = None;
+        }
         model.base_url = url.clone();
         model.model_type = detect_model_type(url);
     }
@@ -1344,6 +1365,7 @@ mod tests {
         let mut model = new_model_from(
             AddModelInput {
                 base_url: Some("https://api.example/v1".into()),
+                openai_responses: None,
                 api_key: Some("old-api-key".into()),
                 anthropic_url: Some("https://api.example/anthropic".into()),
                 model_id: Some("old-model".into()),
@@ -1379,6 +1401,7 @@ mod tests {
             name: id.to_string(),
             model_id: None,
             base_url: String::new(),
+            openai_responses: None,
             api_key: String::new(),
             account_source: None,
             anthropic_url: None,

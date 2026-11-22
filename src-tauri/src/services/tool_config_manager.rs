@@ -452,6 +452,9 @@ pub async fn apply_model_to_tool(tool_id: &str, model_info: ModelInfo) -> ApplyR
 /// the tool itself regenerates a fresh, vendor-default config on next launch.
 /// Used by the App Desktop "restore to official" flow.
 pub async fn restore_tool_to_official(tool_id: &str) -> ApplyResult {
+    if tool_id == "openclaw" {
+        return openclaw::restore();
+    }
     if tool_id == "hermes" {
         return ApplyResult {
             success: false,
@@ -578,7 +581,7 @@ pub async fn restore_tool_to_official(tool_id: &str) -> ApplyResult {
         return restore_dsh_to_official();
     }
 
-    // Side-channel relay file (openclaw and other "custom" tools) —
+    // Side-channel relay file for "custom" tools —
     // best-effort cleanup, ignored if absent.
     let relay_path = echobird_dir().join(format!("{}.json", tool_id));
     if relay_path.exists() {
@@ -620,6 +623,18 @@ pub async fn restore_tool_to_official(tool_id: &str) -> ApplyResult {
 // ════════════════════════════════════════════════════════════════
 //  GET MODEL INFO �?main entry point
 // ════════════════════════════════════════════════════════════════
+
+pub(super) async fn read_tool_models_for_import(tool_id: &str) -> Vec<ModelInfo> {
+    match tool_id {
+        "claudecode" => claudecode::read_for_import().into_iter().collect(),
+        "claudedesktop" => claudedesktop::read_for_import(),
+        "openclaw" => openclaw::read_for_import().into_iter().collect(),
+        "openscience" => openscience::read_for_import().into_iter().collect(),
+        "hermes" => hermes::read_for_import().into_iter().collect(),
+        "dsh" => dsh::read_for_import().into_iter().collect(),
+        _ => get_tool_model_info(tool_id).await.into_iter().collect(),
+    }
+}
 
 pub async fn get_tool_model_info(tool_id: &str) -> Option<ModelInfo> {
     match tool_id {

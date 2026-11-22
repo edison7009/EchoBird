@@ -83,6 +83,8 @@ pub struct ModelConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model_id: Option<String>,
     pub base_url: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub openai_responses: Option<bool>,
     #[serde(default)]
     pub api_key: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -143,6 +145,7 @@ mod tests {
             name: "Router Model".to_string(),
             model_id: Some("model-id".to_string()),
             base_url: "https://example.com/v1".to_string(),
+            openai_responses: None,
             api_key: "key".to_string(),
             account_source: None,
             anthropic_url: None,

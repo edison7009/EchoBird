@@ -267,6 +267,51 @@ pub(crate) fn restore_with<T>(
     }
 }
 
+pub(super) fn read_for_import() -> Vec<ModelInfo> {
+    if let Some(models) = resolve_claudedesktop_paths()
+        .as_ref()
+        .and_then(read_native_gateway_models)
+    {
+        return models;
+    }
+    read_claudedesktop().into_iter().collect()
+}
+
+fn read_native_gateway_models(paths: &ClaudeDesktopLayout) -> Option<Vec<ModelInfo>> {
+    // Read the active gateway profile. A discovered model catalogue or a signed-in
+    // cloud gateway is not sufficient to reconstruct reusable API models.
+    let metadata = read_json_file(&paths.lib_dir.join("_meta.json"))?;
+    let id = metadata.get("appliedId")?.as_str()?;
+    if id.is_empty()
+        || !id
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
+    {
+        return None;
+    }
+    let profile = read_json_file(&paths.lib_dir.join(format!("{id}.json")))?;
+    if profile["inferenceProvider"] != "gateway" {
+        return None;
+    }
+    let base = profile["inferenceGatewayBaseUrl"].as_str()?;
+    let key = profile["inferenceGatewayApiKey"].as_str()?;
+    let list = profile["inferenceModels"].as_array()?;
+    Some(
+        list.iter()
+            .filter_map(|entry| {
+                let model = entry.as_str().or_else(|| entry["name"].as_str())?;
+                serde_json::from_value(json!({
+                    "model": model,
+                    "anthropicUrl": base.trim_end_matches('/').trim_end_matches("/v1"),
+                    "apiKey": key,
+                    "protocol": "anthropic"
+                }))
+                .ok()
+            })
+            .collect(),
+    )
+}
+
 pub(super) fn read_claudedesktop() -> Option<ModelInfo> {
     let relay = read_json_file(&echobird_dir().join("claudedesktop.json"))?;
     Some(ModelInfo {
@@ -289,6 +334,34 @@ mod tests {
     use super::*;
     use crate::services::smart_router::catalog::with_test_models;
     use crate::services::tool_config_manager::switching::{test_info, TestDir};
+
+    #[test]
+    fn imports_explicit_models_from_only_the_applied_gateway_profile() {
+        let root = tempfile::tempdir().unwrap();
+        let paths = claudedesktop_paths_at(root.path());
+        fs::create_dir_all(&paths.lib_dir).unwrap();
+        fs::write(
+            paths.lib_dir.join("_meta.json"),
+            br#"{"appliedId":"active"}"#,
+        )
+        .unwrap();
+        let active = paths.lib_dir.join("active.json");
+        let original = br#"{"inferenceProvider":"gateway","inferenceGatewayBaseUrl":"https://relay.example/v1","inferenceGatewayApiKey":"fixture","inferenceModels":["model-one",{"name":"model-two"}]}"#;
+        fs::write(&active, original).unwrap();
+        fs::write(paths.lib_dir.join("other.json"), b"unused").unwrap();
+        let models = read_native_gateway_models(&paths).unwrap();
+        assert_eq!(
+            models
+                .iter()
+                .filter_map(|model| model.model.as_deref())
+                .collect::<Vec<_>>(),
+            ["model-one", "model-two"]
+        );
+        assert!(models
+            .iter()
+            .all(|model| model.anthropic_url.as_deref() == Some("https://relay.example")));
+        assert_eq!(fs::read(&active).unwrap(), original);
+    }
 
     #[tokio::test]
     #[ignore = "explicitly stops an installed, running Claude Desktop without configuration writes"]

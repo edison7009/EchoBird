@@ -240,6 +240,10 @@ pub(super) fn apply_openscience(model_info: &ModelInfo) -> ApplyResult {
     }
 }
 
+pub(super) fn read_for_import() -> Option<ModelInfo> {
+    super::opencode::read_opencode_native_config(&openscience_config_path())
+}
+
 pub(super) fn read_openscience() -> Option<ModelInfo> {
     let config = read_jsonc_file(&openscience_config_path())?;
     let selected = config.get("model")?.as_str()?;

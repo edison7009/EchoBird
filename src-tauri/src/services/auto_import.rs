@@ -49,8 +49,9 @@ pub async fn run(channel: Channel<Progress>) -> Result<Progress, String> {
         return Err("Import already running".into());
     }
     let sources = sources::discover()?;
+    let model_tools = super::tool_manager::model_config_tools();
     let mut progress = Progress {
-        total: sources.len() + native::SOURCES.len(),
+        total: sources.len() + native::SOURCES.len() + model_tools.len(),
         ..Default::default()
     };
     for source in sources {
@@ -66,11 +67,7 @@ pub async fn run(channel: Channel<Progress>) -> Result<Progress, String> {
                 for document in read.documents {
                     let parsed = parse::parse(name, &document);
                     for model in parsed.models {
-                        match super::model_manager::import_model(model) {
-                            Ok(true) => progress.models += 1,
-                            Ok(false) => progress.duplicates += 1,
-                            Err(_) => issue(&mut progress, name, "saveFailed"),
-                        }
+                        save_model(&mut progress, name, model);
                     }
                     for account in parsed.accounts {
                         let result = match account {
@@ -121,12 +118,36 @@ pub async fn run(channel: Channel<Progress>) -> Result<Progress, String> {
             "[auto-import] stage=discovery elapsed_ms={}",
             discovery_started.elapsed().as_millis()
         );
+        let mut installed = std::collections::HashMap::new();
+        for tool in model_tools {
+            let id = tool.id.as_str();
+            progress.source = id.to_owned();
+            let _ = channel.send(progress.clone());
+            let found = super::tool_manager::any_tool_installed(&[id]);
+            if found {
+                for info in super::tool_config_manager::read_tool_models_for_import(id).await {
+                    match parse::native_model(&tool.paths_config.api_protocol, info) {
+                        Ok(Some(model)) => save_model(&mut progress, id, model),
+                        Ok(None) => {}
+                        Err(reason) => issue(&mut progress, id, reason),
+                    }
+                }
+            }
+            installed.insert(tool.id, found);
+            progress.completed += 1;
+            let _ = channel.send(progress.clone());
+        }
         for &(id, tools) in native::SOURCES {
             progress.source = id.into();
             let _ = channel.send(progress.clone());
             // An absent client is not a failed source, and its configuration is not read.
             let started = std::time::Instant::now();
-            let installed = super::tool_manager::any_tool_installed(tools);
+            let installed = tools.iter().any(|tool| {
+                installed
+                    .get(*tool)
+                    .copied()
+                    .unwrap_or_else(|| super::tool_manager::any_tool_installed(&[*tool]))
+            });
             log::info!(
                 "[auto-import] source={id} stage=detect installed={installed} elapsed_ms={}",
                 started.elapsed().as_millis()
@@ -148,6 +169,14 @@ pub async fn run(channel: Channel<Progress>) -> Result<Progress, String> {
     })
     .await?;
     Ok(progress)
+}
+
+fn save_model(progress: &mut Progress, source: &str, model: super::model_manager::AddModelInput) {
+    match super::model_manager::import_model(model) {
+        Ok(true) => progress.models += 1,
+        Ok(false) => progress.duplicates += 1,
+        Err(_) => issue(progress, source, "saveFailed"),
+    }
 }
 
 fn issue(progress: &mut Progress, source: &str, reason: &str) {

@@ -1927,6 +1927,14 @@ describe('VS Code API model workflow', () => {
         apiKey: 'fixture-key',
       },
       {
+        internalId: 'responses-fixture',
+        name: 'Responses Fixture',
+        modelId: 'responses-model',
+        baseUrl: 'https://example.test/responses/v1',
+        apiKey: 'fixture-key',
+        openaiResponses: true,
+      },
+      {
         internalId: 'anthropic-fixture',
         name: 'Anthropic Fixture',
         modelId: 'anthropic-model',
@@ -1991,11 +1999,24 @@ describe('VS Code API model workflow', () => {
   });
 
   it.each([
-    ['fixture', 'openai', 'https://example.test/v1', 'fixture-model'],
-    ['anthropic-fixture', 'anthropic', 'https://example.test/anthropic', 'anthropic-model'],
+    ['fixture', 'openai', 'https://example.test/v1', 'fixture-model', 'Fixture'],
+    [
+      'responses-fixture',
+      'openai-responses',
+      'https://example.test/responses/v1',
+      'responses-model',
+      'Responses Fixture',
+    ],
+    [
+      'anthropic-fixture',
+      'anthropic',
+      'https://example.test/anthropic',
+      'anthropic-model',
+      'Anthropic Fixture',
+    ],
   ])(
     'applies %s explicitly and updates only VS Code without launching',
-    async (id, protocol, baseUrl, model) => {
+    async (id, protocol, baseUrl, model, name) => {
       await mount();
       act(() => {
         context.handleSelectModel('vscode', id);
@@ -2007,7 +2028,7 @@ describe('VS Code API model workflow', () => {
       });
       expect(api.applyModelToTool).toHaveBeenCalledWith('vscode', {
         id,
-        name: id === 'fixture' ? 'Fixture' : 'Anthropic Fixture',
+        name,
         baseUrl,
         apiKey: 'fixture-key',
         model,

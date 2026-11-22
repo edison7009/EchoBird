@@ -6,7 +6,7 @@ import {
 import type { LocalTool } from '../../api/types';
 import { useSystemApplicationsStore } from '../../stores/systemApplicationsStore';
 import { isSmartRouterId } from '../../utils/smartRouter';
-import { isDirectModelAllowedForTool } from '../../utils/directModelPolicy';
+import { directModelProtocol } from '../../utils/directModelPolicy';
 import { accountError } from '../../utils/accountError';
 import { useApplicationLauncher } from '../../features/accounts/useApplicationLauncher';
 import { AccountDirectoryContext } from '../../features/accounts/context';
@@ -720,28 +720,15 @@ export const AppManagerProvider: React.FC<AppManagerProviderProps> = ({ children
       return false;
     }
 
-    if (!isDirectModelAllowedForTool(model, toolId)) return t('agent.directModelUnavailable');
-
     const toolData = detectedTools.find((t) => t.id === toolId);
-    const toolProtocols = toolData?.apiProtocol || ['openai'];
+    const selectedProtocol = directModelProtocol(
+      model,
+      toolId,
+      toolData?.apiProtocol ?? ['openai', 'anthropic']
+    );
+    if (!selectedProtocol) return t('agent.directModelUnavailable');
 
-    // Default to the protocol the model's URL actually speaks — NOT toolProtocols[0].
-    // For a single-URL model, defaulting to toolProtocols[0] would
-    // write an OpenAI-only model as @ai-sdk/anthropic against an OpenAI URL (or an
-    // Anthropic-only model as openai-compatible), 404-ing every call at runtime.
-    // Only a both-URL model falls back to toolProtocols[0].
-    const modelHasBoth = !!(model.baseUrl && model.anthropicUrl);
-    const defaultProtocol = modelHasBoth
-      ? toolProtocols[0] === 'anthropic'
-        ? 'anthropic'
-        : 'openai'
-      : model.anthropicUrl
-        ? 'anthropic'
-        : 'openai';
-    const selectedProtocol = defaultProtocol;
-
-    const useAnthropicUrl = selectedProtocol === 'anthropic' && model.anthropicUrl;
-    const apiUrl = useAnthropicUrl ? model.anthropicUrl! : model.baseUrl;
+    const apiUrl = selectedProtocol === 'anthropic' ? model.anthropicUrl! : model.baseUrl;
 
     // eslint-disable-next-line no-console
     console.debug(

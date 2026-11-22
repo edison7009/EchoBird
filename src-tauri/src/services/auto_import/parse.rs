@@ -1,4 +1,4 @@
-use super::super::model_manager::AddModelInput;
+use super::super::{model_manager::AddModelInput, tool_config_manager::ModelInfo};
 use serde_json::{json, Value};
 
 pub(super) enum Account {
@@ -286,6 +286,105 @@ fn visit(source: &str, value: &Value, parsed: &mut Parsed, depth: usize) {
     }
 }
 
+/// Convert the same readback used by the application desktop to a reusable model.
+pub(super) fn native_model(
+    protocols: &[String],
+    info: ModelInfo,
+) -> Result<Option<AddModelInput>, &'static str> {
+    let endpoint = |value: Option<String>| {
+        value
+            .map(|value| value.trim().trim_end_matches('/').to_owned())
+            .filter(|value| !value.is_empty())
+    };
+    let mut base = endpoint(info.base_url);
+    let mut anthropic = endpoint(info.anthropic_url);
+    if matches!(
+        info.protocol.as_deref(),
+        Some("anthropic" | "claude" | "anthropic-messages")
+    ) || (info.protocol.is_none() && protocols == ["anthropic"])
+    {
+        if anthropic.is_none() {
+            anthropic = base.take();
+        } else if base == anthropic {
+            base = None;
+        }
+    }
+    if base.is_none() && anthropic.is_none() {
+        return Ok(None);
+    }
+    for url in base.iter().chain(anthropic.iter()) {
+        validate_endpoint(url)?;
+    }
+    let key = info.api_key.as_deref().map(str::trim).unwrap_or_default();
+    if key.is_empty()
+        || key.chars().any(char::is_whitespace)
+        || key.starts_with(['$', '{', '!'])
+        || key.starts_with("enc:")
+        || key.starts_with("sk-ant-oat")
+        || key.starts_with("__sealed__:")
+        || matches!(
+            key,
+            "local"
+                | "local-no-auth"
+                | "no-key-required"
+                | "echobird-local-proxy"
+                | "PROXY_MANAGED"
+        )
+    {
+        return Err("unsupported");
+    }
+    let model = info
+        .model
+        .as_deref()
+        .map(str::trim)
+        .filter(|name| !name.is_empty())
+        .ok_or("invalidConfiguration")?;
+    Ok(Some(AddModelInput {
+        name: info
+            .name
+            .filter(|name| !name.trim().is_empty())
+            .or_else(|| Some(model.to_owned())),
+        base_url: base,
+        anthropic_url: anthropic,
+        api_key: Some(key.to_owned()),
+        model_id: Some(model.to_owned()),
+        openai_responses: (info.protocol.as_deref() == Some("openai-responses")).then_some(true),
+        ..Default::default()
+    }))
+}
+
+fn validate_endpoint(base: &str) -> Result<(), &'static str> {
+    let url = reqwest::Url::parse(base).map_err(|_| "invalidConfiguration")?;
+    if !matches!(url.scheme(), "http" | "https")
+        || url.host_str().is_none()
+        || !url.username().is_empty()
+        || url.password().is_some()
+    {
+        return Err("invalidConfiguration");
+    }
+    if url.host_str().is_some_and(|host| {
+        let host = host.trim_end_matches('.');
+        host.eq_ignore_ascii_case("localhost")
+            || host.ends_with(".localhost")
+            || host
+                .parse::<std::net::Ipv4Addr>()
+                .is_ok_and(|ip| ip.is_loopback() || ip.is_unspecified())
+            || host
+                .trim_matches(['[', ']'])
+                .parse::<std::net::Ipv6Addr>()
+                .is_ok_and(|ip| {
+                    ip.is_loopback()
+                        || ip.is_unspecified()
+                        || ip
+                            .to_ipv4_mapped()
+                            .is_some_and(|ip| ip.is_loopback() || ip.is_unspecified())
+                })
+    }) {
+        return Err("localProxy");
+    }
+    Ok(())
+}
+
 fn add_model(
     parsed: &mut Parsed,
     name: &str,
@@ -293,29 +392,18 @@ fn add_model(
     anthropic: Option<&str>,
     key: &str,
     model: Option<&str>,
+    openai_responses: bool,
 ) {
     let Some(base) = base else {
         parsed.issues.push("invalidConfiguration");
         return;
     };
-    let Ok(url) = reqwest::Url::parse(base) else {
-        parsed.issues.push("invalidConfiguration");
-        return;
-    };
-    if !matches!(url.scheme(), "http" | "https")
-        || url.host_str().is_none()
-        || !url.username().is_empty()
-        || url.password().is_some()
-    {
-        parsed.issues.push("invalidConfiguration");
-        return;
-    }
     // Importing a manager's gateway would make EchoBird depend on the source app.
-    if url.host_str().is_some_and(|host| {
-        matches!(host, "localhost" | "127.0.0.1" | "[::1]" | "::1") || host.ends_with(".localhost")
-    }) {
-        parsed.issues.push("localProxy");
-        return;
+    for endpoint in std::iter::once(base).chain(anthropic) {
+        if let Err(reason) = validate_endpoint(endpoint) {
+            parsed.issues.push(reason);
+            return;
+        }
     }
     if key.trim().is_empty() || key.starts_with('$') || key.starts_with("enc:") {
         parsed.issues.push("unsupported");
@@ -327,6 +415,7 @@ fn add_model(
         anthropic_url: anthropic.map(str::to_owned),
         api_key: Some(key.trim().to_owned()),
         model_id: model.map(str::to_owned),
+        openai_responses: openai_responses.then_some(true),
         ..Default::default()
     });
 }
@@ -348,7 +437,12 @@ fn add_key(
             return;
         }
     };
-    add_model(parsed, name, base, anthropic, key, model);
+    let openai_responses = protocol == Some("responses")
+        || (protocol.is_none()
+            && base.is_some()
+            && base == text(provider, &["responses"])
+            && text(provider, &["chat"]).is_none());
+    add_model(parsed, name, base, anthropic, key, model, openai_responses);
 }
 
 fn codex_config(value: &Value, config: &str, name: &str, parsed: &mut Parsed) {
@@ -383,7 +477,9 @@ fn codex_config(value: &Value, config: &str, name: &str, parsed: &mut Parsed) {
                 .and_then(toml_edit::Item::as_str)
                 .or(if id == active_provider { key } else { None });
             if let Some(key) = key {
-                add_model(parsed, name, base, None, key, model);
+                let responses =
+                    provider.get("wire_api").and_then(toml_edit::Item::as_str) != Some("chat");
+                add_model(parsed, name, base, None, key, model, responses);
             } else if provider.get("env_key").is_some() {
                 parsed.issues.push("unsupported");
             }
@@ -396,6 +492,7 @@ fn codex_config(value: &Value, config: &str, name: &str, parsed: &mut Parsed) {
             None,
             key,
             model,
+            true,
         );
     }
 }
@@ -510,6 +607,56 @@ mod tests {
     use super::*;
 
     #[test]
+    fn native_import_keeps_the_endpoint_protocol_and_ignores_non_reusable_credentials() {
+        let model = |url: &str, key: &str, protocol: &str| -> ModelInfo {
+            serde_json::from_value(json!({
+                "model": "vendor/model",
+                "baseUrl": url,
+                "apiKey": key,
+                "protocol": protocol
+            }))
+            .unwrap()
+        };
+        let endpoint = "https://relay.example";
+        let anthropic = native_model(&[], model(endpoint, "fixture", "anthropic"))
+            .unwrap()
+            .unwrap();
+        assert!(anthropic.base_url.is_none());
+        assert_eq!(anthropic.anthropic_url.as_deref(), Some(endpoint));
+        let responses = native_model(&[], model(endpoint, "fixture", "openai-responses"))
+            .unwrap()
+            .unwrap();
+        assert_eq!(responses.openai_responses, Some(true));
+        assert_eq!(responses.base_url.as_deref(), Some(endpoint));
+        assert!(responses.anthropic_url.is_none());
+
+        for key in [
+            "",
+            "$KEY",
+            "{env:KEY}",
+            "enc:v1:opaque",
+            "sk-ant-oat-fixture",
+            "__sealed__:v1:fixture",
+            "PROXY_MANAGED",
+        ] {
+            assert!(matches!(
+                native_model(&[], model(endpoint, key, "openai")),
+                Err("unsupported")
+            ));
+        }
+        for url in [
+            "http://localhost.:1818",
+            "http://127.0.0.2:1818",
+            "http://[::1]:1818",
+        ] {
+            assert!(matches!(
+                native_model(&[], model(url, "fixture", "openai")),
+                Err("localProxy")
+            ));
+        }
+    }
+
+    #[test]
     fn protocol_restricted_keys_keep_their_own_endpoints() {
         let parsed = parse(
             "magpie",
@@ -526,6 +673,7 @@ mod tests {
             Some("https://responses.example/v1")
         );
         assert_eq!(parsed.models[2].anthropic_url, None);
+        assert_eq!(parsed.models[2].openai_responses, Some(true));
     }
 
     #[test]
