@@ -22,6 +22,8 @@ use tokio_util::sync::CancellationToken;
 
 pub const BASE: &str = "https://api.commandcode.ai/provider/v1";
 const API: &str = "https://api.commandcode.ai";
+pub(super) const CREDITS_URL: &str = "https://api.commandcode.ai/alpha/billing/credits";
+const SUBSCRIPTIONS_URL: &str = "https://api.commandcode.ai/alpha/billing/subscriptions";
 const ORIGIN: &str = "https://commandcode.ai";
 static ACCOUNT_LOCK: Mutex<()> = Mutex::const_new(());
 #[derive(Clone, Serialize, Deserialize)]
@@ -133,9 +135,9 @@ fn client() -> Result<reqwest::Client, String> {
         .build()
         .map_err(|e| e.to_string())
 }
-async fn request(client: &reqwest::Client, path: &str, key: &str) -> Result<Value, String> {
+async fn request(client: &reqwest::Client, url: &str, key: &str) -> Result<Value, String> {
     let response = client
-        .get(format!("{API}{path}"))
+        .get(url)
         .bearer_auth(key)
         .send()
         .await
@@ -176,12 +178,22 @@ fn plan_name(id: &str) -> String {
     }
     id.into()
 }
+pub(super) fn remaining_credits(body: &Value) -> Option<f64> {
+    let credits = body.get("credits")?.as_object()?;
+    let mut amounts = ["monthlyCredits", "purchasedCredits", "freeCredits"]
+        .into_iter()
+        .filter_map(|key| credits.get(key).and_then(Value::as_f64));
+    let first = amounts.next()?;
+    let total = amounts.fold(first, |total, amount| total + amount);
+    total.is_finite().then_some(total)
+}
+
 async fn details(key: &str) -> Result<Account, String> {
     let client = client()?;
-    let user = request(&client, "/alpha/whoami", key).await?;
+    let user = request(&client, &format!("{API}/alpha/whoami"), key).await?;
     let (subscription, credits) = tokio::join!(
-        request(&client, "/alpha/billing/subscriptions", key),
-        request(&client, "/alpha/billing/credits", key)
+        request(&client, SUBSCRIPTIONS_URL, key),
+        request(&client, CREDITS_URL, key)
     );
     let subscription = subscription.ok();
     let credits = credits.ok();
@@ -206,17 +218,7 @@ async fn details(key: &str) -> Result<Account, String> {
                 .map(|_| "No plan")
         })
         .map(plan_name);
-    let remaining = credits
-        .as_ref()
-        .and_then(|c| c.get("credits"))
-        .filter(|c| c.is_object())
-        .and_then(|c| {
-            let values: Vec<f64> = ["monthlyCredits", "purchasedCredits", "freeCredits"]
-                .iter()
-                .filter_map(|k| c[k].as_f64())
-                .collect();
-            (!values.is_empty()).then(|| values.into_iter().sum())
-        });
+    let remaining = credits.as_ref().and_then(remaining_credits);
     let email = ["email", "userName", "id"]
         .iter()
         .find_map(|k| user["user"][k].as_str())
@@ -437,7 +439,7 @@ pub async fn poll(id: &str) -> Result<Option<Account>, String> {
 }
 pub async fn models(id: &str) -> Result<Vec<String>, String> {
     let key = credentials(id)?;
-    let value = request(&client()?, "/provider/v1/models", &key).await?;
+    let value = request(&client()?, &format!("{BASE}/models"), &key).await?;
     Ok(value["data"]
         .as_array()
         .into_iter()
@@ -464,7 +466,7 @@ pub(crate) async fn import_native() -> Result<Option<bool>, String> {
     if load()?.accounts.iter().any(|s| s.account.id == id) {
         return Ok(Some(false));
     }
-    let user = request(&client()?, "/alpha/whoami", key).await?;
+    let user = request(&client()?, &format!("{API}/alpha/whoami"), key).await?;
     let email = ["email", "userName", "id"]
         .iter()
         .find_map(|k| user["user"][k].as_str())

@@ -18,6 +18,7 @@ import {
   compactCountdown,
   formatQuotaPercent,
   primaryQuota,
+  quotaAmounts,
   quotaPercent,
   quotaPeriodKeys,
 } from '../../utils/modelUsage';
@@ -194,7 +195,7 @@ export const ModelCard = React.memo(
     dragHandle,
   }: ModelCardProps) => {
     const confirm = useConfirm();
-    const { t } = useI18n();
+    const { t, locale } = useI18n();
 
     const quotas = usageData?.quotas ?? [];
     const primary = usageData ? primaryQuota(usageData) : undefined;
@@ -364,6 +365,15 @@ export const ModelCard = React.memo(
         {/* Where the model is served from. */}
         {hostname && (
           <div className="truncate text-[11px] leading-4 text-cyber-text-muted">{hostname}</div>
+        )}
+
+        {primary?.amounts && (
+          <div
+            className="truncate text-[11px] leading-4 text-cyber-text-secondary tabular-nums"
+            aria-label={quotaAmounts(primary.amounts, locale, t)}
+          >
+            {quotaAmounts(primary.amounts, locale, t, true)}
+          </div>
         )}
 
         {/* The headline: what is left of the quota that runs out first, or the balance. */}

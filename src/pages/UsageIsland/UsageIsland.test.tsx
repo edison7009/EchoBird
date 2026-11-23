@@ -666,6 +666,27 @@ it('drops a click pin once the island follows hover', async () => {
   expect(shell().props['data-expanded']).toBe(false);
 });
 
+it('keeps the plan percentage and purchased balance in different lines', () => {
+  const [model] = modelSources(
+    [{ internalId: 'm', name: 'Cloud', modelId: 'm' } as ModelConfig],
+    {
+      m: {
+        quotas: [
+          { percentage: 25, resetAt: 1800000000000, period: 'monthly' },
+          { percentage: 0, resetAt: 0, balance: 12.5, balanceUnit: 'USD' },
+        ],
+      },
+    },
+    new Set(),
+    refreshModel,
+    (key) => key
+  );
+  expect(model.lines).toEqual([
+    expect.objectContaining({ value: '75%', percent: 75, resetAt: 1800000000 }),
+    expect.objectContaining({ value: '$12.50', percent: null, resetAt: null }),
+  ]);
+});
+
 it('keeps the scale of token balances', () => {
   const [model] = modelSources(
     [{ internalId: 'm', name: 'M', modelId: 'm' } as ModelConfig],

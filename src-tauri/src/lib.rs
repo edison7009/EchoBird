@@ -1086,6 +1086,8 @@ pub fn run() {
                 model_commands::has_volc_aksk,
                 model_commands::clear_volc_aksk,
                 model_commands::get_volc_aksk,
+                model_commands::has_zenmux_usage_key,
+                model_commands::save_zenmux_usage_key,
                 model_commands::get_zhipu_team_access,
                 model_commands::save_zhipu_team_access,
                 smart_router_commands::get_smart_router_config,

@@ -6,10 +6,26 @@ export const quotaPeriodKeys: Record<NonNullable<UsageQuota['period']>, TKey> = 
   daily: 'model.quota.daily',
   weekly: 'model.quota.weekly',
   monthly: 'model.quota.monthly',
+  billingCycle: 'model.quota.billingCycle',
+  session: 'model.quota.session',
 };
 
 export function balanceLabelKey(quota: UsageQuota): TKey {
   return quota.spent ? 'model.quota.used' : 'model.balance';
+}
+
+export function quotaAmounts(
+  amounts: NonNullable<UsageQuota['amounts']>,
+  locale: string,
+  t: (key: TKey) => string,
+  compact = false
+): string {
+  const number = new Intl.NumberFormat(locale, {
+    notation: compact && amounts.unit === 'Credits' ? 'compact' : 'standard',
+    maximumFractionDigits: 2,
+  });
+  const unit = amounts.unit === 'Credits' ? t('agent.credits') : amounts.unit;
+  return `${t('model.quota.used')} ${number.format(amounts.used)} · ${t('model.quota.remaining')} ${number.format(amounts.remaining)} ${unit}`;
 }
 
 export function quotaPercent(quota: UsageQuota): number | null {

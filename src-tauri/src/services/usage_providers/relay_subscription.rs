@@ -14,17 +14,12 @@
 //! and a site answering neither silently shows "暂无用量数据".
 
 use super::{
-    api_url, new_api, now_millis, parse_f64, parse_reset_time, ModelUsageData, QuotaPeriod,
-    UsageProvider, UsageQuota, UsageResult,
+    api_url, new_api, now_millis, parse_f64, parse_reset_time, share_read, ModelUsageData,
+    QuotaPeriod, UsageProvider, UsageQuota, UsageResult,
 };
 use chrono::TimeZone;
 use reqwest;
-use sha2::{Digest, Sha256};
-use std::collections::HashMap;
-use std::future::Future;
-use std::sync::{Arc, Mutex, OnceLock, PoisonError};
 use std::time::Duration;
-use tokio::sync::OnceCell;
 
 pub struct RelaySubscriptionProvider;
 
@@ -194,6 +189,7 @@ const VENDOR_DOMAINS: &[&str] = &[
     "nousresearch.com",
     "novita.ai",
     "ollama.com",
+    "commandcode.ai",
     "openai.com",
     "opencode.ai",
     "openrouter.ai",
@@ -249,36 +245,6 @@ fn is_vendor_api(base_url: &str) -> bool {
 
 /// The relay could not be reached at all, so no other query is worth waiting for.
 struct Unreachable;
-
-type SharedRead = Arc<OnceCell<UsageResult>>;
-
-/// Models on one key refresh together, and relays limit these queries per IP,
-/// so requests running at the same time share one read. Nothing outlives it:
-/// the next refresh always asks again.
-async fn share_read(
-    origin: &str,
-    api_key: &str,
-    read: impl Future<Output = UsageResult>,
-) -> UsageResult {
-    static READS: OnceLock<Mutex<HashMap<String, SharedRead>>> = OnceLock::new();
-    let reads = READS.get_or_init(Mutex::default);
-    let key = format!("{origin}\n{:x}", Sha256::digest(api_key.as_bytes()));
-    let shared = reads
-        .lock()
-        .unwrap_or_else(PoisonError::into_inner)
-        .entry(key.clone())
-        .or_default()
-        .clone();
-    let usage = shared.get_or_init(|| read).await.clone();
-    let mut reads = reads.lock().unwrap_or_else(PoisonError::into_inner);
-    if reads
-        .get(&key)
-        .is_some_and(|current| Arc::ptr_eq(current, &shared))
-    {
-        reads.remove(&key);
-    }
-    usage
-}
 
 impl RelaySubscriptionProvider {
     async fn query_compatible_usage(
@@ -382,6 +348,7 @@ impl RelaySubscriptionProvider {
             success: true,
             data: Some(ModelUsageData {
                 quotas: vec![UsageQuota {
+                    amounts: None,
                     period: None,
                     percentage: percentage.clamp(0.0, 100.0),
                     reset_at: 0,

@@ -732,6 +732,7 @@ async fn caller_cancellation_finishes_consumed_refresh_and_retains_native_lock_u
                         Some(&native),
                         &format!("{base}/settings"),
                         &format!("{base}/token"),
+                        None,
                     )
                     .await
                     .map(|_| ())

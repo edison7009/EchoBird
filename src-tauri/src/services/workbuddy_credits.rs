@@ -1,10 +1,12 @@
-use super::{authorized, client, response, success, text, Edition, Saved};
+use super::{authorized, client, response, success, text, Edition, EnterpriseUsage, Saved};
 use chrono::{Local, TimeZone};
 use serde_json::{json, Value};
 
+#[derive(Default)]
 pub(super) struct Quota {
     pub remaining: f64,
     pub total: f64,
+    pub enterprise_usage: Option<EnterpriseUsage>,
     pub expires_at: Option<i64>,
     pub base_remaining: Option<f64>,
     pub base_total: Option<f64>,
@@ -357,6 +359,7 @@ fn quota(items: &[Value], summary: Option<&Value>, now: i64, edition: Edition) -
         reward_next_expiry_at,
         addon_remaining: addon_values.map(|value| value.0),
         plan: subscription_plan(items, summary, now, edition),
+        enterprise_usage: None,
     }
 }
 fn category(item: &Value) -> Option<&'static str> {
@@ -569,9 +572,49 @@ async fn post(saved: &Saved, path: &str, body: Value) -> Result<Value, String> {
     Err("accountError.quota".into())
 }
 
+fn enterprise_quota(body: &Value) -> Option<Quota> {
+    let data = &body["data"];
+    let limit = number(data.get("limitNum").or_else(|| data.get("limit_num"))?)?;
+    let used = number(data.get("credit").or_else(|| data.get("used_num"))?)?;
+    if (limit < 0.0 && limit != -1.0) || used < 0.0 {
+        return None;
+    }
+    let unlimited = limit == -1.0;
+    let remaining = (limit - used).max(0.0);
+    let end = data
+        .get("cycleEndTime")
+        .or_else(|| data.get("cycle_end_time"));
+    // WorkBuddy CN's timestamps without an explicit offset are in Beijing time.
+    let reset_at = end
+        .and_then(Value::as_str)
+        .and_then(|value| chrono::NaiveDateTime::parse_from_str(value, "%Y-%m-%d %H:%M:%S%.f").ok())
+        .map(|date| date.and_utc().timestamp() - 8 * 3600)
+        .or_else(|| timestamp(end))
+        .filter(|value| *value > 0);
+    Some(Quota {
+        remaining,
+        total: limit.max(0.0),
+        enterprise_usage: Some(EnterpriseUsage { used, unlimited }),
+        expires_at: reset_at,
+        base_remaining: (!unlimited).then_some(remaining),
+        base_total: (!unlimited).then_some(limit),
+        base_reset_at: reset_at,
+        ..Quota::default()
+    })
+}
+
 pub(super) async fn fetch(saved: &Saved) -> Result<Quota, String> {
     let now = Local::now();
     if saved.summary.edition == Edition::Cn {
+        if text(&saved.session["account"], "enterpriseId").is_some() {
+            let body = post(
+                saved,
+                "/v2/billing/meter/get-enterprise-user-usage",
+                json!({}),
+            )
+            .await?;
+            return enterprise_quota(&body).ok_or_else(|| "accountError.quota".into());
+        }
         // Fetch package details alongside the billing summary for accurate balances.
         let summary_request = post(saved, "/billing/meter/get-user-resource-summary", json!({}));
         let paid_request = post(
@@ -633,6 +676,27 @@ pub(super) async fn fetch(saved: &Saved) -> Result<Quota, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn enterprise_quota_distinguishes_remaining_exhausted_unlimited_and_missing() {
+        let quota = enterprise_quota(&json!({"data": {
+            "limitNum": 50, "credit": 17.5, "cycleEndTime": "2027-01-01 08:00:00"
+        }}))
+        .unwrap();
+        assert_eq!(quota.base_remaining, Some(32.5));
+        assert_eq!(quota.base_total, Some(50.0));
+        assert_eq!(quota.base_reset_at, Some(1_798_761_600));
+        assert_eq!(quota.enterprise_usage.unwrap().used, 17.5);
+        let exhausted =
+            enterprise_quota(&json!({"data": {"limit_num": "0", "used_num": "10"}})).unwrap();
+        assert_eq!(exhausted.base_remaining, Some(0.0));
+        let unlimited =
+            enterprise_quota(&json!({"data": {"limit_num": -1, "used_num": 10}})).unwrap();
+        assert!(unlimited.enterprise_usage.unwrap().unlimited);
+        assert_eq!(unlimited.base_remaining, None);
+        assert_eq!(unlimited.base_total, None);
+        assert!(enterprise_quota(&json!({"data": {"limitNum": 10}})).is_none());
+    }
+
     #[test]
     fn base_and_reward_balances_keep_their_own_times() {
         let result = quota(

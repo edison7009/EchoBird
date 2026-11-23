@@ -387,7 +387,19 @@ export function accountCenterProviders(
         (account) => ({
           identity: account.name,
           plan: account.plan,
-          metrics: creditMetrics(account),
+          metrics: account.enterpriseUsage
+            ? [
+                account.enterpriseUsage.unlimited
+                  ? { label: t('agent.baseCredits'), value: '∞', resetAt: account.baseResetAt }
+                  : credits(
+                      t('agent.baseCredits'),
+                      account.baseRemaining,
+                      account.baseTotal,
+                      account.baseResetAt
+                    ),
+                credits(t('model.quota.used'), account.enterpriseUsage.used),
+              ]
+            : creditMetrics(account),
           ...(edition === 'workbuddy'
             ? {
                 claim: (onError) =>
@@ -809,7 +821,13 @@ export function accountCenterProviders(
       '/icons/tools/grok.svg',
       ['grok'],
       context.grokAccounts,
-      (account) => ({ identity: account.email, plan: account.plan, metrics: [] })
+      (account) => ({
+        identity: account.email,
+        plan: account.plan,
+        metrics: account.quota
+          ? [quota(account.quota.remainingPercent, account.quota.resetAt)]
+          : [],
+      })
     ),
     provider(
       'grokbot',

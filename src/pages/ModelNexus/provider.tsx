@@ -93,6 +93,20 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
     access: api.ZhipuTeamAccess | null;
   } | null>(null);
 
+  const [zenMuxUsageModal, setZenMuxUsageModal] = useState<{
+    modelId: string;
+    configured: boolean;
+  } | null>(null);
+
+  const openZenMuxUsageModal = async (modelId: string) => {
+    try {
+      const configured = await api.hasZenMuxUsageKey(modelId);
+      setZenMuxUsageModal({ modelId, configured });
+    } catch {
+      showToast('error', t('model.quota.accessFailed'));
+    }
+  };
+
   // Modal state
   const [showAddModelModal, setShowAddModelModal] = useState(false);
   const [modelModalDestination, setModelModalDestination] = useState<
@@ -297,11 +311,13 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
         });
         return next;
       });
-      const failed = models.filter(
-        (model, i) =>
+      const failed = models.filter((model, i) => {
+        const result = results[i];
+        return (
           revisions[i] === (usageAccessRevision.current[model.internalId] ?? 0) &&
-          !(results[i].status === 'fulfilled' && results[i].value.success && results[i].value.data)
-      );
+          (result.status === 'rejected' || Boolean(result.value.error))
+        );
+      });
       if (failed.length) {
         showToast(
           'error',
@@ -425,6 +441,17 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
     }
   };
 
+  const saveZenMuxUsage = async (modelId: string, key: string | null) => {
+    try {
+      await api.saveZenMuxUsageKey(modelId, key);
+      invalidateModelUsage(modelId);
+      setZenMuxUsageModal(null);
+      if (key) await refreshSingleUsage(modelId);
+    } catch {
+      showToast('error', t('model.quota.accessFailed'));
+    }
+  };
+
   return (
     <ModelNexusContext.Provider
       value={{
@@ -460,6 +487,7 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
         handleCardDelete,
         openAkskModal,
         openZhipuTeamModal,
+        openZenMuxUsageModal,
       }}
     >
       {children}
@@ -469,6 +497,19 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
           onSave={(ak, sk) => saveVolcAksk(volcAkSkModelId, ak, sk)}
           initialAk={volcAkSkInitial?.access_key ?? ''}
           initialSk={volcAkSkInitial?.secret_key ?? ''}
+        />
+      )}
+      {zenMuxUsageModal && (
+        <UsageAccessModal
+          key={zenMuxUsageModal.modelId}
+          management
+          onClose={() => setZenMuxUsageModal(null)}
+          onSave={(key) => saveZenMuxUsage(zenMuxUsageModal.modelId, key)}
+          onRemove={
+            zenMuxUsageModal.configured
+              ? () => saveZenMuxUsage(zenMuxUsageModal.modelId, null)
+              : undefined
+          }
         />
       )}
       {zhipuTeamModal && (
@@ -499,34 +540,52 @@ export function ModelNexusProvider({ children }: { children: React.ReactNode }) 
 
 // ===== Main Content (model card grid) =====
 
-// Two-field usage access configuration, mounted fresh for each model.
+// Usage access configuration, mounted fresh for each model.
 function UsageAccessModal({
   onClose,
   onSave,
   initialAk = '',
   initialSk = '',
   team = false,
+  management = false,
+  onRemove,
 }: {
   onClose: () => void;
   onSave: (accessKey: string, secretKey: string) => Promise<void>;
   initialAk?: string;
   initialSk?: string;
   team?: boolean;
+  management?: boolean;
+  onRemove?: () => Promise<void>;
 }) {
   const { t } = useI18n();
   const [ak, setAk] = useState(initialAk);
   const [sk, setSk] = useState(initialSk);
   const [saving, setSaving] = useState(false);
-  const valid = team ? Boolean(ak.trim()) === Boolean(sk.trim()) : Boolean(ak.trim() && sk.trim());
+  const valid = team
+    ? Boolean(ak.trim()) === Boolean(sk.trim())
+    : Boolean(ak.trim() && (management || sk.trim()));
   const accessUrl = team
     ? 'https://open.bigmodel.cn'
-    : 'https://console.volcengine.com/iam/keymanage';
+    : management
+      ? 'https://zenmux.ai/docs/api/platform/payg-balance.html'
+      : 'https://console.volcengine.com/iam/keymanage';
 
   const handleSave = async () => {
     if (!valid || saving) return;
     setSaving(true);
     try {
       await onSave(ak.trim(), sk.trim());
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRemove = async () => {
+    if (!onRemove || saving) return;
+    setSaving(true);
+    try {
+      await onRemove();
     } finally {
       setSaving(false);
     }
@@ -568,7 +627,9 @@ function UsageAccessModal({
         <div className="px-6 pt-5 pb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-cyber-text font-mono text-sm opacity-60">&gt;_</span>
-            <span className="text-base font-bold text-cyber-text">{t('model.accessKey')}</span>
+            <span className="text-base font-bold text-cyber-text">
+              {t(management ? 'model.quota.managementKey' : 'model.accessKey')}
+            </span>
           </div>
           <button
             onClick={onClose}
@@ -584,12 +645,15 @@ function UsageAccessModal({
             )}
             <div>
               <label className="block text-xs text-cyber-text-secondary mb-1">
-                {team ? 'Organization ID' : t('model.akSkAccessKey')}
+                {team
+                  ? 'Organization ID'
+                  : t(management ? 'model.quota.managementKey' : 'model.akSkAccessKey')}
               </label>
               <div className="relative">
                 <input
-                  type="text"
-                  placeholder={team ? 'Organization ID' : 'AK...'}
+                  type={management ? 'password' : 'text'}
+                  placeholder={team ? 'Organization ID' : management ? '' : 'AK...'}
+                  aria-label={management ? t('model.quota.managementKey') : undefined}
                   value={ak}
                   onChange={(e) => setAk(e.target.value)}
                   autoFocus
@@ -598,21 +662,23 @@ function UsageAccessModal({
                 {pasteButton(setAk)}
               </div>
             </div>
-            <div>
-              <label className="block text-xs text-cyber-text-secondary mb-1">
-                {team ? 'Project ID' : t('model.akSkSecretKey')}
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder={team ? 'Project ID' : 'SK...'}
-                  value={sk}
-                  onChange={(e) => setSk(e.target.value)}
-                  className={inputClass}
-                />
-                {pasteButton(setSk)}
+            {!management && (
+              <div>
+                <label className="block text-xs text-cyber-text-secondary mb-1">
+                  {team ? 'Project ID' : t('model.akSkSecretKey')}
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder={team ? 'Project ID' : 'SK...'}
+                    value={sk}
+                    onChange={(e) => setSk(e.target.value)}
+                    className={inputClass}
+                  />
+                  {pasteButton(setSk)}
+                </div>
               </div>
-            </div>
+            )}
           </div>
           <button
             type="button"
@@ -630,6 +696,16 @@ function UsageAccessModal({
           >
             {t('model.escCancel')}
           </button>
+          {onRemove && (
+            <button
+              type="button"
+              onClick={handleRemove}
+              disabled={saving}
+              className="flex-1 border-r border-cyber-border px-4 py-3 text-[14px] font-semibold text-cyber-text-secondary enabled:hover:bg-cyber-elevated"
+            >
+              {t('btn.delete')}
+            </button>
+          )}
           <button
             type="button"
             onClick={handleSave}

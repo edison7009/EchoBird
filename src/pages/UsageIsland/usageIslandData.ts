@@ -112,30 +112,28 @@ function accountLines(account: Pick<AccountCardData, 'metrics' | 'authorizationF
 }
 
 function modelLines(t: (key: TKey) => string, usage?: ModelUsageData) {
-  const balances = usage?.quotas.filter((quota) => quota.balance != null) ?? [];
-  if (balances.length)
-    return withLines(
-      balances.map((quota) => ({
-        ...unknownLine,
-        label: t(balanceLabelKey(quota)),
-        // The island hides balance labels, so a minus sign marks money already spent.
-        value: `${quota.spent && quota.balance! > 0 ? '-' : ''}${quota.balance!.toFixed(2)}${
-          TOKEN_SCALE.exec(quota.balanceUnit ?? '')?.[1] ?? ''
-        }`,
-      }))
-    );
-  const primary = usage && primaryQuota(usage);
-  if (!primary) return withLines([]);
-  const quotas = usage.quotas.filter((quota) => quota !== primary && quota.balance == null);
-  return withLines(
-    [primary, ...quotas].map((quota) => ({
+  if (!usage) return withLines([]);
+  const primary = primaryQuota(usage);
+  const windows = usage.quotas.filter((quota) => quota !== primary && quota.balance == null);
+  if (primary) windows.unshift(primary);
+  const balances = usage.quotas.filter((quota) => quota.balance != null);
+  return withLines([
+    ...windows.map((quota) => ({
       label: quota.period ? t(quotaPeriodKeys[quota.period]) : '',
       percent: quotaPercent(quota),
       value: formatQuotaPercent(quota),
       // Legacy quotas may carry placeholder reset times without a known period.
       resetAt: quota.period && quota.resetAt > 0 ? quota.resetAt / 1000 : null,
-    }))
-  );
+    })),
+    ...balances.map((quota) => ({
+      ...unknownLine,
+      label: t(balanceLabelKey(quota)),
+      // The island hides balance labels, so a minus sign marks money already spent.
+      value: `${quota.spent && quota.balance! > 0 ? '-' : ''}${windows.length && quota.balanceUnit === 'USD' ? '$' : ''}${quota.balance!.toFixed(2)}${
+        TOKEN_SCALE.exec(quota.balanceUnit ?? '')?.[1] ?? ''
+      }`,
+    })),
+  ]);
 }
 
 type DemoQuota = [label: string, percent: number, resetHours: number];

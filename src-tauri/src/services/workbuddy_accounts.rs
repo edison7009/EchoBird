@@ -79,6 +79,13 @@ impl Edition {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct EnterpriseUsage {
+    pub used: f64,
+    pub unlimited: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Account {
     pub id: String,
     pub name: String,
@@ -87,6 +94,8 @@ pub struct Account {
     pub plan: Option<String>,
     pub remaining: Option<f64>,
     pub total: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enterprise_usage: Option<EnterpriseUsage>,
     #[serde(default)]
     pub base_remaining: Option<f64>,
     #[serde(default)]
@@ -200,6 +209,7 @@ fn snapshot(edition: Edition, session: Value) -> Result<Saved, String> {
             plan: None,
             remaining: None,
             total: None,
+            enterprise_usage: None,
             base_remaining: None,
             base_total: None,
             base_reset_at: None,
@@ -725,8 +735,13 @@ async fn refresh_saved(saved: &mut Saved, sync_checkin_status: bool) -> Result<A
         }
         other => other?,
     };
-    saved.summary.remaining = Some(quota.remaining);
-    saved.summary.total = Some(quota.total);
+    let unlimited = quota
+        .enterprise_usage
+        .as_ref()
+        .is_some_and(|usage| usage.unlimited);
+    saved.summary.remaining = (!unlimited).then_some(quota.remaining);
+    saved.summary.total = (!unlimited).then_some(quota.total);
+    saved.summary.enterprise_usage = quota.enterprise_usage;
     saved.summary.base_remaining = quota.base_remaining;
     saved.summary.base_total = quota.base_total;
     saved.summary.base_reset_at = quota.base_reset_at;

@@ -57,6 +57,7 @@ fn parse_key_limit(body: &Value) -> Option<UsageQuota> {
     match window(reset) {
         Some((period, reset_at)) => UsageQuota::window(period, percentage, Some(reset_at)),
         None => percentage.is_finite().then(|| UsageQuota {
+            amounts: None,
             percentage: percentage.clamp(0.0, 100.0),
             reset_at: 0,
             period: None,

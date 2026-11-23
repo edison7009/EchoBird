@@ -110,7 +110,8 @@ export interface UsageQuota {
   // Used percentage. Period-based quotas are displayed as remaining allowance.
   percentage: number;
   resetAt: number;
-  period?: 'fiveHour' | 'daily' | 'weekly' | 'monthly';
+  period?: 'fiveHour' | 'daily' | 'weekly' | 'monthly' | 'billingCycle' | 'session';
+  amounts?: { used: number; remaining: number; unit: string };
   balance?: number;
   balanceUnit?: string;
   // The amount is what was spent, for keys that have no balance to report.
@@ -130,6 +131,14 @@ export interface UsageResult {
 
 export async function queryModelUsage(internalId: string): Promise<UsageResult> {
   return invoke('query_model_usage', { internalId });
+}
+
+export function hasZenMuxUsageKey(internalId: string): Promise<boolean> {
+  return invoke('has_zenmux_usage_key', { internalId });
+}
+
+export function saveZenMuxUsageKey(internalId: string, key: string | null): Promise<void> {
+  return invoke('save_zenmux_usage_key', { internalId, key });
 }
 
 export interface ZhipuTeamAccess {

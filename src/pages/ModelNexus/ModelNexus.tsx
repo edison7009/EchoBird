@@ -63,6 +63,15 @@ const isZhipuCnUrl = (baseUrl: string, anthropicUrl?: string | null) => {
   }
 };
 
+const isZenMuxUrl = (baseUrl: string, anthropicUrl?: string | null) => {
+  try {
+    const url = new URL(baseUrl || anthropicUrl || '');
+    return url.origin === 'https://zenmux.ai' && !url.username && !url.password;
+  } catch {
+    return false;
+  }
+};
+
 const isValidModelBaseUrl = (value: string) => {
   try {
     const url = new URL(value);
@@ -125,6 +134,7 @@ export function ModelNexusMain() {
     handleCardDelete,
     openAkskModal,
     openZhipuTeamModal,
+    openZenMuxUsageModal,
     refreshSingleUsage,
     refreshingUsageIds,
     volcAkSkMissingIds,
@@ -209,7 +219,9 @@ export function ModelNexusMain() {
             ? () => openAkskModal(model.internalId)
             : isZhipuCnUrl(model.baseUrl, model.anthropicUrl)
               ? () => openZhipuTeamModal(model.internalId)
-              : undefined
+              : isZenMuxUrl(model.baseUrl, model.anthropicUrl)
+                ? () => openZenMuxUsageModal(model.internalId)
+                : undefined
         }
         akSkMissing={volcAkSkMissingIds.has(model.internalId)}
       />

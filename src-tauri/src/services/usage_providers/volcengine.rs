@@ -323,6 +323,7 @@ fn parse_usage(raw: &serde_json::Value) -> Option<Vec<UsageQuota>> {
     for level in ["session", "weekly", "monthly"] {
         if let Some((percent, reset)) = best.get(level) {
             quotas.push(UsageQuota {
+                amounts: None,
                 period: Some(match level {
                     "session" => super::QuotaPeriod::FiveHour,
                     "weekly" => super::QuotaPeriod::Weekly,

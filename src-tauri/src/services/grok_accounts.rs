@@ -9,6 +9,7 @@ use std::{
 };
 
 pub(crate) mod proxy;
+mod quota;
 mod storage;
 
 static PENDING: OnceLock<Mutex<Option<Pending>>> = OnceLock::new();
@@ -23,6 +24,8 @@ pub struct Account {
     pub id: String,
     pub email: String,
     pub plan: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub quota: Option<quota::Quota>,
     pub active: bool,
 }
 #[derive(Clone, Serialize, Deserialize)]
@@ -91,6 +94,7 @@ fn summary(key: &str, auth: &Value, active: bool) -> Result<Account, String> {
         id,
         email,
         plan: None,
+        quota: None,
         active,
     })
 }
@@ -125,6 +129,7 @@ fn save_at(dir: &std::path::Path, key: &str, auth: &Value) -> Result<Account, St
     if path.exists() {
         let previous: Saved = super::cursor_auth::read(&path)?;
         a.plan = previous.summary.plan;
+        a.quota = previous.summary.quota;
     }
     let saved = Saved {
         summary: a.clone(),
@@ -295,6 +300,7 @@ pub async fn refresh(id: &str) -> Result<Account, String> {
             native.as_deref(),
             SETTINGS_URL,
             TOKEN_URL,
+            Some(quota::URL),
         )
         .await
     })
@@ -400,13 +406,14 @@ async fn refresh_at(
     settings_url: &str,
     token_url: &str,
 ) -> Result<Account, String> {
-    refresh_with_native(path, Some(native_path), settings_url, token_url).await
+    refresh_with_native(path, Some(native_path), settings_url, token_url, None).await
 }
 async fn refresh_with_native(
     path: &Path,
     native_path: Option<&Path>,
     settings_url: &str,
     token_url: &str,
+    quota_url: Option<&str>,
 ) -> Result<Account, String> {
     let mut session = proxy::Session::open(path, native_path).await?;
     let client = proxy::client()?;
@@ -431,10 +438,18 @@ async fn refresh_with_native(
         .map(str::trim)
         .filter(|plan| !plan.is_empty())
         .ok_or("accountError.format")?;
+    let quota = if let (Some(url), Some(key)) = (quota_url, session.saved.auth["key"].as_str()) {
+        quota::read(&client, url, key).await
+    } else {
+        None
+    };
     let _store = ACCOUNT_LOCK.lock().map_err(|_| "accountError.busy")?;
     let mut latest = proxy::current(path)?;
     if latest.auth != session.saved.auth {
         return Err("accountError.cancelled".into());
+    }
+    if quota.is_some() || latest.summary.plan.as_deref() != Some(plan) {
+        latest.summary.quota = quota;
     }
     latest.summary.plan = Some(plan.into());
     super::cursor_auth::write(path, &latest)?;

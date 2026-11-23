@@ -26,12 +26,14 @@ vi.mock('../../api/tauri', () => ({
       apiKey: 'test',
     },
   ]),
+  hasZenMuxUsageKey: vi.fn().mockResolvedValue(true),
+  saveZenMuxUsageKey: vi.fn().mockResolvedValue(undefined),
   getZhipuTeamAccess: vi.fn().mockResolvedValue(null),
   saveZhipuTeamAccess: vi.fn().mockResolvedValue(undefined),
   queryModelUsage: vi.fn().mockResolvedValue({ success: true, data: { quotas: [] } }),
 }));
 
-describe('Zhipu Team usage access', () => {
+describe('model usage access', () => {
   let renderer: ReactTestRenderer;
   let context: ReturnType<typeof useModelNexus>;
   function Harness() {
@@ -41,7 +43,7 @@ describe('Zhipu Team usage access', () => {
     });
     return null;
   }
-  async function open() {
+  async function open(kind: 'team' | 'management' = 'team') {
     await act(async () => {
       renderer = create(
         <ModelNexusProvider>
@@ -50,7 +52,8 @@ describe('Zhipu Team usage access', () => {
       );
     });
     await act(async () => {
-      await context.openZhipuTeamModal('glm');
+      if (kind === 'management') await context.openZenMuxUsageModal('glm');
+      else await context.openZhipuTeamModal('glm');
     });
   }
   const saveButton = () =>
@@ -60,6 +63,32 @@ describe('Zhipu Team usage access', () => {
   afterEach(() => {
     act(() => renderer?.unmount());
     vi.clearAllMocks();
+  });
+
+  it('masks the Management Key and stops querying after removal', async () => {
+    await open('management');
+    expect(api.queryModelUsage).not.toHaveBeenCalled();
+    const input = renderer.root.findByType('input');
+    expect(input.props.type).toBe('password');
+    expect(input.props.value).toBe('');
+    act(() => input.props.onChange({ target: { value: ' management-test ' } }));
+    await act(async () => {
+      await saveButton().props.onClick();
+    });
+    expect(api.saveZenMuxUsageKey).toHaveBeenCalledWith('glm', 'management-test');
+    expect(api.queryModelUsage).toHaveBeenCalledExactlyOnceWith('glm');
+    await act(async () => {
+      await context.openZenMuxUsageModal('glm');
+    });
+    const remove = renderer.root
+      .findAllByType('button')
+      .find((button) => button.children.includes('btn.delete'));
+    await act(async () => {
+      await remove!.props.onClick();
+    });
+    expect(api.saveZenMuxUsageKey).toHaveBeenLastCalledWith('glm', null);
+    expect(context.modelUsageData.glm).toBeUndefined();
+    expect(api.queryModelUsage).toHaveBeenCalledTimes(1);
   });
 
   it('requires both team IDs, saves separately from the model key, and can return to a personal plan', async () => {

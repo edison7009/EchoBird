@@ -523,6 +523,7 @@ export interface WorkBuddyAccount {
   plan: string | null;
   remaining: number | null;
   total: number | null;
+  enterpriseUsage?: { used: number; unlimited: boolean };
   baseRemaining?: number | null;
   baseTotal?: number | null;
   baseResetAt?: number | null;
@@ -616,6 +617,7 @@ export interface GrokAccount {
   id: string;
   email: string;
   plan: string | null;
+  quota?: { remainingPercent: number; resetAt?: number | null };
   active: boolean;
 }
 export interface GrokLogin {

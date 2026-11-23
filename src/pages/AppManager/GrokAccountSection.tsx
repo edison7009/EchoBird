@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAppManager } from './context';
 import { ModelSwitchDivider } from './ModelSwitchDivider';
+import { QuotaCountdown } from './QuotaCountdown';
 import {
   AccountSection,
   AccountSectionButton,
@@ -29,6 +30,14 @@ export const GrokAccountSection: React.FC<{ showDivider?: boolean }> = ({ showDi
               plan={account.plan}
               refreshing={grokAccounts.refreshing.has(account.id)}
               authorizationFailed={grokAccounts.authorizationFailedIds.has(account.id)}
+              secondary={
+                account.quota && (
+                  <span className="flex items-center gap-1 text-[11px] font-semibold tabular-nums">
+                    {Math.round(account.quota.remainingPercent)}%
+                    <QuotaCountdown resetAt={account.quota.resetAt} compact />
+                  </span>
+                )
+              }
               onSelect={() => grokAccounts.select(account.id)}
               onRefresh={() => void grokAccounts.refresh(account)}
               onDelete={() => void grokAccounts.remove(account)}

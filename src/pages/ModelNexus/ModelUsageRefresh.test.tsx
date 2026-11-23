@@ -240,6 +240,15 @@ describe('Model usage refresh and credential changes', () => {
     );
     expect(context.isRefreshingUsage).toBe(false);
   });
+  it('does not report an unconfigured usage source as a failed request', async () => {
+    await open();
+    vi.mocked(api.queryModelUsage).mockResolvedValueOnce({ success: false });
+    await act(async () => {
+      await context.refreshAllUsage();
+    });
+    expect(context.modelUsageData.model).toBeUndefined();
+    expect(showToast).not.toHaveBeenCalled();
+  });
   it('suppresses same-tick duplicate batches and ignores obsolete batch results', async () => {
     await open();
     let resolveOld!: (result: api.UsageResult) => void;

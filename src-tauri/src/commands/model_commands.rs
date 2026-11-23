@@ -54,6 +54,9 @@ pub async fn add_model(input: AddModelInput) -> Result<ModelConfig, String> {
 pub fn delete_model(internal_id: String) -> Result<bool, String> {
     let deleted = model_manager::delete_model(&internal_id)?;
     if deleted {
+        if let Err(error) = usage_providers::zenmux::save_access(&internal_id, None) {
+            log::warn!("Failed to clear deleted model's management access: {error}");
+        }
         if let Err(error) = usage_providers::zhipu_team::save_access(&internal_id, None) {
             log::warn!("Failed to clear deleted model's team access: {error}");
         }
@@ -218,6 +221,29 @@ pub fn save_zhipu_team_access(
         return Err("Model not found".to_string());
     }
     usage_providers::zhipu_team::save_access(&internal_id, access)
+}
+
+#[tauri::command]
+pub fn has_zenmux_usage_key(internal_id: String) -> Result<bool, String> {
+    usage_providers::zenmux::has_access(&internal_id)
+}
+
+#[tauri::command]
+pub fn save_zenmux_usage_key(internal_id: String, key: Option<String>) -> Result<(), String> {
+    let models = model_manager::get_models();
+    let model = models
+        .iter()
+        .find(|model| model.internal_id == internal_id)
+        .ok_or("Model not found")?;
+    let base_url = if model.base_url.is_empty() {
+        model.anthropic_url.as_deref().unwrap_or("")
+    } else {
+        &model.base_url
+    };
+    if !usage_providers::zenmux::supports(base_url) {
+        return Err("Management access requires an official ZenMux endpoint".into());
+    }
+    usage_providers::zenmux::save_access(&internal_id, key.as_deref())
 }
 
 #[cfg(test)]

@@ -106,6 +106,7 @@ pub(crate) fn parse_response(body: &Value) -> UsageResult {
             continue;
         }
         quotas.push(UsageQuota {
+            amounts: None,
             percentage: used.clamp(0.0, 100.0),
             reset_at: plausible_reset(
                 period,
@@ -130,7 +131,7 @@ pub(crate) fn parse_response(body: &Value) -> UsageResult {
         Some(QuotaPeriod::Daily) => 1,
         Some(QuotaPeriod::Weekly) => 2,
         Some(QuotaPeriod::Monthly) => 3,
-        None => 4,
+        _ => 4,
     });
     UsageResult::from_quotas(quotas)
 }

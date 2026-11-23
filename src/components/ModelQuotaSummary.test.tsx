@@ -4,7 +4,7 @@ import { ModelListCard } from './ModelListCard';
 import { ModelCard } from './cards/ModelCard';
 import type { ModelUsageData } from '../api/models';
 
-vi.mock('../hooks/useI18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
+vi.mock('../hooks/useI18n', () => ({ useI18n: () => ({ locale: 'en', t: (key: string) => key }) }));
 vi.mock('./ConfirmDialog', () => ({ useConfirm: () => async () => true }));
 
 describe('multi-window model quotas', () => {
@@ -58,6 +58,53 @@ describe('multi-window model quotas', () => {
     expect(onSelect).not.toHaveBeenCalled();
     act(() => renderer.unmount());
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('shows monetary balance alongside a plan and keeps the plan amount in its own unit', () => {
+    const plan: ModelUsageData = {
+      quotas: [
+        {
+          period: 'monthly',
+          percentage: 27.5,
+          resetAt: now + 86400_000,
+          amounts: { used: 27.5, remaining: 72.5, unit: 'USD' },
+        },
+        { percentage: 0, resetAt: 0, balance: 25, balanceUnit: 'USD' },
+      ],
+    };
+    act(() => {
+      renderer = create(
+        <>
+          <ModelCard id="test" name="Cloud" type="CLOUD" usageData={plan} />
+          <ModelListCard
+            model={{ internalId: 'test', name: 'Cloud', baseUrl: '', apiKey: '' }}
+            selection={null}
+            onSelect={vi.fn()}
+            usage={plan}
+            t={(key) => key}
+          />
+        </>
+      );
+    });
+    const text = JSON.stringify(renderer.toJSON());
+    expect(text).toContain('model.quota.used 27.5 · model.quota.remaining 72.5 USD');
+    expect(text).toContain('1mo 72.5% 1d0h · model.balance 25.00 USD');
+  });
+
+  it('preserves the balance unit in a compact model row with a single quota', () => {
+    act(() => {
+      renderer = create(
+        <ModelListCard
+          model={{ internalId: 'test', name: 'Cloud', baseUrl: '', apiKey: '' }}
+          selection={null}
+          onSelect={vi.fn()}
+          usage={{ quotas: [{ percentage: 0, resetAt: 0, balance: 12, balanceUnit: 'Credits' }] }}
+          t={(key) => key}
+        />
+      );
+    });
+    const summary = renderer.root.findByProps({ 'aria-label': 'model.balance 12.00 Credits' });
+    expect(summary.children).toContain('model.balance 12.00 Credits');
   });
 
   it('heads the card with the quota that runs out first and labels every bar', () => {
