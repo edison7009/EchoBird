@@ -1,6 +1,7 @@
 import { isSmartRouterId } from '../../utils/smartRouter';
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { ArrowDown, ArrowUp, Square } from 'lucide-react';
+import claudeCodeIcon from '../../../public/icons/tools/claude.svg?inline';
 import { RemoteModelSelector, type ModelOption } from '../../components/RemoteModelSelector';
 import { getModelIcon } from '../../components/cards/ModelCard';
 import { ChatBubble, ToolCallCard } from '../../components/chat';
@@ -513,11 +514,7 @@ export function MotherAgentMain() {
                 {
                   id: PARASITE_CLAUDE_ID,
                   name: 'Claude Code',
-                  // CLI-style blocky icon — deliberately different from
-                  // claudecode.svg (the Anthropic star logo used by the
-                  // claude-opus-* models) so the parasite engine row is
-                  // visually distinct from regular Claude models.
-                  icon: '/icons/tools/claude.svg',
+                  icon: claudeCodeIcon,
                   disabled: !parasiteAvailable.includes(PARASITE_CLAUDE_ID),
                   disabledLabel: t('status.notInstalled'),
                 },

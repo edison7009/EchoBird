@@ -16,13 +16,17 @@
 }
 
 .free-model-router-hub-bar {
+  --router-hub-name-width: 208px;
+  --router-hub-endpoint-width: 232px;
+  --router-hub-column-gap: 12px;
+
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, max-content) auto;
+  grid-template-columns: var(--router-hub-name-width) minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px 16px;
+  gap: 10px var(--router-hub-column-gap);
   width: 100%;
   min-height: 48px;
-  padding: 8px 10px 8px 12px;
+  padding: 8px 14px;
 }
 
 .free-model-router-switcher {
@@ -189,10 +193,10 @@
 }
 
 .free-model-router-hub-bar .free-model-router-endpoints {
+  display: grid;
   min-width: 0;
-  grid-template-columns: repeat(2, minmax(0, max-content));
-  justify-content: center;
-  column-gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, var(--router-hub-endpoint-width)));
+  gap: var(--router-hub-column-gap);
 }
 
 .free-model-route-list {
@@ -293,14 +297,7 @@
   }
 }
 
-.free-model-router-hub-bar .free-model-router-endpoints span:last-child {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-@container (max-width: 600px) {
+@container (max-width: 720px) {
   .free-model-router-hub-bar {
     grid-template-columns: minmax(0, 1fr) auto;
   }
@@ -308,12 +305,20 @@
   .free-model-router-hub-bar .free-model-router-endpoints {
     grid-column: 1 / -1;
     grid-row: 2;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .free-model-router-hub-bar > :last-child {
+  .free-model-router-hub-actions {
     grid-column: 2;
     grid-row: 1;
   }
+}
+
+.free-model-router-hub-bar .free-model-router-endpoints span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .free-model-route-path {
@@ -422,8 +427,8 @@
   color: color-mix(in srgb, rgb(var(--error-rgb)) 12%, rgb(var(--bg-surface-rgb)));
 }
 
-.free-model-route-node:hover {
-  background: rgb(var(--bg-elevated-rgb) / 0.7);
+.free-model-route-node:is(.is-empty, .is-paused):hover {
+  background-color: rgb(var(--bg-elevated-rgb) / 0.7);
 }
 
 .free-model-route-picker > div > button[aria-expanded] {

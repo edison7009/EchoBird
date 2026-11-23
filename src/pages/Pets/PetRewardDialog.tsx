@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { X } from 'lucide-react';
 import { createRewardAudio } from './petAudio';
 import { useI18n } from '../../hooks/useI18n';
 import { usePetsStore } from '../../stores/petsStore';
@@ -91,14 +90,6 @@ export default function PetRewardDialog({
         if (event.target === event.currentTarget) close();
       }}
     >
-      <button
-        type="button"
-        className="pet-reward-close close-button"
-        aria-label={t('btn.close')}
-        onClick={close}
-      >
-        <X size={18} />
-      </button>
       <RustSupplyCanvas
         phase={phase}
         selected={selected}

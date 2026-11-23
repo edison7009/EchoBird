@@ -18,7 +18,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { open as shellOpen } from '@tauri-apps/plugin-shell';
-import { AudioLines, Check, Copy, Languages, Keyboard, Mic, X } from 'lucide-react';
+import { AudioLines, Check, Copy, Languages, X } from 'lucide-react';
 import { useI18n } from '../../hooks/useI18n';
 import type { TKey } from '../../i18n';
 import type { VoiceChannel, VoiceConfig } from '../../api/voiceInput';
@@ -384,13 +384,10 @@ export function VoiceInputMain() {
             )}
           </DndContext>
         </div>
-        <section className="voice-card voice-microphone-card rounded-card">
-          <div className="voice-section-heading">
-            <h3>
-              <Mic size={18} />
-              {t('voice.microphone')}
-            </h3>
-          </div>
+        <section
+          className="voice-card voice-microphone-card rounded-card"
+          aria-label={t('voice.testMicrophone')}
+        >
           <div className="voice-mic-controls">
             <MiniSelect
               className="voice-device-select"
@@ -433,19 +430,12 @@ export function VoiceInputMain() {
             ))}
           </div>
         </section>
-        <section className="voice-card voice-shortcut-card rounded-card">
-          <div className="voice-section-heading">
-            <h3>
-              <Keyboard size={18} />
-              {t('voice.shortcut')}
-            </h3>
-          </div>
+        <section
+          className="voice-card voice-shortcut-card rounded-card"
+          aria-label={t('voice.shortcutMode')}
+        >
           <div className="voice-shortcut-controls">
-            <fieldset
-              aria-label={t('voice.shortcutMode')}
-              disabled={busy}
-              className="m-0 min-w-0 shrink-0 border-0 p-0"
-            >
+            <fieldset disabled={busy} className="m-0 min-w-0 shrink-0 border-0 p-0">
               <ViewModeTabs
                 value={config.hotkeyMode ?? 'hold'}
                 options={[

@@ -546,7 +546,7 @@ export function RouterGroups({
         aria-label={`${t('freeModels.router.edit')} ${router.name}`}
         disabled={busy}
         onClick={() => void edit(router.id)}
-        className={`hover:text-cyber-text ${list ? 'flex h-7 items-center justify-center' : 'flex h-7 w-7 items-center justify-center text-cyber-text-secondary'}`}
+        className={`flex h-7 w-7 items-center justify-center hover:text-cyber-text ${list ? '' : 'text-cyber-text-secondary'}`}
       >
         <SquarePen size={15} />
       </button>
@@ -557,7 +557,7 @@ export function RouterGroups({
         aria-label={`${t('freeModels.router.delete')} ${router.name}`}
         disabled={busy || routers.length <= 1}
         onClick={() => void remove(router)}
-        className={`hover:text-red-400 ${routers.length <= 1 ? 'opacity-30' : ''} ${list ? 'flex h-7 items-center justify-center' : 'flex h-7 w-7 items-center justify-center text-cyber-text-secondary'}`}
+        className={`flex h-7 w-7 items-center justify-center hover:text-red-400 ${routers.length <= 1 ? 'opacity-30' : ''} ${list ? '' : 'text-cyber-text-secondary'}`}
       >
         <Trash2 size={15} />
       </button>
@@ -565,7 +565,7 @@ export function RouterGroups({
     const details = (
       <>
         <div
-          className={`free-model-router-heading flex min-w-0 items-center gap-2 ${list ? 'justify-center' : 'free-model-router-card-heading'}`}
+          className={`free-model-router-heading flex min-w-0 items-center gap-2 ${list ? '' : 'free-model-router-card-heading'}`}
         >
           {list && (
             <span className="shrink-0 text-cyber-accent">
@@ -585,7 +585,7 @@ export function RouterGroups({
             </div>
           )}
         </div>
-        <div className={`free-model-router-endpoints gap-3 ${list ? 'grid grid-cols-2' : 'flex'}`}>
+        <div className={`free-model-router-endpoints${list ? '' : ' flex gap-3'}`}>
           {[
             ['OpenAI', router.baseUrl],
             ['Anthropic', router.baseUrl.replace(/\/v1\/?$/, '')],
@@ -647,7 +647,7 @@ export function RouterGroups({
         <div
           className={
             list
-              ? 'free-model-list-actions text-cyber-text-muted'
+              ? 'free-model-router-hub-actions flex items-center gap-2 text-cyber-text-muted'
               : 'free-model-router-card-actions flex items-center justify-between gap-3'
           }
           onClick={(e) => e.stopPropagation()}

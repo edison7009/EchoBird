@@ -663,6 +663,12 @@ it('changes model selection without clear advice or a legacy clear-chat listener
   });
   const selector = renderer!.root.findByType(RemoteModelSelector);
   expect(selector.props.showMenuIcons).toBe(true);
+  expect(selector.props.extras).toContainEqual(
+    expect.objectContaining({
+      id: 'claudecode',
+      icon: expect.stringMatching(/^data:image\/svg\+xml[;,]/),
+    })
+  );
   act(() => selector.props.onSelect('anthropic-model'));
   expect(state.setAgentModel).toHaveBeenCalledExactlyOnceWith('anthropic-model');
   expect(state.setParasiteAgent).toHaveBeenCalledExactlyOnceWith(null);

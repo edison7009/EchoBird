@@ -155,27 +155,6 @@
   border: 1px solid transparent;
   background: rgb(var(--bg-surface-rgb) / 0.6);
 }
-.voice-section-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  min-height: 32px;
-  margin-bottom: 15px;
-}
-.voice-section-heading h3 {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 16px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.voice-section-heading h3 > svg {
-  position: relative;
-  top: -1px;
-  flex-shrink: 0;
-}
 .voice-row {
   display: flex;
   align-items: center;
@@ -230,6 +209,10 @@
 .voice-device-select {
   flex: 1;
   min-width: 0;
+}
+.voice-device-select > button {
+  height: 38px;
+  padding-block: 0;
 }
 .voice-mic-test-label {
   display: grid;

@@ -142,8 +142,9 @@ it.each(['opening', 'choosing', 'revealing'])(
     if (phase !== 'opening') emit('onReady');
     if (phase === 'revealing') emit('onPick', 3);
     const callbacks = scene();
+    const element = {};
     act(() =>
-      view.root.findByProps({ className: 'pet-reward-close close-button' }).props.onClick()
+      view.root.findByType('dialog').props.onClick({ target: element, currentTarget: element })
     );
     act(() => {
       callbacks.onReady();
@@ -191,13 +192,17 @@ it('accepts compressed event timing for reduced motion with the same five-way ch
 it.each(['escape', 'background'])('%s closes without consuming the reward', (method) => {
   const close = vi.fn();
   render(sealed, close);
-  const d = view.root.findByType('dialog');
+  const dialog = view.root.findByType('dialog');
+  expect(dialog.findAllByProps({ 'aria-label': 'btn.close' })).toHaveLength(0);
   const preventDefault = vi.fn();
   const element = {};
+  act(() => dialog.props.onClick({ target: {}, currentTarget: element }));
+  expect(close).not.toHaveBeenCalled();
+
   act(() =>
     method === 'escape'
-      ? d.props.onCancel({ preventDefault })
-      : d.props.onClick({ target: element, currentTarget: element })
+      ? dialog.props.onCancel({ preventDefault })
+      : dialog.props.onClick({ target: element, currentTarget: element })
   );
   expect(close).toHaveBeenCalledOnce();
   expect(pets.getState().rewards.pending).toEqual(sealed);

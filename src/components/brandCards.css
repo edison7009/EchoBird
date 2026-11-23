@@ -661,15 +661,15 @@ button.brand-deck-card:disabled:hover {
   background-color: rgb(var(--bg-surface-rgb));
   background-image: linear-gradient(
     135deg,
-    rgb(var(--bg-surface-rgb)) 30%,
-    color-mix(in srgb, var(--brand) var(--brand-tint), rgb(var(--bg-surface-rgb))) 100%
+    transparent 30%,
+    color-mix(in srgb, var(--brand) var(--brand-tint), transparent) 100%
   );
-  box-shadow:
-    inset 0 0 0 1px rgb(255 255 255 / 0.04),
-    inset 0 1px 0 rgb(255 255 255 / 0.05);
 }
 :root[data-theme='light'] .brand-slot.is-filled {
   --brand-tint: 14%;
+}
+.brand-slot.is-filled:not(.is-paused, .is-dragging):hover {
+  background-color: color-mix(in srgb, rgb(var(--text-primary-rgb)) 5%, rgb(var(--bg-surface-rgb)));
 }
 .brand-slot.is-empty {
   background: transparent;

@@ -125,17 +125,17 @@ export function RouterTerminal() {
           />
         </div>
       </div>
-      {(settingError || saveError) && (
-        <p role="alert" className="text-xs text-red-400">
-          {t('settings.sensitiveInfoProtectionError')}
-        </p>
-      )}
-      {error && (
-        <p role="status" className="text-xs text-cyber-text-muted">
-          {t('error.requestFailed')}
-        </p>
-      )}
       <div className="router-terminal-screen">
+        {(settingError || saveError) && (
+          <p role="alert" className="text-xs text-red-400">
+            {t('settings.sensitiveInfoProtectionError')}
+          </p>
+        )}
+        {error && (
+          <p role="status" className="text-xs">
+            {t('error.requestFailed')}
+          </p>
+        )}
         <canvas ref={canvas} aria-label={t('freeModels.layout.terminal')} />
       </div>
     </div>

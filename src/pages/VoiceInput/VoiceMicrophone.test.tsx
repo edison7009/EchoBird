@@ -315,6 +315,9 @@ describe('microphone card', () => {
     act(() => {
       renderer = create(<VoiceInputMain />);
     });
+    const microphone = renderer.root.findByProps({ 'aria-label': 'voice.testMicrophone' });
+    expect(microphone.findAllByType('h3')).toHaveLength(0);
+    expect(microphone.findByProps({ role: 'meter' })).toBeDefined();
     expect(button('voice.start')).toBeUndefined();
     expect(button('voice.stop')).toBeUndefined();
     expect(button('btn.cancel')).toBeUndefined();
@@ -380,13 +383,8 @@ describe('localized shortcut transitions', () => {
     expect(api.recordVoice).not.toHaveBeenCalled();
   });
 
-  const labels: Record<string, string> = {
-    'zh-Hans': '语音输入快捷键',
-    'zh-Hant': '語音輸入快捷鍵',
-    en: 'Voice input shortcut',
-    ja: '音声入力キー',
-  };
-  const cases = Object.keys(labels).flatMap((locale) =>
+  const locales = ['zh-Hans', 'zh-Hant', 'en', 'ja'];
+  const cases = locales.flatMap((locale) =>
     ['Win32', 'MacIntel', 'Linux x86_64'].map((platform) => ({ locale, platform }))
   );
   const surroundingContent = (node: ReactTestInstance | string): unknown => {
@@ -409,7 +407,7 @@ describe('localized shortcut transitions', () => {
     stopPropagation: vi.fn(),
   });
 
-  it.each(Object.keys(labels))(
+  it.each(locales)(
     'changes the shortcut mode independently and preserves it on save failure in %s',
     async (locale) => {
       await loadLocale(locale);
@@ -469,7 +467,7 @@ describe('localized shortcut transitions', () => {
     'preserves surrounding card content through capture, cancel and save in $locale on $platform',
     async ({ locale, platform }) => {
       await loadLocale(locale);
-      expect(translate('voice.shortcut', locale)).toBe(labels[locale]);
+      const label = translate('voice.shortcutMode', locale);
       localization.locale = locale;
       vi.stubGlobal('navigator', { platform });
       act(() => {
@@ -480,11 +478,10 @@ describe('localized shortcut transitions', () => {
       const control = () =>
         card().findByProps({ className: 'voice-shortcut-control' }).findAllByType('button')[0];
       const originalCard = card();
-      const originalLabel = card().findByType('h3');
       const originalContent = surroundingContent(originalCard);
       const stable = () => {
         expect(card()).toBe(originalCard);
-        expect(card().findByType('h3')).toBe(originalLabel);
+        expect(card().props['aria-label']).toBe(label);
         expect(surroundingContent(card())).toEqual(originalContent);
         expect(card().findAllByType('input')).toHaveLength(0);
       };
@@ -492,7 +489,8 @@ describe('localized shortcut transitions', () => {
         left: translate('voice.leftSide', locale),
         right: translate('voice.rightSide', locale),
       };
-      expect(originalLabel.children).toContain(translate('voice.shortcut', locale));
+      expect(originalCard.props['aria-label']).toBe(label);
+      expect(originalCard.findAllByType('h3')).toHaveLength(0);
       expect(
         originalCard.findByProps({ className: 'voice-shortcut-description' }).children
       ).toEqual([translate('voice.shortcutCaution', locale)]);
