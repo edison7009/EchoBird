@@ -936,14 +936,19 @@ describe('Mother Agent saved conversation workflow', () => {
     );
   });
 
-  it('sends independent session keys while preserving the selected server as the execution target', async () => {
+  it('sends independent session keys with the selected server and inherited context size', async () => {
     await mount();
     act(() => state.selectServer('remote'));
+    act(() => state.setContextSize(1048576));
     const firstId = state.activeConversationId;
     const firstKey = activeSession();
     await send('First prompt');
     expect(api.sendAgentMessage).toHaveBeenLastCalledWith(
-      expect.objectContaining({ conversation_id: firstKey, server_ids: ['remote'] })
+      expect.objectContaining({
+        conversation_id: firstKey,
+        server_ids: ['remote'],
+        context_size: 1048576,
+      })
     );
     expect(firstKey).not.toBe('remote');
     emitAgent({ type: 'text_delta', text: 'First reply', conversation_id: firstKey });
@@ -956,7 +961,11 @@ describe('Mother Agent saved conversation workflow', () => {
     emitAgent({ type: 'text_delta', text: 'Second reply', conversation_id: secondKey });
     emitAgent({ type: 'done', conversation_id: secondKey });
     expect(api.sendAgentMessage).toHaveBeenLastCalledWith(
-      expect.objectContaining({ conversation_id: secondKey, server_ids: ['remote'] })
+      expect.objectContaining({
+        conversation_id: secondKey,
+        server_ids: ['remote'],
+        context_size: 1048576,
+      })
     );
     act(() => state.selectConversation(firstId));
     expect(state.chatOutput.map((m) => 'text' in m && m.text)).toEqual([

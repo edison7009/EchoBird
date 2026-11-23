@@ -698,25 +698,52 @@ it('preserves unsaved messages when saving and subsequent deletion cleanup both 
   expect(state.messages).toEqual(latest);
 });
 
-it('persists the selected context window separately for each conversation and preserves legacy metadata', () => {
+it('uses the last manual context window for new sessions and keeps started sessions locked', async () => {
   mount();
   expect(state.activeConversation.contextSize).toBe(32768);
-  act(() => state.updateActiveConversation({ contextSize: 131072 }));
   const first = state.activeConversation.id;
+  act(() => {
+    state.setContextSize(1048576);
+    state.setMessages([{ role: 'user', content: 'First prompt' }]);
+    state.createConversation('local');
+  });
+  expect(state.activeConversation.contextSize).toBe(1048576);
+  act(() => state.setContextSize(32768));
+  act(() => state.selectConversation(first));
+  act(() => state.setContextSize(65536));
+  expect(state.activeConversation.contextSize).toBe(1048576);
+
+  unmount();
+  mount();
+  expect(state.activeConversation.contextSize).toBe(1048576);
   act(() => state.createConversation('local'));
   expect(state.activeConversation.contextSize).toBe(32768);
-  act(() => state.selectConversation(first));
+  act(() => state.setContextSize(131072));
+  act(() => state.selectServer('remote'));
   expect(state.activeConversation.contextSize).toBe(131072);
-  unmount();
-  mount();
+  const remote = state.activeConversation.id;
+  await act(async () => state.deleteConversation(remote));
+  expect(state.activeConversation.id).not.toBe(remote);
   expect(state.activeConversation.contextSize).toBe(131072);
-  unmount();
-  storage.clear();
-  const legacy = conversation('legacy-window', 'local', Date.now());
+});
+
+it('recovers a previous custom context window when an older index has no preference', () => {
+  const now = Date.now();
+  const legacy = conversation('legacy-window', 'local', now);
+  const customized = { ...conversation('custom', 'local', now - 1000), contextSize: 1048576 };
+  const draft = { ...conversation('draft', 'local', now), messages: [], contextSize: 32768 };
   storage.set(
     CONVERSATIONS_STORAGE_KEY,
-    JSON.stringify({ version: 1, activeConversationId: legacy.id, conversations: [legacy] })
+    JSON.stringify({
+      version: 1,
+      activeConversationId: draft.id,
+      conversations: [draft, legacy, customized],
+    })
   );
   mount();
-  expect(state.activeConversation.contextSize).toBeUndefined();
+  expect(state.activeConversation.contextSize).toBe(32768);
+  expect(state.conversations.find((c) => c.id === legacy.id)?.contextSize).toBeUndefined();
+  expect(setItem).not.toHaveBeenCalled();
+  act(() => state.createConversation('local'));
+  expect(state.activeConversation.contextSize).toBe(1048576);
 });

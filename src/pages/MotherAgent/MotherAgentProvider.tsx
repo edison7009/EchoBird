@@ -357,7 +357,7 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
     createConversation: createStoredConversation,
     selectConversation: selectStoredConversation,
     activeConversationId,
-    updateActiveConversation,
+    setContextSize: setStoredContextSize,
     deleteConversation: deleteStoredConversation,
     conversations,
   } = persistence;
@@ -396,11 +396,10 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
   const contextSize = activeConversation.contextSize;
   const setContextSize = useCallback(
     (size: number) => {
-      if (activeConversation.messages.length > 0 || activeConversation.contextSize === undefined)
-        return;
-      updateActiveConversation({ contextSize: size });
+      if (resettingRef.current || runningRef.current) return;
+      setStoredContextSize(size);
     },
-    [activeConversation, updateActiveConversation]
+    [setStoredContextSize]
   );
 
   const selectServer = useCallback(

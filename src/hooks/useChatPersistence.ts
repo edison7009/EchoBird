@@ -27,13 +27,29 @@ export interface ChatConversation<T> {
 interface ConversationState<T> {
   activeConversationId: string;
   conversations: ChatConversation<T>[];
+  defaultContextSize: number;
 }
 
 export const CONVERSATIONS_STORAGE_KEY = 'echobird:agent:conversations';
 export const conversationBodyKey = (id: string) => `echobird:agent:conversation:${id}`;
 const LEGACY_PREFIX = 'echobird:chat:agent_';
+const DEFAULT_CONTEXT_SIZE = 32768;
+export const CHAT_CONTEXT_OPTIONS = [
+  8192,
+  16384,
+  DEFAULT_CONTEXT_SIZE,
+  65536,
+  131072,
+  262144,
+  524288,
+  1048576,
+] as const;
 
-function newConversation<T>(serverId: string): ChatConversation<T> {
+function isContextSize(value: unknown): value is number {
+  return CHAT_CONTEXT_OPTIONS.some((option) => option === value);
+}
+
+function newConversation<T>(serverId: string, contextSize: number): ChatConversation<T> {
   const id = crypto.randomUUID();
   return {
     id,
@@ -44,7 +60,7 @@ function newConversation<T>(serverId: string): ChatConversation<T> {
     updatedAt: Date.now(),
     messages: [],
     userMessageCount: 0,
-    contextSize: 32768,
+    contextSize,
   };
 }
 
@@ -141,7 +157,24 @@ function loadConversations<T>(
           const active =
             conversations.find((c) => c.id === saved.activeConversationId) ??
             [...conversations].sort((a, b) => b.updatedAt - a.updatedAt)[0];
-          return { conversations, activeConversationId: active.id };
+          const savedDefaultContextSize: unknown = saved.defaultContextSize;
+          let defaultContextSize: number;
+          if (isContextSize(savedDefaultContextSize)) {
+            defaultContextSize = savedDefaultContextSize;
+          } else {
+            // Older indexes only recorded manual changes on the conversations themselves.
+            const latestCustom = conversations.reduce<ChatConversation<T> | undefined>(
+              (latest, conversation) =>
+                isContextSize(conversation.contextSize) &&
+                conversation.contextSize !== DEFAULT_CONTEXT_SIZE &&
+                conversation.updatedAt > (latest?.updatedAt ?? -Infinity)
+                  ? conversation
+                  : latest,
+              undefined
+            );
+            defaultContextSize = latestCustom?.contextSize ?? DEFAULT_CONTEXT_SIZE;
+          }
+          return { conversations, activeConversationId: active.id, defaultContextSize };
         }
       }
     }
@@ -186,10 +219,14 @@ function loadConversations<T>(
   }
   let active = conversations.find((c) => c.serverId === 'local');
   if (!active) {
-    active = newConversation<T>('local');
+    active = newConversation<T>('local', DEFAULT_CONTEXT_SIZE);
     conversations.push(active);
   }
-  return { conversations, activeConversationId: active.id };
+  return {
+    conversations,
+    activeConversationId: active.id,
+    defaultContextSize: DEFAULT_CONTEXT_SIZE,
+  };
 }
 
 export function useChatPersistence<T>({
@@ -233,6 +270,7 @@ export function useChatPersistence<T>({
           JSON.stringify({
             version: 2,
             activeConversationId: value.activeConversationId,
+            defaultContextSize: value.defaultContextSize,
             conversations: value.conversations.map((c) => ({
               id: c.id,
               serverId: c.serverId,
@@ -339,16 +377,19 @@ export function useChatPersistence<T>({
     [toDisk, update, countUserMessage]
   );
 
-  const updateActiveConversation = useCallback(
-    (patch: Partial<ChatConversation<T>>) => {
+  const setContextSize = useCallback(
+    (size: number) => {
+      if (!isContextSize(size)) return;
       const prev = stateRef.current;
       const active = prev.conversations.find((c) => c.id === prev.activeConversationId);
-      if (!active) return;
+      if (!active || active.contextSize === undefined || active.messages.length > 0) return;
+      if (size === active.contextSize && size === prev.defaultContextSize) return;
       update({
         ...prev,
+        defaultContextSize: size,
         conversations: prev.conversations.map((conversation) =>
           conversation.id === active.id
-            ? { ...conversation, ...patch, updatedAt: Date.now() }
+            ? { ...conversation, contextSize: size, updatedAt: Date.now() }
             : conversation
         ),
       });
@@ -370,8 +411,9 @@ export function useChatPersistence<T>({
   const createConversation = useCallback(
     (serverId: string) => {
       flush();
-      const c = newConversation<T>(serverId);
-      update({ activeConversationId: c.id, conversations: [c, ...stateRef.current.conversations] });
+      const prev = stateRef.current;
+      const c = newConversation<T>(serverId, prev.defaultContextSize);
+      update({ ...prev, activeConversationId: c.id, conversations: [c, ...prev.conversations] });
       flush();
     },
     [flush, update]
@@ -404,12 +446,12 @@ export function useChatPersistence<T>({
           .filter((c) => c.serverId === deleted.serverId)
           .sort((a, b) => b.updatedAt - a.updatedAt)[0];
         if (!active) {
-          active = newConversation<T>(deleted.serverId);
+          active = newConversation<T>(deleted.serverId, prev.defaultContextSize);
           conversations.unshift(active);
         }
         activeConversationId = active.id;
       }
-      const next = { conversations, activeConversationId };
+      const next = { ...prev, conversations, activeConversationId };
       const discardNewBodies = () => {
         for (const c of conversations) {
           if (prev.conversations.some((previous) => previous.id === c.id)) continue;
@@ -464,7 +506,7 @@ export function useChatPersistence<T>({
       .filter((c) => c.serverId === activeConversation.serverId)
       .sort((a, b) => b.updatedAt - a.updatedAt),
     setMessages,
-    updateActiveConversation,
+    setContextSize,
     selectConversation,
     createConversation,
     selectServer,

@@ -4,6 +4,7 @@ import { ArrowUp, ChevronDown, Square } from 'lucide-react';
 import { RemoteModelSelector, type ModelOption } from '../../components/RemoteModelSelector';
 import { getModelIcon } from '../../components/cards/ModelCard';
 import { ChatBubble, ToolCallCard } from '../../components/chat';
+import { CHAT_CONTEXT_OPTIONS } from '../../hooks/useChatPersistence';
 import { useI18n } from '../../hooks/useI18n';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { useMotherAgent } from './context';
@@ -568,9 +569,6 @@ const PARASITE_CLAUDE_ID = 'claudecode';
 // Used only for visualization — the actual trim happens server-side. Keep
 // this value in sync with the Rust constant whenever it changes.
 const MA_CONTEXT_MAX_BYTES = 300_000;
-export const MOTHER_CONTEXT_OPTIONS = [
-  8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576,
-] as const;
 
 // Rough UTF-8 byte estimate of what gets serialized into the LLM payload.
 // Doesn't have to match Rust's tally exactly — it just needs to grow at the
@@ -623,9 +621,9 @@ function ContextUsage({
     : `${Math.round(contextMaxBytes / 1024)}K`;
   const contextIndex = Math.max(
     0,
-    MOTHER_CONTEXT_OPTIONS.findIndex((size) => size === contextSize)
+    CHAT_CONTEXT_OPTIONS.findIndex((size) => size === contextSize)
   );
-  const contextProgress = `calc(9px + (100% - 18px) * ${contextIndex / (MOTHER_CONTEXT_OPTIONS.length - 1)})`;
+  const contextProgress = `calc(9px + (100% - 18px) * ${contextIndex / (CHAT_CONTEXT_OPTIONS.length - 1)})`;
   const contextColorClass =
     ratio === 0
       ? 'text-cyber-text-secondary'
@@ -704,12 +702,12 @@ function ContextUsage({
           >
             <div aria-hidden="true" className="mother-reasoning-track">
               <div className="mother-context-fill" />
-              {MOTHER_CONTEXT_OPTIONS.map((size, position) => (
+              {CHAT_CONTEXT_OPTIONS.map((size, position) => (
                 <span
                   key={size}
                   className="mother-reasoning-stop"
                   style={{
-                    left: `calc(9px + (100% - 18px) * ${position / (MOTHER_CONTEXT_OPTIONS.length - 1)})`,
+                    left: `calc(9px + (100% - 18px) * ${position / (CHAT_CONTEXT_OPTIONS.length - 1)})`,
                   }}
                 />
               ))}
@@ -717,15 +715,14 @@ function ContextUsage({
             <input
               type="range"
               min={0}
-              max={MOTHER_CONTEXT_OPTIONS.length - 1}
+              max={CHAT_CONTEXT_OPTIONS.length - 1}
               step={1}
               value={contextIndex}
               aria-label={t('mother.contextSize')}
               aria-valuetext={formatSize(contextSize!)}
               onChange={(event) =>
                 onContextSizeChange(
-                  MOTHER_CONTEXT_OPTIONS[Number(event.currentTarget.value)] ??
-                    MOTHER_CONTEXT_OPTIONS[0]
+                  CHAT_CONTEXT_OPTIONS[Number(event.currentTarget.value)] ?? CHAT_CONTEXT_OPTIONS[0]
                 )
               }
               className="mother-reasoning-slider mother-context-slider relative block w-full"
