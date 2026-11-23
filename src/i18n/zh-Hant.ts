@@ -467,7 +467,7 @@ const zhHant: Partial<Translations> = {
   'settings.themeMode': '模式',
   'settings.interfaceLanguage': '介面語言',
   'settings.starOnGithub': '幫我們點個免費的星',
-  'settings.starOnGithubHint': '在 GitHub 上支持 EchoBird',
+  'settings.starOnGithubHint': '在 GitHub 支持我們',
   'settings.launchAtStartup': '開機啟動',
   'settings.autoClaimRewards': '自動領獎',
   'settings.sensitiveInfoProtection': '資訊保護',

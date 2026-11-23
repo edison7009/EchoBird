@@ -430,7 +430,7 @@ const zhHans: Partial<Translations> = {
   'settings.themeMode': '模式',
   'settings.interfaceLanguage': '界面语言',
   'settings.starOnGithub': '帮我们点个免费的星',
-  'settings.starOnGithubHint': '在 GitHub 上支持 EchoBird',
+  'settings.starOnGithubHint': '在 GitHub 支持我们',
   'settings.launchAtStartup': '开机启动',
   'settings.autoClaimRewards': '自动领奖',
   'settings.sensitiveInfoProtection': '信息保护',
