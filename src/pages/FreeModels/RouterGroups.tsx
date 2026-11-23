@@ -111,12 +111,9 @@ function RouterSettingsModal({
       if (!text.trim()) throw new Error('Empty copied value');
       const ok = await copyText(text);
       if (attempt === request.current)
-        showToast(
-          ok ? 'success' : 'error',
-          t(ok ? 'feedback.step1.copied' : 'feedback.step1.failed')
-        );
+        showToast(ok ? 'success' : 'error', t(ok ? 'clipboard.copied' : 'clipboard.copyFailed'));
     } catch {
-      if (attempt === request.current) showToast('error', t('feedback.step1.failed'));
+      if (attempt === request.current) showToast('error', t('clipboard.copyFailed'));
     }
   };
   const toggleKey = () => {
@@ -603,7 +600,7 @@ export function RouterGroups({
                 void copyText(url).then((ok) =>
                   showToast(
                     ok ? 'success' : 'error',
-                    t(ok ? 'feedback.step1.copied' : 'feedback.step1.failed')
+                    t(ok ? 'clipboard.copied' : 'clipboard.copyFailed')
                   )
                 );
               }}

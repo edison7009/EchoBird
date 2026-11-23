@@ -83,8 +83,8 @@ fn load_tray_icon() -> tauri::image::Image<'static> {
 /// Build and install EchoBird's macOS application menu (the screen-top menu bar).
 ///
 /// Tauri auto-creates a default menu on macOS, but it has no Settings entry, so
-/// we replace it with an equivalent complete menu that adds **Settings… (⌘,)**
-/// and **Feedback**. Every standard shortcut stays bound — ⌘W close, ⌘M
+/// we replace it with an equivalent menu that adds **Settings… (⌘,)**.
+/// Every standard shortcut stays bound — ⌘W close, ⌘M
 /// minimize, ⌘Q quit, ⌘H hide, ⌘X/⌘C/⌘V/⌘A edit, ⌃⌘F fullscreen — and the
 /// window items route through the same `CloseRequested`/lifecycle paths as the
 /// in-window controls (so ⌘W honors the close-to-tray setting just like the X
@@ -94,12 +94,10 @@ fn load_tray_icon() -> tauri::image::Image<'static> {
 fn install_macos_menu(app: &tauri::AppHandle, locale: &str) -> tauri::Result<()> {
     use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder};
 
-    let [settings, feedback, edit, view, window, help] =
-        desktop_locale::desktop_labels(locale).mac_menu;
+    let [settings, edit, view, window] = desktop_locale::desktop_labels(locale).mac_menu;
     let settings_item = MenuItemBuilder::with_id("menu-open-settings", settings)
         .accelerator("CmdOrCtrl+,")
         .build(app)?;
-    let feedback_item = MenuItemBuilder::with_id("menu-open-feedback", feedback).build(app)?;
 
     // App menu — macOS uses the app name as the title automatically.
     let app_menu = SubmenuBuilder::new(app, "EchoBird")
@@ -137,37 +135,23 @@ fn install_macos_menu(app: &tauri::AppHandle, locale: &str) -> tauri::Result<()>
         .item(&PredefinedMenuItem::close_window(app, None)?)
         .build()?;
 
-    let help_menu = SubmenuBuilder::new(app, help)
-        .item(&feedback_item)
-        .build()?;
-
     let menu = MenuBuilder::new(app)
         .item(&app_menu)
         .item(&edit_menu)
         .item(&view_menu)
         .item(&window_menu)
-        .item(&help_menu)
         .build()?;
 
     app.set_menu(menu)?;
     Ok(())
 }
 
-/// Handle clicks on the macOS application-menu items by forwarding them to the
-/// frontend, which opens the same Settings dialog / Feedback page as the
-/// in-window buttons. Kept as a free function (not an inline closure) so it
-/// type-checks on every platform even though it is only registered on macOS.
-#[allow(dead_code)] // registered only under #[cfg(target_os = "macos")]
+/// Open the same Settings dialog as the sidebar when the macOS menu is used.
+#[cfg(target_os = "macos")]
 fn handle_app_menu_event(app_handle: &tauri::AppHandle, event: tauri::menu::MenuEvent) {
     use tauri::Emitter;
-    match event.id().as_ref() {
-        "menu-open-settings" => {
-            let _ = app_handle.emit("menu-open-settings", ());
-        }
-        "menu-open-feedback" => {
-            let _ = app_handle.emit("menu-open-feedback", ());
-        }
-        _ => {}
+    if event.id().as_ref() == "menu-open-settings" {
+        let _ = app_handle.emit("menu-open-settings", ());
     }
 }
 
@@ -600,19 +584,10 @@ pub fn run() {
             }
 
             // Enable file logging in all builds for diagnostics.
-            //
-            // Rotation tuned for the Feedback page's "copy last 30 lines"
-            // button: the default rotation strategy can flip the file
-            // mid-session and orphan the head of the user's window in a
-            // sibling file. We bump max_file_size to 4 MB so a normal
-            // session stays in one file, and switch to KeepAll so any
-            // rotated files stay readable by read_log_tail's
-            // multi-file walker.
             app.handle().plugin(
                 tauri_plugin_log::Builder::default()
                     .level(log::LevelFilter::Info)
                     .max_file_size(4 * 1024 * 1024)
-                    .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
                     .targets([
                         // Log to file
                         tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir {
@@ -735,10 +710,6 @@ pub fn run() {
                     log::warn!("[macOS] Failed to install application menu: {e}");
                 }
 
-                // Route app-menu clicks to the frontend, which opens the same
-                // Settings dialog / Feedback page as the in-window buttons. Tray
-                // menu ids ("show"/"quit") are handled by the tray's own handler
-                // and fall through here.
                 app.on_menu_event(handle_app_menu_event);
             }
 
@@ -882,7 +853,6 @@ pub fn run() {
                 mod_stub::app_ready,
                 window_visibility::get_main_window_visibility,
                 window_visibility::hide_main_window,
-                mod_stub::read_log_tail,
                 tool_commands::scan_tools,
                 tool_commands::list_system_applications,
                 tool_commands::get_system_application_icon,

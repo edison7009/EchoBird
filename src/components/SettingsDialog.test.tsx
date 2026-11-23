@@ -29,7 +29,13 @@ vi.mock('../stores/themeStore', () => ({
 }));
 
 let view: ReactTestRenderer;
-const props = { isOpen: true, onClose: vi.fn(), locale: 'en', onLocaleChange: vi.fn() };
+const props = {
+  isOpen: true,
+  onClose: vi.fn(),
+  onOpenChangelog: vi.fn(),
+  locale: 'en',
+  onLocaleChange: vi.fn(),
+};
 beforeEach(() => {
   vi.clearAllMocks();
   useProtectionStore.setState({ enabled: null, revision: 0, pending: false, saveError: false });
@@ -82,6 +88,27 @@ function protectionSwitch() {
     .findAllByProps({ role: 'switch' })
     .find((node) => node.props['aria-label'] === 'settings.sensitiveInfoProtection')!;
 }
+
+it('opens the changelog above the star card and retains the current settings tab', async () => {
+  await act(async () => {
+    view = create(<SettingsDialog {...props} />);
+  });
+  await tab('settings.appearance');
+  const sidebar = view.root.findByType('aside');
+  const button = sidebar.findByProps({ 'aria-haspopup': 'dialog' });
+  const starCard = sidebar.findByProps({ className: 'settings-star' });
+  expect(button.children).toEqual(['nav.changelog']);
+  expect(button.parent!.children).toEqual([button, starCard, expect.anything()]);
+  expect(props.onOpenChangelog).not.toHaveBeenCalled();
+  act(() => button.props.onClick());
+  expect(props.onOpenChangelog).toHaveBeenCalledOnce();
+  expect(props.onClose).not.toHaveBeenCalled();
+
+  await act(async () => view.update(<SettingsDialog {...props} isOpen={false} />));
+  await act(async () => view.update(<SettingsDialog {...props} />));
+  expect(view.root.findByType('h2').children).toEqual(['settings.appearance']);
+  expect(mocks.save).not.toHaveBeenCalled();
+});
 
 it('ignores the retired statistics flag and saves only an explicit protection change', async () => {
   const saved = { statisticsRecording: false, sensitiveInfoProtection: true, locale: 'ja' };

@@ -12,12 +12,7 @@ import { useNavigationStore } from '../stores/navigationStore';
 const navigationButtonClass =
   'h-full w-8 flex items-center justify-center rounded text-cyber-text-secondary enabled:hover:bg-cyber-elevated/50 enabled:hover:text-cyber-text disabled:text-cyber-text-muted disabled:opacity-40 transition-colors';
 
-interface TitleBarProps {
-  onFeedbackClick?: () => void;
-  onChangelogClick?: () => void;
-}
-
-export const TitleBar: React.FC<TitleBarProps> = ({ onFeedbackClick, onChangelogClick }) => {
+export const TitleBar: React.FC = () => {
   const { t } = useI18n();
   const collapsed = useSidebarStore((state) => state.collapsed);
   const setCollapsed = useSidebarStore((state) => state.setCollapsed);
@@ -178,18 +173,6 @@ export const TitleBar: React.FC<TitleBarProps> = ({ onFeedbackClick, onChangelog
           className="app-titlebar-actions flex items-center h-full"
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
-          <button
-            onClick={onChangelogClick}
-            className="h-full px-3 flex items-center justify-center whitespace-nowrap text-[14px] leading-none font-sans text-cyber-text-secondary hover:bg-cyber-text/20 hover:text-cyber-text transition-colors"
-          >
-            {t('nav.changelog')}
-          </button>
-          <button
-            onClick={onFeedbackClick}
-            className="h-full px-3 flex items-center justify-center whitespace-nowrap text-[14px] leading-none font-sans text-cyber-text-secondary hover:bg-cyber-text/20 hover:text-cyber-text transition-colors"
-          >
-            {t('nav.feedback')}
-          </button>
           <button
             onClick={handleMinimizeToTray}
             aria-label={t('settings.closeToTray')}

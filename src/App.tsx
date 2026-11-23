@@ -122,9 +122,6 @@ const MotherAgentPanel = lazy(() =>
     default: module.MotherAgentPanel,
   }))
 );
-const FeedbackMain = lazy(() =>
-  import('./pages/Feedback').then((module) => ({ default: module.FeedbackMain }))
-);
 const AiCareerMain = lazy(() =>
   import('./pages/AiCareer').then((module) => ({ default: module.AiCareerMain }))
 );
@@ -224,7 +221,6 @@ function AppContent() {
   // Stores — selector form so App.tsx (the root of the entire tree) only
   // re-renders when activePage flips, not on every motherNewMessage tick.
   const activePage = useNavigationStore((s) => s.activePage);
-  const setActivePage = useNavigationStore((s) => s.setActivePage);
   const setUpdateAvailable = useNavigationStore((s) => s.setUpdateAvailable);
   const scanTools = useToolsStore((s) => s.scanTools);
   const featuresReady = useNavigationStore(
@@ -327,28 +323,18 @@ function AppContent() {
     };
   }, []);
 
-  // Wire the macOS app-menu items to the same actions as the in-window buttons:
-  // Settings (⌘,) opens the Settings dialog, Feedback opens the Feedback page.
-  // The Rust menu handler emits these events; on Windows/Linux there is no app
-  // menu, so they simply never fire.
+  // The macOS Settings menu item (⌘,) opens the same dialog as the sidebar.
   useEffect(() => {
     let disposed = false;
-    const unlistens: Array<() => void> = [];
-    const retain = (unlisten: () => void) => {
-      if (disposed) unlisten();
-      else unlistens.push(unlisten);
-    };
-    void listen('menu-open-settings', () => setShowSettings(true))
-      .then(retain)
-      .catch(console.error);
-    void listen('menu-open-feedback', () => setActivePage('feedback'))
-      .then(retain)
-      .catch(console.error);
+    const unlisten = listen('menu-open-settings', () => {
+      if (!disposed) setShowSettings(true);
+    });
+    void unlisten.catch(console.error);
     return () => {
       disposed = true;
-      unlistens.forEach((unlisten) => unlisten());
+      void unlisten.then((stop) => stop()).catch(() => {});
     };
-  }, [setActivePage]);
+  }, []);
 
   // Mirror isMaximized to <html> so the global #root clip-path in index.css
   // can drop its rounded corners when the window is maximized. Necessary
@@ -390,13 +376,7 @@ function AppContent() {
                       >
                         <AppBackground />
                         {/* Title bar */}
-                        <TitleBar
-                          onFeedbackClick={() => setActivePage('feedback')}
-                          onChangelogClick={() => {
-                            setShowVoiceGuideOnClose(false);
-                            setShowChangelog(true);
-                          }}
-                        />
+                        <TitleBar />
                         <div className="flex flex-1 overflow-hidden text-cyber-text font-sans p-4 gap-0 relative isolate">
                           {/* Sidebar */}
                           <SidebarConnected onSettingsClick={() => setShowSettings(true)} />
@@ -424,7 +404,6 @@ function AppContent() {
                                           {is('aiNews') && t('page.aiNews')}
                                           {is('localLlm') && t('page.localServer')}
                                           {is('mother') && t('page.motherAgent')}
-                                          {is('feedback') && t('page.feedback')}
                                         </h2>
                                         <div className="page-kicker truncate" aria-hidden="true">
                                           {is('models') && 'MODELS'}
@@ -437,7 +416,6 @@ function AppContent() {
                                           {is('aiNews') && 'NEWS'}
                                           {is('localLlm') && 'RUNTIME'}
                                           {is('mother') && 'AGENT'}
-                                          {is('feedback') && 'SUPPORT'}
                                         </div>
                                       </div>
                                       {/* Title actions — always mounted but hidden */}
@@ -559,11 +537,6 @@ function AppContent() {
                                         <MotherAgentMain />
                                       </OnFirstVisit>
                                     </div>
-                                    <div className={pageScroll(is('feedback'))}>
-                                      <OnFirstVisit active={is('feedback')}>
-                                        <FeedbackMain />
-                                      </OnFirstVisit>
-                                    </div>
                                   </section>
                                 </main>
 
@@ -680,8 +653,12 @@ function AppContent() {
             {/* Settings dialog */}
             <OnFirstVisit active={showSettings}>
               <SettingsDialog
-                isOpen={showSettings}
+                isOpen={showSettings && !showChangelog}
                 onClose={() => setShowSettings(false)}
+                onOpenChangelog={() => {
+                  setShowVoiceGuideOnClose(false);
+                  setShowChangelog(true);
+                }}
                 locale={locale}
                 onLocaleChange={setLocale}
               />

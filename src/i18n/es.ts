@@ -278,6 +278,9 @@ const es = {
   'changelog.loading': 'La carga...',
   'changelog.error': 'No podría cargar el changelog — verifique su conexión y intente de nuevo.',
   'changelog.empty': 'No hay changelog disponible.',
+  'changelog.gotIt': 'Entendido',
+  'changelog.updateTitle': 'Novedades al actualizar de {from} a {to}:',
+  'changelog.startUpdate': 'Iniciar actualización',
   'nav.aiNews': 'Noticias de IA',
   'page.aiNews': 'Noticias de IA',
   'pulse.fetchFailed': 'FETCH se ha fracasado',
@@ -390,25 +393,8 @@ const es = {
   'page.appManager': 'Escritorio de aplicaciones',
   'page.localServer': 'LLM local',
   'page.motherAgent': 'Asistente de IA',
-  'page.feedback': 'Comentarios',
-  'feedback.title':
-    'Cuéntanos qué aplicación de inteligencia artificial que deseas EchoBird para apoyar',
-  'feedback.intro':
-    'Compartir el nombre de la aplicación, el sitio web oficial, y las características que necesitas: instalación, cambio de cuenta, o cambio de modelo. Enviar sugerencias de la aplicación directamente. Para un informe de problemas, primero copiar las últimas 30 líneas de registro.',
-  'feedback.step1.title': 'Reporta un problema: Copiar las últimas 30 líneas de log',
-  'feedback.step1.desc':
-    'Cuando algo va mal, copiar las últimas 30 líneas de registro de backend y colocarlas en su informe para ayudarnos a identificar el problema.',
-  'feedback.step1.button': 'Copia las últimas 30 líneas de log',
-  'feedback.step1.copied': 'Copiado en clipboard',
-  'feedback.step1.empty': 'No hay logs para copiar todavía (la aplicación acaba de comenzar?)',
-  'feedback.step1.failed': 'Copia fallada, por favor intenta de nuevo',
-  'feedback.step2.title': 'Sugerir una aplicación: enviar directamente',
-  'feedback.step2.desc':
-    'Haz clic a continuación para crear un problema GitHub.Para una sugerencia de aplicaciones, describe la aplicación y las características que necesitas.Para un informe de problemas, aplique sus logs y describe brevemente lo que estaba haciendo.',
-  'feedback.step2.button': 'Enviado en GitHub',
-  'feedback.step2.fallbackButton': 'Enviarnos',
-  'feedback.networkNote':
-    'Si GitHub no está disponible, envíanos un correo electrónico directamente - responderemos en unos días de trabajo.',
+  'clipboard.copied': 'Copiado en clipboard',
+  'clipboard.copyFailed': 'Copia fallada, por favor intenta de nuevo',
   'updates.install': 'Instalar',
   'updates.download': 'Descargar actualización',
   'updates.downloading': 'Descargar la actualización',

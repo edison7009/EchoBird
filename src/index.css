@@ -619,6 +619,13 @@ html.is-macos .usage-island.usage-island-theme-auto {
   border-top-color: #ececec;
   outline-color: rgb(0 0 0 / 0.16);
 }
+:root {
+  --action-key-background: linear-gradient(180deg, #fbf8f3, #e9e4db);
+  --action-key-background-hover: linear-gradient(180deg, #fffdf9, #efe9df);
+  --action-key-text: #26221d;
+  --action-key-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+}
+
 /* Page action buttons share the tab well's material: a plain, slightly
    deeper surface; hovering lifts its tone, never its place. */
 .page-action-button {
@@ -639,6 +646,18 @@ html.is-macos .usage-island.usage-island-theme-auto {
 }
 :root[data-theme='light'] .page-action-button:hover:enabled {
   background-color: #e2e2e2;
+}
+:root .page-action-button.is-key {
+  background: var(--action-key-background);
+  color: var(--action-key-text);
+  box-shadow: var(--action-key-shadow);
+}
+:root .page-action-button.is-key:hover:enabled {
+  background: var(--action-key-background-hover);
+}
+:root .page-action-button.is-key:focus-visible {
+  outline: 2px solid rgb(var(--accent-rgb));
+  outline-offset: 2px;
 }
 /* Labels on a cream key are dark in every theme. */
 [data-tab-renderer='canvas'] > .view-mode-tab[aria-pressed='true'],

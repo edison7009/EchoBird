@@ -167,7 +167,9 @@ it('ignores a version response after unmount without starting a download', async
   expect(stop).toHaveBeenCalledOnce();
 });
 
-it('keeps download and install separate and ignores duplicate clicks during shutdown', async () => {
+it('shows the downloaded release before launch and ignores duplicate confirmation clicks', async () => {
+  const manifest = { version: '6.2.1', releaseNotes: 'Downloaded release notes' };
+  vi.mocked(fetchLatestManifest).mockResolvedValueOnce(manifest);
   vi.mocked(api.downloadUpdate).mockResolvedValueOnce(true);
   await mount();
   await act(async () => state.activate('6.2.1'));
@@ -180,13 +182,27 @@ it('keeps download and install separate and ignores duplicate clicks during shut
       finish = resolve;
     })
   );
+  await act(async () => state.activate('6.2.1'));
+  expect(state.confirmation).toEqual({ version: '6.2.1', manifest });
+  expect(state.progress).toBeNull();
+  expect(api.installDownloadedUpdate).not.toHaveBeenCalled();
+
+  act(() => state.cancelConfirmation());
+  expect(state.confirmation).toBeNull();
+  expect(state.ready).toBe(true);
+  expect(api.installDownloadedUpdate).not.toHaveBeenCalled();
+
+  await act(async () => state.activate('6.2.1'));
   await act(async () => {
-    void state.activate('6.2.1');
+    void state.confirmUpdate();
+    void state.confirmUpdate();
+    state.cancelConfirmation();
   });
   expect(state.progress?.status).toBe('launching');
-  await act(async () => state.activate('6.2.1'));
+  expect(state.confirmation?.version).toBe('6.2.1');
   expect(api.installDownloadedUpdate).toHaveBeenCalledExactlyOnceWith('6.2.1');
   await act(async () => finish(true));
+  expect(state.confirmation).toBeNull();
   expect(api.downloadUpdate).toHaveBeenCalledExactlyOnceWith('6.2.1');
   expect(state.ready).toBe(true);
 });
@@ -198,7 +214,11 @@ it('offers the cached package after reopening and returns to download if it disa
   expect(state.ready).toBe(true);
   expect(api.downloadUpdate).not.toHaveBeenCalled();
   await act(async () => state.activate('6.2.1'));
+  expect(state.confirmation).toEqual({ version: '6.2.1' });
+  expect(api.installDownloadedUpdate).not.toHaveBeenCalled();
+  await act(async () => state.confirmUpdate());
   expect(state.ready).toBe(false);
+  expect(state.confirmation).toBeNull();
   expect(api.installDownloadedUpdate).toHaveBeenCalledExactlyOnceWith('6.2.1');
   expect(api.downloadUpdate).not.toHaveBeenCalled();
 });
@@ -231,5 +251,26 @@ it('checks the new version when the previous download finishes', async () => {
   expect(api.isUpdateDownloaded).toHaveBeenLastCalledWith('6.2.2');
   expect(state.ready).toBe(true);
   await act(async () => state.activate('6.2.2'));
+  expect(api.installDownloadedUpdate).not.toHaveBeenCalled();
+  await act(async () => state.confirmUpdate());
   expect(api.installDownloadedUpdate).toHaveBeenCalledExactlyOnceWith('6.2.2');
+});
+
+it('confirms the displayed version even if a newer package becomes available', async () => {
+  vi.mocked(api.isUpdateDownloaded).mockResolvedValue(true);
+  await mount();
+  await act(async () => state.activate('6.2.1'));
+  await act(async () => view.update(<Harness version="6.2.2" />));
+  expect(state.confirmation?.version).toBe('6.2.1');
+
+  vi.mocked(api.installDownloadedUpdate).mockRejectedValueOnce(new Error('could not open'));
+  await act(async () => state.confirmUpdate());
+  expect(toast).toHaveBeenCalledExactlyOnceWith('error', 'updates.failed');
+  expect(state.confirmation?.version).toBe('6.2.1');
+  expect(state.progress).toBeNull();
+
+  await act(async () => state.confirmUpdate());
+  expect(vi.mocked(api.installDownloadedUpdate).mock.calls).toEqual([['6.2.1'], ['6.2.1']]);
+  expect(state.ready).toBe(true);
+  expect(state.confirmation).toBeNull();
 });

@@ -1,26 +1,18 @@
-// ChangelogDialog — "更新日志 / Changelog" modal. Opened from the title-bar
-// button (left of Feedback) and auto-opened once on the first launch after an
-// update. Content is the current release's notes read straight from the
-// version manifest (echobird.ai/api/version/index.json); only the section
-// matching the active UI locale is shown.
+// Release notes shared by the Settings changelog and the pre-install dialog.
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { X } from 'lucide-react';
+import { openExternal } from '../api/tauri';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useI18n } from '../hooks/useI18n';
 import { mdComponents } from '../pages/MotherAgent/mdComponents';
 import { VoiceInputGuide } from './VoiceInputGuide';
-import { fetchLatestManifest, type UpdateManifest } from '../services/updateManifest';
-
-interface Manifest extends UpdateManifest {
-  // Legacy single-blob notes ("## 中文 / ## English / ## 日本語"), kept for
-  // manifests written before the per-language split.
-  releaseNotes?: string;
-  // Preferred: notes stored per language, keyed by a short language code
-  // ("en" / "zh-cn" / "zh-tw" / "ja") — the marker the manifest author writes.
-  // The app maps its locale to the matching code (see LOCALE_TO_NOTES_CODE).
-  releaseNotesI18n?: Record<string, string>;
-}
+import { PageActionButton } from './PageActionButton';
+import {
+  fetchLatestManifest,
+  fetchManifestForVersion,
+  type UpdateManifest,
+} from '../services/updateManifest';
 
 // Map an app locale to the manifest's language marker. The manifest uses
 // friendly codes (zh-cn / zh-tw) rather than the app's internal locale ids
@@ -55,7 +47,7 @@ function sectionForLocale(releaseNotes: string, locale: string): string {
 // Pick the notes for the active locale: prefer the structured per-language
 // field, falling back to English, then to any language present, then to
 // parsing the legacy single-blob releaseNotes.
-function notesForLocale(m: Manifest, locale: string): string {
+function notesForLocale(m: UpdateManifest, locale: string): string {
   const i18n = m.releaseNotesI18n;
   if (i18n && typeof i18n === 'object') {
     const code = LOCALE_TO_NOTES_CODE[locale] ?? locale;
@@ -101,25 +93,49 @@ const changelogMdComponents = {
   ),
 };
 
+const GITHUB_ISSUES_URL = 'https://github.com/edison7009/EchoBird/issues';
+const GITCODE_ISSUES_URL = 'https://gitcode.com/edison7009/EchoBird/issues/';
+
+const feedbackLinkClass =
+  'text-sm text-cyber-text-secondary underline-offset-4 hover:text-cyber-text hover:underline focus-visible:underline';
+
+function openFeedbackLink(event: React.MouseEvent<HTMLAnchorElement>) {
+  event.preventDefault();
+  const href = event.currentTarget.href;
+  void openExternal(href).catch(() => window.open(href, '_blank', 'noopener,noreferrer'));
+}
+
 interface ChangelogDialogProps {
   isOpen: boolean;
   onClose: () => void;
   showVoiceGuideOnClose?: boolean;
+  update?: {
+    fromVersion: string;
+    toVersion: string;
+    manifest?: UpdateManifest;
+    starting: boolean;
+    onStart: () => void;
+  };
 }
 
 export const ChangelogDialog: React.FC<ChangelogDialogProps> = ({
   isOpen,
   onClose,
   showVoiceGuideOnClose = false,
+  update,
 }) => {
   const { t, locale } = useI18n();
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
-  const [manifest, setManifest] = useState<Manifest | null>(null);
+  const [manifest, setManifest] = useState<UpdateManifest | null>(null);
+  const targetVersion = update?.toVersion;
+  const suppliedManifest = update?.manifest;
+  const starting = update?.starting ?? false;
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   // Whether we've ever loaded good notes. Once true, a later failed refetch
   // keeps the last content on screen instead of flipping to the error state.
   const loadedRef = useRef(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const [showGuide, setShowGuide] = useState(false);
   const closeGuide = useCallback(() => setShowGuide(false), []);
   useEffect(
@@ -134,29 +150,30 @@ export const ChangelogDialog: React.FC<ChangelogDialogProps> = ({
   // open); on later opens we keep the last content visible and refetch
   // silently, so there's no loading flash. Failure surfaces as the error state.
   useEffect(() => {
-    if (!isOpen) return;
-    let cancelled = false;
+    if (!isOpen || suppliedManifest) return;
+    const controller = new AbortController();
+    const { signal } = controller;
     void (async () => {
       try {
-        const data = (await fetchLatestManifest()) as Manifest | null;
+        const data = targetVersion
+          ? await fetchManifestForVersion(targetVersion, signal)
+          : await fetchLatestManifest(signal);
         if (!data) throw new Error('manifest unavailable');
-        if (cancelled) return;
+        if (signal.aborted) return;
         setManifest(data);
         setStatus('ready');
         loadedRef.current = true;
       } catch {
         // Keep the last-good notes visible on a silent refetch failure; only
         // show the error screen when there's nothing loaded yet.
-        if (!cancelled && !loadedRef.current) setStatus('error');
+        if (!signal.aborted && !loadedRef.current) setStatus('error');
       }
     })();
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen]);
+    return () => controller.abort();
+  }, [isOpen, suppliedManifest, targetVersion]);
 
   const handleClose = useCallback(() => {
-    if (closeTimer.current !== null) return;
+    if (starting || closeTimer.current !== null) return;
     setIsAnimatingOut(true);
     closeTimer.current = setTimeout(() => {
       closeTimer.current = null;
@@ -164,13 +181,43 @@ export const ChangelogDialog: React.FC<ChangelogDialogProps> = ({
       setShowGuide(showVoiceGuideOnClose);
       onClose();
     }, 200);
-  }, [onClose, showVoiceGuideOnClose]);
+  }, [onClose, showVoiceGuideOnClose, starting]);
 
-  // ESC to close
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!isOpen || !dialog) return;
+    const doc = dialog.ownerDocument;
+    const previous = doc.activeElement;
+    dialog.focus({ preventScroll: true });
+    return () => {
+      if (
+        previous instanceof HTMLElement &&
+        previous.isConnected &&
+        (dialog.contains(doc.activeElement) || doc.activeElement === doc.body)
+      ) {
+        previous.focus({ preventScroll: true });
+      }
+    };
+  }, [isOpen]);
+
   useEffect(() => {
     if (!isOpen) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') handleClose();
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        handleClose();
+        return;
+      }
+      const dialog = dialogRef.current;
+      if (event.key !== 'Tab' || !dialog) return;
+      const controls = dialog.querySelectorAll<HTMLElement>('button:not(:disabled), a[href]');
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      const focused = dialog.ownerDocument.activeElement;
+      const boundary = event.shiftKey ? first : last;
+      if (focused === boundary || focused === dialog || !dialog.contains(focused)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first)?.focus();
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -178,7 +225,14 @@ export const ChangelogDialog: React.FC<ChangelogDialogProps> = ({
 
   if (!isOpen) return showGuide ? <VoiceInputGuide onClose={closeGuide} /> : null;
 
-  const notes = manifest ? notesForLocale(manifest, locale) : '';
+  const displayedManifest = suppliedManifest ?? manifest;
+  const displayedStatus = suppliedManifest ? 'ready' : status;
+  const notes = displayedManifest ? notesForLocale(displayedManifest, locale) : '';
+  const title = update
+    ? t('changelog.updateTitle')
+        .replace('{from}', 'v' + update.fromVersion)
+        .replace('{to}', 'v' + update.toVersion)
+    : t('nav.changelog');
 
   return (
     <div
@@ -191,7 +245,12 @@ export const ChangelogDialog: React.FC<ChangelogDialogProps> = ({
 
       {/* Dialog */}
       <div
-        className={`relative flex max-h-[80vh] w-[clamp(560px,56vw,860px)] max-w-[92vw] flex-col border border-cyber-border/30 bg-cyber-surface shadow-2xl rounded-xl overflow-hidden transition-[opacity,transform] duration-200 ${
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
+        aria-label={title}
+        className={`relative flex max-h-[80vh] w-[clamp(560px,56vw,860px)] max-w-[92vw] flex-col border border-cyber-border/30 bg-cyber-surface shadow-2xl rounded-xl overflow-hidden outline-none transition-[opacity,transform] duration-200 ${
           isAnimatingOut ? 'scale-95 opacity-0' : 'scale-100 opacity-100'
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -200,19 +259,22 @@ export const ChangelogDialog: React.FC<ChangelogDialogProps> = ({
         <div className="h-px w-full flex-shrink-0 bg-cyber-border" />
 
         {/* Header */}
-        <div className="px-6 pt-5 pb-4 flex flex-shrink-0 items-center justify-between">
+        <div className="px-6 pt-5 pb-4 flex flex-shrink-0 items-center justify-between gap-3">
           <div className="flex items-baseline gap-2 min-w-0">
-            <span className="text-lg font-bold text-cyber-text">{t('nav.changelog')}</span>
-            {manifest?.version && (
+            <span className="text-lg font-bold text-cyber-text">{title}</span>
+            {!update && manifest?.version && (
               <span className="text-xs font-mono text-cyber-accent">v{manifest.version}</span>
             )}
-            {manifest?.releaseDate && (
+            {!update && manifest?.releaseDate && (
               <span className="text-xs font-mono text-cyber-text-secondary">
                 {manifest.releaseDate}
               </span>
             )}
           </div>
           <button
+            type="button"
+            aria-label={t('btn.close')}
+            disabled={starting}
             onClick={handleClose}
             className="text-cyber-text-secondary close-button transition-colors flex-shrink-0"
           >
@@ -222,17 +284,17 @@ export const ChangelogDialog: React.FC<ChangelogDialogProps> = ({
 
         {/* Content */}
         <div className="min-h-0 px-6 pb-6 overflow-y-auto">
-          {status === 'loading' && (
+          {displayedStatus === 'loading' && (
             <p className="text-sm text-cyber-text-secondary py-8 text-center">
               {t('changelog.loading')}
             </p>
           )}
-          {status === 'error' && (
+          {displayedStatus === 'error' && (
             <p className="text-sm text-cyber-text-secondary py-8 text-center">
               {t('changelog.error')}
             </p>
           )}
-          {status === 'ready' &&
+          {displayedStatus === 'ready' &&
             (notes ? (
               <div className="text-sm leading-relaxed text-cyber-text">
                 <ReactMarkdown remarkPlugins={[remarkGfm]} components={changelogMdComponents}>
@@ -245,6 +307,25 @@ export const ChangelogDialog: React.FC<ChangelogDialogProps> = ({
               </p>
             ))}
         </div>
+
+        <footer className="flex shrink-0 flex-wrap items-center justify-end gap-x-3 gap-y-2 border-t border-cyber-border/30 px-6 py-3">
+          <a href={GITHUB_ISSUES_URL} className={feedbackLinkClass} onClick={openFeedbackLink}>
+            {t('nav.feedback')}
+          </a>
+          {locale === 'zh-Hans' && (
+            <a href={GITCODE_ISSUES_URL} className={feedbackLinkClass} onClick={openFeedbackLink}>
+              国内反馈
+            </a>
+          )}
+          <PageActionButton
+            onClick={update ? update.onStart : handleClose}
+            disabled={isAnimatingOut}
+            pending={starting}
+            className="is-key px-4 font-semibold"
+          >
+            {t(update ? 'changelog.startUpdate' : 'changelog.gotIt')}
+          </PageActionButton>
+        </footer>
       </div>
     </div>
   );

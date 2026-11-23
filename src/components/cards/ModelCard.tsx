@@ -202,9 +202,7 @@ export const ModelCard = React.memo(
     const others = quotas.filter((quota) => quota !== primary && quota !== heroBalance);
     const remaining = primary ? quotaPercent(primary) : null;
     const tone = quotaTone(remaining);
-    const headline = primary
-      ? formatQuotaPercent(primary)
-      : (heroBalance?.balance?.toFixed(2) ?? '—');
+    const headline = primary ? formatQuotaPercent(primary) : heroBalance?.balance?.toFixed(2);
 
     const now = useUsageClock(!!primary && primary.resetAt > 0);
 
@@ -370,11 +368,13 @@ export const ModelCard = React.memo(
 
         {/* The headline: what is left of the quota that runs out first, or the balance. */}
         <div className="mt-auto flex min-w-0 items-end gap-2.5">
-          <span
-            className={`model-card-hero${!primary && !heroBalance ? ' text-cyber-text-muted' : tone === 'critical' ? ` ${quotaColorClasses.critical.text}` : ''}`}
-          >
-            {headline}
-          </span>
+          {headline !== undefined && (
+            <span
+              className={`model-card-hero${tone === 'critical' ? ` ${quotaColorClasses.critical.text}` : ''}`}
+            >
+              {headline}
+            </span>
+          )}
           <span className="model-card-side">
             {primary ? (
               <>

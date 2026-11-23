@@ -264,6 +264,9 @@ const en = {
   'changelog.loading': 'Loading…',
   'changelog.error': "Couldn't load the changelog — check your connection and try again.",
   'changelog.empty': 'No changelog available.',
+  'changelog.gotIt': 'Got it',
+  'changelog.updateTitle': 'Update from {from} to {to}. Here’s what’s new:',
+  'changelog.startUpdate': 'Start update',
   'nav.aiNews': 'AI Latest News',
   'page.aiNews': 'AI Latest News',
   'pulse.fetchFailed': 'Fetch failed',
@@ -375,24 +378,8 @@ const en = {
   'page.appManager': 'APP DESKTOP',
   'page.localServer': 'LOCAL LLM',
   'page.motherAgent': 'AI Assistant',
-  'page.feedback': 'FEEDBACK',
-  'feedback.title': 'Tell us which AI app you want EchoBird to support',
-  'feedback.intro':
-    'Share the app name, official website, and the features you need: installation, account switching, or model switching. Submit app suggestions directly. For a problem report, first copy the last 30 log lines.',
-  'feedback.step1.title': 'Report a problem: Copy the last 30 log lines',
-  'feedback.step1.desc':
-    'When something goes wrong, copy the last 30 backend log lines and paste them into your report to help us identify the problem.',
-  'feedback.step1.button': 'Copy last 30 log lines',
-  'feedback.step1.copied': 'Copied to clipboard',
-  'feedback.step1.empty': 'No logs to copy yet (app just started?)',
-  'feedback.step1.failed': 'Copy failed, please try again',
-  'feedback.step2.title': 'Suggest an app: Submit directly',
-  'feedback.step2.desc':
-    'Click below to create a GitHub issue. For an app suggestion, describe the app and the features you need. For a problem report, paste your logs and briefly describe what you were doing. We will follow up.',
-  'feedback.step2.button': 'Submit on GitHub',
-  'feedback.step2.fallbackButton': 'Email us',
-  'feedback.networkNote':
-    "If GitHub isn't reachable, email us directly — we'll reply within a few business days.",
+  'clipboard.copied': 'Copied to clipboard',
+  'clipboard.copyFailed': 'Copy failed, please try again',
   // Settings
   'updates.install': 'Install',
   'updates.download': 'Download update',

@@ -2,15 +2,26 @@ import { useEffect, useRef, useState } from 'react';
 import * as api from '../api/tauri';
 import { useToast } from '../components/Toast';
 import { useI18n } from './useI18n';
-import { fetchLatestManifest, isNewerVersion } from '../services/updateManifest';
+import {
+  fetchLatestManifest,
+  isNewerVersion,
+  type UpdateManifest,
+} from '../services/updateManifest';
 import { useNavigationStore } from '../stores/navigationStore';
+
+interface DownloadedUpdate {
+  version: string;
+  manifest?: UpdateManifest;
+}
 
 // Owned by the sidebar, so folding the rail never resets a running download.
 export function useSelfUpdateDownload(version: string | null) {
   const { showToast } = useToast();
   const { t } = useI18n();
   const [progress, setProgress] = useState<api.SelfUpdateProgress | null>(null);
-  const [readyVersion, setReadyVersion] = useState<string | null>(null);
+  const [downloaded, setDownloaded] = useState<DownloadedUpdate | null>(null);
+  const [confirmation, setConfirmation] = useState<DownloadedUpdate | null>(null);
+  const readyVersion = downloaded?.version;
   const busy = progress !== null;
   const pending = useRef(false);
   const generation = useRef(0);
@@ -30,7 +41,7 @@ export function useSelfUpdateDownload(version: string | null) {
     const request = generation.current;
     void api.isUpdateDownloaded(version).then(
       (ready) => {
-        if (ready && active && request === generation.current) setReadyVersion(version);
+        if (ready && active && request === generation.current) setDownloaded({ version });
       },
       () => {}
     );
@@ -39,11 +50,10 @@ export function useSelfUpdateDownload(version: string | null) {
     };
   }, [busy, readyVersion, version]);
 
-  const activate = async (version: string) => {
+  const runUpdate = async (version: string, installing: boolean) => {
     if (pending.current) return;
     pending.current = true;
     const request = ++generation.current;
-    const installing = readyVersion === version;
     setProgress(
       installing ? { status: 'launching', percent: 100 } : { status: 'speed_test', percent: 0 }
     );
@@ -64,9 +74,12 @@ export function useSelfUpdateDownload(version: string | null) {
       listener.current = unlisten;
       if (installing) {
         const opened = await api.installDownloadedUpdate(version);
-        if (!opened && mounted.current) {
-          setReadyVersion(null);
-          showToast('error', t('updates.failed'));
+        if (mounted.current) {
+          setConfirmation(null);
+          if (!opened) {
+            setDownloaded((current) => (current?.version === version ? null : current));
+            showToast('error', t('updates.failed'));
+          }
         }
         return;
       }
@@ -75,7 +88,13 @@ export function useSelfUpdateDownload(version: string | null) {
       const target = latest && isNewerVersion(latest.version, version) ? latest.version : version;
       if (target !== version) useNavigationStore.getState().setUpdateAvailable(target);
       const ready = await api.downloadUpdate(target);
-      if (mounted.current) setReadyVersion(ready ? target : null);
+      if (mounted.current) {
+        setDownloaded(
+          ready
+            ? { version: target, manifest: latest?.version === target ? latest : undefined }
+            : null
+        );
+      }
     } catch {
       if (mounted.current) showToast('error', t('updates.failed'));
     } finally {
@@ -85,5 +104,29 @@ export function useSelfUpdateDownload(version: string | null) {
       if (mounted.current) setProgress(null);
     }
   };
-  return { progress, ready: version !== null && readyVersion === version, activate };
+  const activate = async (version: string) => {
+    if (pending.current || confirmation) return;
+    if (downloaded?.version === version) {
+      setConfirmation(downloaded);
+      return;
+    }
+    await runUpdate(version, false);
+  };
+
+  const cancelConfirmation = () => {
+    if (!pending.current) setConfirmation(null);
+  };
+
+  const confirmUpdate = async () => {
+    if (confirmation) await runUpdate(confirmation.version, true);
+  };
+
+  return {
+    progress,
+    ready: version !== null && readyVersion === version,
+    activate,
+    confirmation,
+    cancelConfirmation,
+    confirmUpdate,
+  };
 }

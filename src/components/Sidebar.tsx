@@ -1,5 +1,6 @@
 // Sidebar navigation component
-import { useRef, type ReactNode } from 'react';
+import { lazy, Suspense, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Box,
   Server,
@@ -33,6 +34,10 @@ import { useNavigationStore } from '../stores/navigationStore';
 declare const __APP_EDITION__: string;
 const isFullEdition = __APP_EDITION__ === 'full';
 
+const ChangelogDialog = lazy(() =>
+  import('./ChangelogDialog').then((module) => ({ default: module.ChangelogDialog }))
+);
+
 export type PageType =
   | 'models'
   | 'accounts'
@@ -43,8 +48,7 @@ export type PageType =
   | 'voice'
   | 'developer'
   | 'localLlm'
-  | 'mother'
-  | 'feedback';
+  | 'mother';
 
 interface SidebarProps {
   activePage: PageType;
@@ -127,6 +131,7 @@ export const Sidebar = ({
   const { t } = useI18n();
   const { showToast } = useToast();
   const updateDownload = useSelfUpdateDownload(updateAvailable);
+  const { confirmation } = updateDownload;
   const collapsed = useSidebarStore((state) => state.collapsed);
   const downloadButton = updateAvailable ? (
     <UpdateDownloadButton
@@ -344,6 +349,24 @@ export const Sidebar = ({
           {!collapsed && downloadButton}
         </div>
       </div>
+      {confirmation &&
+        createPortal(
+          <Suspense fallback={null}>
+            <ChangelogDialog
+              key={confirmation.version}
+              isOpen
+              onClose={updateDownload.cancelConfirmation}
+              update={{
+                fromVersion: __APP_VERSION__,
+                toVersion: confirmation.version,
+                manifest: confirmation.manifest,
+                starting: updateDownload.progress !== null,
+                onStart: updateDownload.confirmUpdate,
+              }}
+            />
+          </Suspense>,
+          document.body
+        )}
     </nav>
   );
 };

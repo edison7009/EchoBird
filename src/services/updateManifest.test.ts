@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { fetchLatestManifest, MANIFEST_SOURCES } from './updateManifest';
+import { fetchLatestManifest, fetchManifestForVersion, MANIFEST_SOURCES } from './updateManifest';
 afterEach(() => vi.unstubAllGlobals());
 const body =
   '<details><summary>中文</summary>\n\n## 中文更新\n\n内容\n</details>\n<details><summary>English</summary>\n\n## English update\n\nNotes\n</details>';
@@ -65,4 +65,9 @@ it('never merges release notes from different versions', async () => {
     )
   );
   expect((await fetchLatestManifest())?.releaseNotesI18n).toEqual({ en: 'New notes' });
+  expect((await fetchManifestForVersion('v6.2.1'))?.releaseNotesI18n).toEqual({
+    en: 'Old notes',
+    ja: 'Old Japanese',
+  });
+  expect(await fetchManifestForVersion('6.2.0')).toBeNull();
 });

@@ -190,12 +190,12 @@ button.settings-tile[aria-pressed='true']::after {
 /* A chosen chip, or an action chip, is the cream key. */
 .settings-chip[aria-pressed='true'],
 .settings-chip.is-key {
-  background: linear-gradient(180deg, #fbf8f3, #e9e4db);
-  color: #26221d;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+  background: var(--action-key-background);
+  color: var(--action-key-text);
+  box-shadow: var(--action-key-shadow);
 }
 .settings-chip.is-key:not(:disabled):hover {
-  background: linear-gradient(180deg, #fffdf9, #efe9df);
+  background: var(--action-key-background-hover);
 }
 .settings-chip:disabled {
   opacity: 0.5;
@@ -206,13 +206,13 @@ button.settings-tile[aria-pressed='true']::after {
 }
 .settings-tile .settings-import-button:not(:disabled) {
   border-color: transparent;
-  color: #26221d;
-  background: linear-gradient(180deg, #fbf8f3, #e9e4db);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+  color: var(--action-key-text);
+  background: var(--action-key-background);
+  box-shadow: var(--action-key-shadow);
 }
 .settings-tile .settings-import-button:not(:disabled):hover {
   border-color: transparent;
-  background: linear-gradient(180deg, #fffdf9, #efe9df);
+  background: var(--action-key-background-hover);
 }
 
 /* The track is a sunken groove; the thumb is a cream key. */

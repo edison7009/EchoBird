@@ -56,6 +56,7 @@ const UI_SCALE_TICKS = [70, 80, 90, 100, 110, 120, 130, 140, 150];
 interface SettingsDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenChangelog: () => void;
   locale: string;
   onLocaleChange: (locale: string) => void;
 }
@@ -63,6 +64,7 @@ interface SettingsDialogProps {
 export const SettingsDialog: React.FC<SettingsDialogProps> = ({
   isOpen,
   onClose,
+  onOpenChangelog,
   locale,
   onLocaleChange,
 }) => {
@@ -354,6 +356,14 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
           </nav>
 
           <div className="mt-auto grid gap-2.5">
+            <button
+              type="button"
+              aria-haspopup="dialog"
+              onClick={onOpenChangelog}
+              className="settings-nav"
+            >
+              {t('nav.changelog')}
+            </button>
             <button
               type="button"
               onClick={() => api.openExternal(GITHUB_URL)}

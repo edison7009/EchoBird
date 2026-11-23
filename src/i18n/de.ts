@@ -283,6 +283,9 @@ const de = {
   'changelog.error':
     'Ich konnte den Changelog nicht laden – überprüfen Sie Ihre Verbindung und versuchen Sie es erneut.',
   'changelog.empty': 'Keine ChangeLog verfügbar.',
+  'changelog.gotIt': 'Verstanden',
+  'changelog.updateTitle': 'Das ist neu beim Update von {from} auf {to}:',
+  'changelog.startUpdate': 'Update starten',
   'nav.aiNews': 'KI-Nachrichten',
   'page.aiNews': 'KI-Nachrichten',
   'pulse.fetchFailed': 'Fetch versagt',
@@ -398,24 +401,8 @@ const de = {
   'page.appManager': 'App-Desktop',
   'page.localServer': 'Lokales LLM',
   'page.motherAgent': 'KI-Assistent',
-  'page.feedback': 'Feedback',
-  'feedback.title': 'Erzählen Sie uns, welche AI-App Sie EchoBird unterstützen möchten',
-  'feedback.intro':
-    'Teilen Sie den App-Namen, die offizielle Website und die Funktionen, die Sie benötigen: Installation, Kontowechsel oder Modellwechsel. Senden Sie App-Vorschläge direkt. Für einen Problembericht kopieren Sie zunächst die letzten 30 Log-Linien.',
-  'feedback.step1.title': 'Berichten Sie ein Problem: Kopieren Sie die letzten 30 Log-Linien',
-  'feedback.step1.desc':
-    'Wenn etwas falsch geht, kopieren Sie die letzten 30 Backend-Log-Linien und legen Sie sie in Ihren Bericht ein, um uns zu helfen, das Problem zu identifizieren.',
-  'feedback.step1.button': 'Kopieren Sie die letzten 30 Log-Linien',
-  'feedback.step1.copied': 'Kopiert auf Clipboard',
-  'feedback.step1.empty': 'No Logs to Copy yet (App ist gerade gestartet?)',
-  'feedback.step1.failed': 'Kopie versagt, versuchen Sie bitte noch einmal',
-  'feedback.step2.title': 'Anwendung vorgeschlagen: Direkt senden',
-  'feedback.step2.desc':
-    'Klicken Sie unten, um ein Problem GitHub zu erstellen. Für einen App-Vorschlag, beschreiben Sie die App und die Funktionen, die Sie benötigen. Für einen Problem-Bericht, legen Sie Ihre Logs fest und beschreiben kurz, was Sie tun.',
-  'feedback.step2.button': 'Einladung auf GitHub',
-  'feedback.step2.fallbackButton': 'E-Mail uns',
-  'feedback.networkNote':
-    'Wenn GitHub nicht erreichbar ist, senden Sie uns direkt e-mail — wir antworten innerhalb von ein paar Geschäftstagen.',
+  'clipboard.copied': 'Kopiert auf Clipboard',
+  'clipboard.copyFailed': 'Kopie versagt, versuchen Sie bitte noch einmal',
   'updates.install': 'Installieren',
   'updates.download': 'Update herunterladen',
   'updates.downloading': 'Downloading Aktualisierung',

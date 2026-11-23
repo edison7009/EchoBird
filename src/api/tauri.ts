@@ -240,13 +240,6 @@ export async function hideMainWindow(): Promise<void> {
   return invoke('hide_main_window');
 }
 
-/// Read the last `lines` lines from EchoBird's backend log file — used
-/// by the "问题反馈 / Feedback" page's copy-to-clipboard button so users
-/// can paste recent logs into a GitHub issue.
-export async function readLogTail(lines: number): Promise<string> {
-  return invoke<string>('read_log_tail', { lines });
-}
-
 // ─── Window APIs (Tauri built-in) ───
 
 export { getCurrentWindow } from '@tauri-apps/api/window';

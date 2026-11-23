@@ -252,6 +252,10 @@ const ko = {
   'changelog.loading': '충전...',
   'changelog.error': 'changelog을 충전할 수 없었을 것입니다 - 연결을 확인하고 다시 시도하십시오.',
   'changelog.empty': 'ChangeLog은 사용할 수 없습니다.',
+  'changelog.gotIt': '확인',
+  'changelog.updateTitle':
+    '{from}에서 {to}(으)로 업데이트하면 다음 변경 사항을 이용할 수 있습니다:',
+  'changelog.startUpdate': '업데이트 시작',
   'nav.aiNews': '최신 AI 소식',
   'page.aiNews': '최신 AI 소식',
   'pulse.fetchFailed': 'FETCH 실패',
@@ -363,24 +367,8 @@ const ko = {
   'page.appManager': '앱 데스크톱',
   'page.localServer': '로컬 LLM',
   'page.motherAgent': 'AI 어시스턴트',
-  'page.feedback': '의견 보내기',
-  'feedback.title': '어떤 AI 앱을 지원하고 싶은지 알려주십시오 EchoBird',
-  'feedback.intro':
-    '앱 이름, 공식 웹사이트 및 필요한 기능을 공유하십시오: 설치, 계정 전환, 또는 모델 전환. 앱 제안을 직접 제출하십시오. 문제 보고서에 대해서는 최초로 마지막 30 개의 로그 라인을 복사하십시오.',
-  'feedback.step1.title': '문제 보고: 마지막 30 개의 로그 라인을 복사합니다.',
-  'feedback.step1.desc':
-    '무언가가 잘못되면, 마지막 30 후반 로그 라인을 복사하고 보고서에 붙여서 문제를 식별하는 데 도움이됩니다.',
-  'feedback.step1.button': '마지막 30개의 로그 라인을 복사합니다.',
-  'feedback.step1.copied': '클립보드에 복사',
-  'feedback.step1.empty': '아직 복사할 수 있는 로그인은 없습니다 (앱은 방금 시작되었습니까?)',
-  'feedback.step1.failed': '복사 실패, 다시 시도해 주시기 바랍니다.',
-  'feedback.step2.title': '응용 프로그램 제안: 직접 제출',
-  'feedback.step2.desc':
-    '아래를 클릭하여 GitHub 문제를 만들 수 있습니다. 앱 제안을 위해 앱과 필요한 기능을 설명하십시오. 문제 보고서를 위해 로그를 붙여서 짧게 설명하십시오..',
-  'feedback.step2.button': '첨부된 내용은 GitHub',
-  'feedback.step2.fallbackButton': '우리에게 이메일',
-  'feedback.networkNote':
-    'GitHub에 접근 할 수없는 경우, 직접 저희에게 이메일을 보내주십시오 - 우리는 몇 일 이내에 응답 할 것입니다.',
+  'clipboard.copied': '클립보드에 복사',
+  'clipboard.copyFailed': '복사 실패, 다시 시도해 주시기 바랍니다.',
   'updates.install': '설치',
   'updates.download': '업데이트 다운로드',
   'updates.downloading': '다운로드 업데이트',

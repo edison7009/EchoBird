@@ -1,5 +1,16 @@
-import { describe, it, expect } from 'vitest';
-import { getModelIcon } from './ModelCard';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { describe, it, expect, vi } from 'vitest';
+import { getModelIcon, ModelCard } from './ModelCard';
+
+vi.mock('../ConfirmDialog', () => ({ useConfirm: () => vi.fn() }));
+vi.mock('../../hooks/useI18n', () => ({ useI18n: () => ({ t: (key: string) => key }) }));
+
+it('shows only a status label when the model has no usage figures', () => {
+  const card = renderToStaticMarkup(<ModelCard id="fixture" name="Fixture" type="cloud" />);
+  expect(card).toContain('model.noUsageData');
+  expect(card).not.toContain('model-card-hero');
+  expect(card).not.toContain('role="progressbar"');
+});
 
 describe('getModelIcon', () => {
   it('maps the Tencent Hunyuan model id to the existing Hunyuan icon', () => {

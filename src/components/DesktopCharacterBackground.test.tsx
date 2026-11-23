@@ -113,7 +113,6 @@ describe('application character background lifecycle', () => {
       'aiCareer',
       'aiNews',
       'localLlm',
-      'feedback',
       'apps',
     ] as const) {
       act(() => {

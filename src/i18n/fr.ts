@@ -275,6 +275,9 @@ const fr = {
   'changelog.error':
     'Je ne pouvais pas charger le changelog - vérifier votre connexion et essayer à nouveau.',
   'changelog.empty': 'Pas de changelog disponible.',
+  'changelog.gotIt': 'Compris',
+  'changelog.updateTitle': 'De {from} à {to}, voici les nouveautés :',
+  'changelog.startUpdate': 'Lancer la mise à jour',
   'nav.aiNews': 'Actualités de l’IA',
   'page.aiNews': 'Actualités de l’IA',
   'pulse.fetchFailed': 'FETCH échoué',
@@ -388,24 +391,8 @@ const fr = {
   'page.appManager': 'Bureau des applications',
   'page.localServer': 'LLM local',
   'page.motherAgent': 'Assistant IA',
-  'page.feedback': 'Commentaires',
-  'feedback.title': 'Dites-nous quelle application AI que vous voulez EchoBird pour soutenir',
-  'feedback.intro':
-    "Partagez le nom de l'application, le site officiel et les fonctionnalités dont vous avez besoin: installation, changement d'account, ou changement de modèle. Soumettez directement des suggestions de l'app. Pour un rapport de problème, copiez d'abord les dernières lignes de 30 logs.",
-  'feedback.step1.title': 'Rapporter un problème : Copier les 30 dernières lignes de log',
-  'feedback.step1.desc':
-    'Lorsque quelque chose va mal, copiez les dernières lignes de log 30 en arrière et appuyez-les dans votre rapport pour nous aider à identifier le problème.',
-  'feedback.step1.button': 'Copier les 30 dernières lignes de log',
-  'feedback.step1.copied': 'Copier à clipboard',
-  'feedback.step1.empty': 'Pas de logs pour copier encore (l’application vient de démarrer?)',
-  'feedback.step1.failed': 'Copie échouée, veuillez essayer à nouveau',
-  'feedback.step2.title': 'Appliquer une application : soumettre directement',
-  'feedback.step2.desc':
-    "Cliquez ci-dessous pour créer un problème GitHub. Pour une suggestion d'application, décrivez l'application et les fonctionnalités dont vous avez besoin. Pour un rapport de problème, cliquez sur vos journaux et décrivez brièvement ce que vous faites.",
-  'feedback.step2.button': 'Résumé de GitHub',
-  'feedback.step2.fallbackButton': 'Email à nous',
-  'feedback.networkNote':
-    "Si GitHub n'est pas accessible, envoyez-nous un e-mail directement - nous répondrons dans quelques jours ouvrables.",
+  'clipboard.copied': 'Copier à clipboard',
+  'clipboard.copyFailed': 'Copie échouée, veuillez essayer à nouveau',
   'updates.install': 'Installer',
   'updates.download': 'Télécharger la mise à jour',
   'updates.downloading': 'Mise à jour de téléchargement',

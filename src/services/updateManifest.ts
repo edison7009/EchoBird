@@ -83,24 +83,38 @@ async function fetchOne(
   }
 }
 
-export async function fetchLatestManifest(
-  signal?: AbortSignal,
-  timeoutMs = 8000
+async function fetchManifest(
+  signal: AbortSignal | undefined,
+  timeoutMs: number,
+  version?: string
 ): Promise<UpdateManifest | null> {
   const results = await Promise.all(
     MANIFEST_SOURCES.map((url) => fetchOne(url, signal, timeoutMs))
   );
   if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
-  return results
-    .filter((m): m is UpdateManifest => !!m)
-    .reduce<UpdateManifest | null>((best, item) => {
-      if (!best || isNewerVersion(item.version, best.version)) return item;
-      if (item.version !== best.version) return best;
-      return {
-        ...best,
-        releaseDate: item.releaseDate ?? best.releaseDate,
-        releaseNotes: item.releaseNotes ?? best.releaseNotes,
-        releaseNotesI18n: { ...best.releaseNotesI18n, ...item.releaseNotesI18n },
-      };
-    }, null);
+  return results.reduce<UpdateManifest | null>((best, item) => {
+    if (!item || (version && item.version !== version)) return best;
+    if (!best || isNewerVersion(item.version, best.version)) return item;
+    if (item.version !== best.version) return best;
+    return {
+      ...best,
+      releaseDate: item.releaseDate ?? best.releaseDate,
+      releaseNotes: item.releaseNotes ?? best.releaseNotes,
+      releaseNotesI18n: { ...best.releaseNotesI18n, ...item.releaseNotesI18n },
+    };
+  }, null);
+}
+
+export function fetchLatestManifest(
+  signal?: AbortSignal,
+  timeoutMs = 8000
+): Promise<UpdateManifest | null> {
+  return fetchManifest(signal, timeoutMs);
+}
+
+export function fetchManifestForVersion(
+  version: string,
+  signal?: AbortSignal
+): Promise<UpdateManifest | null> {
+  return fetchManifest(signal, 8000, version.replace(/^v/, ''));
 }
