@@ -25,7 +25,7 @@ export function ImportGuideDemo() {
       </div>
       <div className="import-guide-action">
         <DesktopPrimaryButton
-          className="relative"
+          className="relative flex items-center justify-center"
           onClick={() => {
             if (useConfigBackupStore.getState().phase !== 'idle') return;
             void useAutoImportStore.getState().start();
