@@ -272,6 +272,7 @@ const zhHant: Partial<Translations> = {
   'accountProxy.account': '帳號',
   'accountProxy.accountCountOne': '{count} 個帳號',
   'accountProxy.accountCountOther': '{count} 個帳號',
+  'accountProxy.routerUnavailable': '無法接入',
   'accountProxy.selectRequired': '請選擇帳號和模型。',
   'freeModels.tab.free': '免費模型',
   'freeModels.customAdd': '自定義新增',

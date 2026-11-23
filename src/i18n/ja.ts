@@ -291,6 +291,7 @@ const ja: Partial<Translations> = {
   'accountProxy.account': 'アカウント',
   'accountProxy.accountCountOne': '{count} アカウント',
   'accountProxy.accountCountOther': '{count} アカウント',
+  'accountProxy.routerUnavailable': '接続不可',
   'accountProxy.selectRequired': 'アカウントとモデルを選択してください。',
   'freeModels.tab.free': '無料モデル',
   'freeModels.customAdd': 'カスタム追加',

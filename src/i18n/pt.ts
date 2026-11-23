@@ -293,6 +293,7 @@ const pt = {
   'accountProxy.account': 'Contas',
   'accountProxy.accountCountOne': '{count} conta',
   'accountProxy.accountCountOther': '{count} contas',
+  'accountProxy.routerUnavailable': 'Indisponível',
   'accountProxy.selectRequired': 'Escolha uma conta e um modelo.',
   'freeModels.tab.free': 'Modelo Livre',
   'freeModels.customAdd': 'Adicionar personalizado',

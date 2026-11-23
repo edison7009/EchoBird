@@ -60,16 +60,14 @@
   color: #164c32;
 }
 
-.router-terminal-groups > .view-mode-tab > span {
+.router-terminal-groups > .view-mode-tab > .truncate {
   max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .router-terminal .router-terminal-groups > .view-mode-tab[aria-pressed='true'] {
   /* A tab of the screen itself, in every theme: the glass's edge colour, its
-     rim on three sides, its scanlines, and a lit phosphor label behind a
-     prompt. It covers the rim line the toolbar draws along the screen's top. */
+     rim on three sides, its scanlines, and a lit phosphor label. It covers
+     the rim line the toolbar draws along the screen's top. */
   position: relative;
   color: #a6f2c4;
   background: var(--crt-edge);
@@ -78,10 +76,6 @@
     inset -1px 0 0 var(--crt-rim),
     inset 0 1px 0 var(--crt-rim);
   text-shadow: 0 0 6px rgb(129 213 166 / 0.6);
-}
-.router-terminal .router-terminal-groups > .view-mode-tab[aria-pressed='true']::before {
-  content: '>';
-  color: rgb(129 213 166 / 0.7);
 }
 .router-terminal .router-terminal-groups > .view-mode-tab[aria-pressed='true']::after {
   content: '';

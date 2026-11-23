@@ -8,6 +8,7 @@ import { copyText } from '../../utils/copyText';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { FreeModelsProvider, useFreeModels } from './provider';
 import { RouterGroups } from './RouterGroups';
+import { SmartRouterIcon } from '../../components/SmartRouterIcon';
 import { ViewModeTabGroup, type ViewModeTabPosition } from '../../components/ViewModeTabGroup';
 
 const { confirm, showToast } = vi.hoisted(() => ({ confirm: vi.fn(), showToast: vi.fn() }));
@@ -758,6 +759,20 @@ describe('Independent smart router groups', () => {
     await act(async () => renderer.root.findByType('form').props.onSubmit({ preventDefault() {} }));
     expect(api.saveSmartRouter).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({ icon: 'rocket' })
+    );
+  });
+
+  it('shows the saved icon beside the list title and uses a default for older groups', async () => {
+    groups[0].icon = 'rocket';
+    await open();
+
+    await act(async () => context.setLayout('list'));
+    const icon = renderer.root.findByType(SmartRouterIcon);
+    expect(icon.props).toMatchObject({ name: 'rocket', size: 20 });
+    expect(icon.parent?.parent?.children[0]).toBe(icon.parent);
+    await act(async () => button('Second').props.onClick());
+    expect(renderer.root.findByType(SmartRouterIcon).findByType('svg').props.className).toContain(
+      'lucide-waypoints'
     );
   });
 

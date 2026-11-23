@@ -277,6 +277,7 @@ const ko = {
   'accountProxy.account': '계좌',
   'accountProxy.accountCountOne': '계정 {count}개',
   'accountProxy.accountCountOther': '{count} 계정',
+  'accountProxy.routerUnavailable': '연결 불가',
   'accountProxy.selectRequired': '계정과 모델을 선택합니다.',
   'freeModels.tab.free': '무료 모델',
   'freeModels.customAdd': 'Custom 추가',

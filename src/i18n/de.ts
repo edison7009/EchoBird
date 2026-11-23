@@ -309,6 +309,7 @@ const de = {
   'accountProxy.account': 'Rechnung',
   'accountProxy.accountCountOne': '{count} Konto',
   'accountProxy.accountCountOther': '{count} Konten',
+  'accountProxy.routerUnavailable': 'Nicht verfügbar',
   'accountProxy.selectRequired': 'Wählen Sie ein Konto und ein Modell.',
   'freeModels.tab.free': 'Freie Modelle',
   'freeModels.customAdd': 'Custom hinzufügen',

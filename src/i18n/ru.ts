@@ -291,6 +291,7 @@ const ru = {
   'accountProxy.account': 'Счет',
   'accountProxy.accountCountOne': '{count} аккаунт',
   'accountProxy.accountCountOther': '{count} счетов',
+  'accountProxy.routerUnavailable': 'Недоступно',
   'accountProxy.selectRequired': 'Выберите счет и модель.',
   'freeModels.tab.free': 'Бесплатные модели',
   'freeModels.customAdd': 'Кстати добавить',

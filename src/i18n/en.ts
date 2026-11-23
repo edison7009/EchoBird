@@ -290,6 +290,7 @@ const en = {
   'accountProxy.account': 'Account',
   'accountProxy.accountCountOne': '{count} account',
   'accountProxy.accountCountOther': '{count} accounts',
+  'accountProxy.routerUnavailable': 'Unavailable',
   'accountProxy.selectRequired': 'Select an account and a model.',
   'freeModels.tab.free': 'Free Models',
   'freeModels.customAdd': 'Custom Add',

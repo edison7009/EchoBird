@@ -304,6 +304,7 @@ const es = {
   'accountProxy.account': 'Cuentas',
   'accountProxy.accountCountOne': '{count} cuenta',
   'accountProxy.accountCountOther': '{count} cuentas',
+  'accountProxy.routerUnavailable': 'No disponible',
   'accountProxy.selectRequired': 'Seleccione una cuenta y un modelo.',
   'freeModels.tab.free': 'Modelos libres',
   'freeModels.customAdd': 'Adicionar personalizado',

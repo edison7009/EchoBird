@@ -286,6 +286,7 @@ const vi = {
   'accountProxy.account': 'Tài khoản',
   'accountProxy.accountCountOne': '{count} tài khoản',
   'accountProxy.accountCountOther': '{count} Tài khoản',
+  'accountProxy.routerUnavailable': 'Không thể kết nối',
   'accountProxy.selectRequired': 'Chọn một tài khoản và một mô hình.',
   'freeModels.tab.free': 'Mô hình miễn phí',
   'freeModels.customAdd': 'Custom thêm',

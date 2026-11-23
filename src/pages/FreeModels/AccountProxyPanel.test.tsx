@@ -123,6 +123,22 @@ it('counts saved accounts independently, including zero, without reading model c
   expect(api.listProxyAccounts).toHaveBeenCalledTimes(api.accountProxyProviders.length);
 });
 
+it('shows the unavailable label before the Doubao Work count in Smart Routes only', async () => {
+  await open();
+  const doubao = row('doubaowork');
+  const notes = doubao
+    .findAllByType('span')
+    .filter((span) => String(span.props.className).split(' ').includes('brand-deck-note'));
+  expect(notes.map((note) => note.children.join(''))).toEqual(['无法接入', '1 个账号']);
+  expect(doubao.props['aria-describedby']).toBe(notes[0].props.id);
+  expect(row('dumate').props['aria-describedby']).toBeUndefined();
+  expect(row('dola').props['aria-describedby']).toBeUndefined();
+
+  await act(async () => renderer.update(<AccountProxyPanel voice />));
+  expect(row('doubaowork').props['aria-describedby']).toBeUndefined();
+  expect(JSON.stringify(renderer.toJSON())).not.toContain('无法接入');
+});
+
 it('offers DuMate saved accounts as a router source without starting login or reading models on entry', async () => {
   await open();
   expect(count('dumate')).toBe('1 个账号');

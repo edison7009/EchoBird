@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as api from '../../api/tauri';
 import { RoutingToggle } from '../../components/RoutingToggle';
+import { SmartRouterIcon } from '../../components/SmartRouterIcon';
 import { useDocumentVisible } from '../../hooks/useDocumentVisible';
 import { useI18n } from '../../hooks/useI18n';
 import { useNavigationStore } from '../../stores/navigationStore';
@@ -94,7 +95,16 @@ export function RouterTerminal() {
               onClick={() => void selectRouter(router.id)}
               className="view-mode-tab text-sm cjk-btn transition-[color]"
             >
-              {router.id === activeRouterId ? <span>{router.name}</span> : index + 1}
+              {router.id === activeRouterId ? (
+                <>
+                  <span className="shrink-0 text-cyber-accent">
+                    <SmartRouterIcon name={router.icon} size={20} />
+                  </span>
+                  <span className="truncate">{router.name}</span>
+                </>
+              ) : (
+                index + 1
+              )}
             </button>
           ))}
         </div>

@@ -1,5 +1,5 @@
 import { accountProxySources, useAccountProviderFilter } from '../../hooks/useAccountCapability';
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useId, useState, type CSSProperties } from 'react';
 import {
   accountProviderIconSrc,
   accountSpeechProviders,
@@ -12,6 +12,8 @@ import { useNavigationStore } from '../../stores/navigationStore';
 import { useModelNexus } from '../ModelNexus/context';
 import { useBrandColour } from '../../utils/brandColour';
 import '../../components/brandCards.css';
+
+const unavailableRouterProviders = new Set<AccountProvider>(['doubaowork']);
 
 export function openAccountModelForm(
   provider: AccountProvider,
@@ -113,6 +115,11 @@ export function AccountProxyPanel({
                 ).replace('{count}', String(counts[provider.id]))
           }
           empty={!counts[provider.id]}
+          status={
+            !voice && unavailableRouterProviders.has(provider.id)
+              ? t('accountProxy.routerUnavailable')
+              : undefined
+          }
         />
       ))}
     </div>
@@ -126,6 +133,7 @@ function AccountProxyCard({
   label,
   count,
   empty,
+  status,
   disabled,
   onClick,
 }: {
@@ -134,16 +142,22 @@ function AccountProxyCard({
   label: string;
   count: string;
   empty: boolean;
+  status?: string;
   disabled: boolean;
   onClick: () => void;
 }) {
   const colour = useBrandColour(iconSrc);
+  const statusId = useId();
+  const countBadge = (
+    <span className={`brand-deck-note tabular-nums${empty ? ' is-empty' : ''}`}>{count}</span>
+  );
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={onClick}
       aria-label={label}
+      aria-describedby={status ? statusId : undefined}
       className="brand-deck-card w-full text-left"
       style={{ '--deck-from': colour.from, '--deck-to': colour.to } as CSSProperties}
     >
@@ -154,7 +168,16 @@ function AccountProxyCard({
         className={`brand-deck-icon${colour.glyph ? ' is-glyph' : ''}`}
       />
       <span className="brand-deck-name">{name}</span>
-      <span className={`brand-deck-note tabular-nums${empty ? ' is-empty' : ''}`}>{count}</span>
+      {status ? (
+        <span className="flex shrink-0 items-center gap-1 whitespace-nowrap">
+          <span id={statusId} className="brand-deck-note">
+            {status}
+          </span>
+          {countBadge}
+        </span>
+      ) : (
+        countBadge
+      )}
     </button>
   );
 }

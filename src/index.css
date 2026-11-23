@@ -1279,23 +1279,25 @@ section > .account-pill:last-child {
   margin-bottom: 0;
 }
 
-/* Logos with near-black backgrounds invert in dark mode so they read on
-   the near-black page. */
-[data-theme='dark'] img[src*='/icons/models/sidrune.svg'],
-[data-theme='dark'] img[src*='/icons/models/yi.svg'],
-[data-theme='dark'] img[src*='/icons/models/ollama.svg'],
-[data-theme='dark'] img[src*='/icons/models/agnes.svg'],
-[data-theme='dark'] img[src*='/icons/models/baseten.svg'],
-[data-theme='dark'] img[src*='/icons/models/nousresearch.svg'],
-[data-theme='dark'] img[src*='/icons/tools/opencode.svg'],
-[data-theme='dark'] img[src*='/icons/tools/cursor.svg'],
-[data-theme='dark'] img[src*='/icons/tools/cursorcli.svg'],
-[data-theme='dark'] img[src*='/icons/tools/grok.svg'],
-[data-theme='dark'] img[src*='/icons/tools/openscience.svg'] {
+/* Dark logos need contrast on dark pages and on deck cards, which keep
+   their dark backgrounds in both themes. */
+:is([data-theme='dark'] img, img.brand-deck-icon):is(
+  [src*='/icons/models/sidrune.svg'],
+  [src*='/icons/models/yi.svg'],
+  [src*='/icons/models/ollama.svg'],
+  [src*='/icons/models/agnes.svg'],
+  [src*='/icons/models/baseten.svg'],
+  [src*='/icons/models/nousresearch.svg'],
+  [src*='/icons/tools/opencode.svg'],
+  [src*='/icons/tools/cursor.svg'],
+  [src*='/icons/tools/cursorcli.svg'],
+  [src*='/icons/tools/grok.svg'],
+  [src*='/icons/tools/openscience.svg']
+) {
   filter: invert(1) brightness(0.92);
 }
 
-[data-theme='dark'] img[src*='/icons/models/liquid.svg'] {
+:is([data-theme='dark'] img, img.brand-deck-icon)[src*='/icons/models/liquid.svg'] {
   filter: invert(1);
 }
 

@@ -2,6 +2,7 @@ import { useLayoutEffect } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { RouterTerminal } from './RouterTerminal';
+import { SmartRouterIcon } from '../../components/SmartRouterIcon';
 import { useTerminalFeed } from './useTerminalFeed';
 import { useProtectionStore } from '../../stores/protectionStore';
 import type { TerminalSegment } from '../../api/routerTerminal';
@@ -28,7 +29,7 @@ vi.mock('../../stores/navigationStore', () => ({
 vi.mock('./provider', () => ({
   useFreeModels: () => ({
     routers: [
-      { id: 'one', name: 'One' },
+      { id: 'one', name: 'One', icon: 'rocket' },
       { id: 'two', name: 'Two' },
     ],
     activeRouterId: 'one',
@@ -132,7 +133,13 @@ it('uses existing group selection without writes; protection saves merge the lat
     view = create(<RouterTerminal />);
   });
   expect(mocks.save).not.toHaveBeenCalled();
-  await act(async () => view.root.findByProps({ 'aria-label': 'Two' }).props.onClick());
+  const activeTab = view.root.findByProps({ 'aria-label': 'One' });
+  const icon = activeTab.findByType(SmartRouterIcon);
+  expect(icon.props).toMatchObject({ name: 'rocket', size: 20 });
+  expect(activeTab.children[0]).toBe(icon.parent);
+  const otherTab = view.root.findByProps({ 'aria-label': 'Two' });
+  expect(otherTab.children).toEqual(['2']);
+  await act(async () => otherTab.props.onClick());
   expect(mocks.select).toHaveBeenCalledWith('two');
   const toggle = () => view.root.findByProps({ role: 'switch' });
   await act(async () => toggle().props.onClick());

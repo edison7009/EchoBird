@@ -570,6 +570,11 @@ export function RouterGroups({
         <div
           className={`free-model-router-heading flex min-w-0 items-center gap-2 ${list ? 'justify-center' : 'free-model-router-card-heading'}`}
         >
+          {list && (
+            <span className="shrink-0 text-cyber-accent">
+              <SmartRouterIcon name={router.icon} size={20} />
+            </span>
+          )}
           <span
             className={`truncate font-semibold text-cyber-text ${list ? 'text-sm' : 'flex-1 text-lg leading-none'}`}
           >
