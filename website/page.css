@@ -1333,13 +1333,15 @@ body:before {
   min-width: 180px;
   max-height: min(65vh, 400px);
   overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #555c4e transparent;
+  scrollbar-width: none;
   padding: 8px;
   border: 1px solid #ffffff20;
   border-radius: 12px;
   background: #20211f;
   box-shadow: 0 8px 24px #0004;
+}
+.site-language-options::-webkit-scrollbar {
+  display: none;
 }
 .site-language-options a {
   padding: 8px 12px;
