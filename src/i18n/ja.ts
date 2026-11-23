@@ -18,6 +18,7 @@ const ja: Partial<Translations> = {
   'usageIsland.count': '{n} 件選択中（最大 {max} 件）',
   'usageIsland.direction.right': '右へ展開',
   'usageIsland.direction.left': '左へ展開',
+  'usageIsland.trayEmpty': '使用量アイランドで表示するアカウントやモデルを選択してください。',
   'usageIsland.direction.down': '下へ展開',
   'usageIsland.direction.up': '上へ展開',
   'usageIsland.direction.clockwise': '時計回り',

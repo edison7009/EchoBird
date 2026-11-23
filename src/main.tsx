@@ -7,6 +7,7 @@ import { useThemeStore } from './stores/themeStore';
 import { initializeUiScale } from './stores/uiScaleStore';
 import { detectLocale, loadLocale, resolveLocale } from './i18n';
 import * as api from './api/tauri';
+import { TRAY_USAGE_WINDOW } from './api/usageIsland';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { IS_LINUX, IS_MACOS } from './utils/platform';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -23,9 +24,16 @@ const isVoiceIsland = getCurrentWindow().label === 'voice-island';
 const isVoiceTranslation = getCurrentWindow().label === 'voice-translation';
 const isUsageIsland = getCurrentWindow().label === 'usage-island';
 const isUsageIslandTooltip = getCurrentWindow().label === 'usage-island-tooltip';
+const isTrayUsage = getCurrentWindow().label === TRAY_USAGE_WINDOW;
 // Start cached desktop icons alongside fonts/theme, without delaying window
 // visibility or loading desktop artwork in auxiliary windows.
-if (!isVoiceIsland && !isVoiceTranslation && !isUsageIsland && !isUsageIslandTooltip) {
+if (
+  !isVoiceIsland &&
+  !isVoiceTranslation &&
+  !isUsageIsland &&
+  !isUsageIslandTooltip &&
+  !isTrayUsage
+) {
   void preloadDesktopToolIcons(
     useToolsStore.getState().detectedTools.filter((tool) => tool.installed)
   );
@@ -188,6 +196,21 @@ async function bootAndRender(): Promise<void> {
       import('./pages/UsageIsland/UsageIslandTooltipWindow'),
     ]);
     ReactDOM.createRoot(document.getElementById('root')!).render(<UsageIslandTooltipWindow />);
+    return;
+  }
+  if (isTrayUsage) {
+    document.documentElement.classList.add('usage-island-tooltip-window');
+    const [locale, , { TrayUsageWindow }] = await Promise.all([
+      bootI18n(),
+      bootFonts(),
+      import('./pages/UsageIsland/TrayUsageWindow'),
+    ]);
+    document.documentElement.lang = locale;
+    ReactDOM.createRoot(document.getElementById('root')!).render(
+      <I18nProvider initialLocale={locale}>
+        <TrayUsageWindow />
+      </I18nProvider>
+    );
     return;
   }
   if (isUsageIsland) {

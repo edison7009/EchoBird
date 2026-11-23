@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { IS_LINUX } from '../utils/platform';
 import { useNavigationStore } from './navigationStore';
 
 const STORAGE_KEY = 'echobird_usage_island';
@@ -170,4 +171,14 @@ export const usageIslandVisible = () =>
 export function useUsageIslandVisible() {
   const developerMode = useNavigationStore((state) => state.developerMode);
   return useUsageIslandStore((state) => shouldShow(state, developerMode));
+}
+
+// The Linux tray API has no pointer enter/leave events.
+const canShowTrayUsage = (developerMode: boolean) => !IS_LINUX && developerMode;
+
+export const trayUsageAvailable = () =>
+  canShowTrayUsage(useNavigationStore.getState().developerMode);
+
+export function useTrayUsageConfigured() {
+  return useNavigationStore((state) => canShowTrayUsage(state.developerMode));
 }

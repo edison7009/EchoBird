@@ -5,7 +5,11 @@ import { useToast } from '../../components/Toast';
 import { useI18n } from '../../hooks/useI18n';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { useRewardClaimStore } from '../../stores/rewardClaimStore';
-import { usageIslandVisible, useUsageIslandStore } from '../../stores/usageIslandStore';
+import {
+  trayUsageAvailable,
+  usageIslandVisible,
+  useUsageIslandStore,
+} from '../../stores/usageIslandStore';
 import { accountCenterProviders } from '../AccountCenter/accountCenterData';
 import { readCachedAccounts } from '../AccountCenter/useAccountCardCache';
 import { useAccounts } from '../../features/accounts/context';
@@ -40,6 +44,7 @@ export function useUsageSources(active: boolean): UsageSource[] {
   const { t, locale } = useI18n();
   // Read on entry: the account page owns this cache and keeps writing it.
   const cached = useMemo(() => (active ? readCachedAccounts(locale) : {}), [active, locale]);
+  if (!active) return [];
   return [
     ...accountSources(accountCenterProviders(context, t, locale), cached),
     ...modelSources(
@@ -57,10 +62,6 @@ export function useUsageIslandItems(sources: UsageSource[]) {
   return selected.flatMap((key) => sources.filter((source) => source.key === key).slice(0, 1));
 }
 
-/**
- * Only one caller may pass `timed`: the page while closed, the bridge while open. With
- * `ticked` the caller drives the interval itself, as `refresh(false)`.
- */
 function normalizedAccountProvider(provider: string) {
   return (
     (
@@ -119,18 +120,22 @@ export function useUsageIslandSmartActivity(enabled: boolean, items: UsageSource
         for (const item of latestItems.current) {
           if (activeModels.some((model) => sameAccountSource(item, model))) active.add(item.key);
         }
-        setActiveKeys(active);
+        setActiveKeys((previous) =>
+          previous.size === active.size && [...active].every((key) => previous.has(key))
+            ? previous
+            : active
+        );
       } catch {
-        if (!cancelled) setActiveKeys(new Set());
+        if (!cancelled) setActiveKeys((previous) => (previous.size ? new Set() : previous));
       } finally {
         pending = false;
       }
     };
     void poll();
-    const timer = window.setInterval(() => void poll(), 750);
+    const timer = setInterval(() => void poll(), 750);
     return () => {
       cancelled = true;
-      window.clearInterval(timer);
+      clearInterval(timer);
     };
   }, [enabled, signature]);
   return enabled ? activeKeys : new Set<string>();
@@ -141,11 +146,13 @@ export function useUsageIslandSmartActivity(enabled: boolean, items: UsageSource
  *  island's timed refresh (or the reverse). Timed runs skip while it is held. */
 export const useUsageIslandBatchStore = create<{ running: boolean }>(() => ({ running: false }));
 
+/**
+ * The floating window or native tray supplies ticks to the bridge.
+ * The settings page owns the timer where neither is available.
+ */
 export function useUsageIslandRefresh(
   items: UsageSource[],
-  timed: boolean,
-  startSoon = false,
-  ticked = false
+  timer: 'page' | 'tray' | 'floating' | null
 ) {
   const { t } = useI18n();
   const { showToast } = useToast();
@@ -155,10 +162,19 @@ export function useUsageIslandRefresh(
   const sharedRunning = useUsageIslandBatchStore((state) => state.running);
   const mounted = useRef(true);
   const generation = useRef(0);
+  const timerOwner = useRef(timer);
+  useEffect(() => {
+    timerOwner.current = timer;
+  }, [timer]);
   useEffect(() => {
     mounted.current = true;
     const stop = useNavigationStore.subscribe((state, previous) => {
-      if (onUsageIslandPage(previous) && !onUsageIslandPage(state) && !usageIslandVisible())
+      if (
+        onUsageIslandPage(previous) &&
+        !onUsageIslandPage(state) &&
+        !usageIslandVisible() &&
+        !(timerOwner.current === 'tray' && trayUsageAvailable())
+      )
         generation.current += 1;
     });
     return () => {
@@ -174,7 +190,10 @@ export function useUsageIslandRefresh(
   useEffect(() => {
     latestItems.current = items;
   });
-  const live = () => onUsageIslandPage(useNavigationStore.getState()) || usageIslandVisible();
+  const live = () =>
+    onUsageIslandPage(useNavigationStore.getState()) ||
+    usageIslandVisible() ||
+    (timerOwner.current === 'tray' && trayUsageAvailable());
   const run = async (action: UsageIslandAction, manual = true) => {
     if (!mounted.current || !live()) return;
     if (batchPending.current || !latestItems.current.length) return;
@@ -254,15 +273,15 @@ export function useUsageIslandRefresh(
   // Opening the page never queries quota, so its first tick waits a full interval. The
   // floating island has nothing to show until then, as model usage lives in memory.
   useEffect(() => {
-    if (!timed || ticked || !refreshSeconds) return;
-    const timer = setInterval(() => void latestRefresh.current(false), refreshSeconds * 1000);
-    return () => clearInterval(timer);
-  }, [timed, ticked, refreshSeconds]);
+    if (timer !== 'page' || !refreshSeconds || !hasItems) return;
+    const interval = setInterval(() => void latestRefresh.current(false), refreshSeconds * 1000);
+    return () => clearInterval(interval);
+  }, [timer, refreshSeconds, hasItems]);
   useEffect(() => {
-    if (!timed || !startSoon || !refreshSeconds || !hasItems) return;
+    if (timer !== 'floating' || !refreshSeconds || !hasItems) return;
     const first = setTimeout(() => void latestRefresh.current(false), FIRST_REFRESH_DELAY);
     return () => clearTimeout(first);
-  }, [timed, startSoon, refreshSeconds, hasItems]);
+  }, [timer, refreshSeconds, hasItems]);
   return {
     refreshing: running === 'refresh',
     refresh,

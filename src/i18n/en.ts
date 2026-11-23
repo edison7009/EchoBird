@@ -16,6 +16,7 @@ const en = {
   'usageIsland.count': '{n} of {max} selected',
   'usageIsland.direction.right': 'Expand right',
   'usageIsland.direction.left': 'Expand left',
+  'usageIsland.trayEmpty': 'Choose accounts or models to show in Usage Island.',
   'usageIsland.direction.down': 'Expand down',
   'usageIsland.direction.up': 'Expand up',
   'usageIsland.direction.clockwise': 'Clockwise',

@@ -621,6 +621,32 @@
 .usage-island[data-layout='list'] .usage-island-line-title {
   max-width: none;
 }
+.usage-island[data-layout='list'].tray-usage-preview {
+  display: flex;
+  flex-direction: column;
+  width: calc(100% - 24px);
+  height: calc(100% - 24px);
+  margin: 12px;
+  padding: 12px 10px;
+  gap: 6px;
+  transition: none;
+}
+
+.usage-island[data-layout='list'].tray-usage-preview .usage-island-tool {
+  flex: 1 1 52px;
+  min-height: 0;
+}
+
+.tray-usage-empty {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  padding: 0 8px;
+  font-size: 13px;
+  line-height: 18px;
+  text-align: center;
+}
+
 .usage-island-list-actions {
   position: absolute;
   top: 10px;

@@ -1,4 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
+import type { BackgroundMode } from '../stores/backgroundStore';
+import type { UsageIslandOpacity, UsageIslandTheme } from '../stores/usageIslandStore';
+import type { UsageIslandItem } from '../pages/UsageIsland/usageIslandData';
 import type {
   UsageTooltipRequest,
   UsageTooltipSnapshot,
@@ -35,3 +38,32 @@ export const setUsageIslandHitArea = (
   height: number,
   radius: number
 ) => invoke<void>('usage_island_set_hit_area', { x, y, width, height, radius });
+
+export const TRAY_USAGE_WINDOW = 'tray-usage';
+export const TRAY_USAGE_STATE_EVENT = 'tray-usage-state';
+
+export interface TrayUsagePreview {
+  theme: UsageIslandTheme;
+  background?: BackgroundMode;
+  opacity: UsageIslandOpacity;
+  scale: number;
+  refreshSeconds: number;
+  items: UsageIslandItem[];
+}
+
+export interface TrayUsageSnapshot {
+  revision: number;
+  preview: TrayUsagePreview | null;
+}
+
+// The main window owns the preview. Keep updates and the final clear ordered.
+let trayUsageQueue = Promise.resolve();
+export function updateTrayUsage(preview: TrayUsagePreview | null) {
+  trayUsageQueue = trayUsageQueue
+    .catch(() => {})
+    .then(() => invoke<void>('tray_usage_update', { preview }));
+  return trayUsageQueue;
+}
+
+export const getTrayUsage = () => invoke<TrayUsageSnapshot | null>('tray_usage_state');
+export const readyTrayUsage = (revision: number) => invoke<void>('tray_usage_ready', { revision });

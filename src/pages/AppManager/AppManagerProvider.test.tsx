@@ -149,7 +149,10 @@ describe('Cursor CLI account integration', () => {
 });
 
 vi.hoisted(() => vi.stubGlobal('__APP_EDITION__', 'full'));
-vi.mock('../../utils/platform', () => ({ IS_WINDOWS: false }));
+vi.mock('../../utils/platform', async (original) => ({
+  ...(await original<typeof import('../../utils/platform')>()),
+  IS_WINDOWS: false,
+}));
 vi.mock('@tauri-apps/plugin-dialog', () => ({ open: vi.fn().mockResolvedValue('/fixture') }));
 vi.mock('../../hooks/useI18n', () => {
   const t = (key: string) =>

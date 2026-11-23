@@ -15,6 +15,7 @@ const ko = {
   'usageIsland.count': '{n} 의 {max} 선택',
   'usageIsland.direction.right': '오른쪽 확장',
   'usageIsland.direction.left': '확장 남아있다',
+  'usageIsland.trayEmpty': '사용량 아일랜드에서 표시할 계정이나 모델을 선택하세요.',
   'usageIsland.direction.down': '아래로 확장',
   'usageIsland.direction.up': '확장 위',
   'usageIsland.direction.clockwise': '시계',

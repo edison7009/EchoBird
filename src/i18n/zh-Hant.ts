@@ -18,6 +18,7 @@ const zhHant: Partial<Translations> = {
   'usageIsland.count': '已選 {n} 個，最多 {max} 個',
   'usageIsland.direction.right': '向右',
   'usageIsland.direction.left': '向左',
+  'usageIsland.trayEmpty': '在用量島選擇要顯示的帳號或模型',
   'usageIsland.direction.down': '向下',
   'usageIsland.direction.up': '向上',
   'usageIsland.direction.clockwise': '順時針',

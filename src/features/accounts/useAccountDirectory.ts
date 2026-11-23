@@ -27,7 +27,11 @@ import type { Dispatch, SetStateAction } from 'react';
 import type * as api from '../../api/tauri';
 import type { LocalTool } from '../../api/types';
 import type { useNavigationStore } from '../../stores/navigationStore';
-import { useUsageIslandVisible } from '../../stores/usageIslandStore';
+import {
+  useTrayUsageConfigured,
+  useUsageIslandStore,
+  useUsageIslandVisible,
+} from '../../stores/usageIslandStore';
 
 interface DirectoryOptions {
   selectedTool: string | null;
@@ -60,10 +64,14 @@ export function useAccountDirectory({
     accountNavigation.current = { tool: selectedTool, page: activePage };
   }, [selectedTool, activePage]);
   const usageIslandOpen = useUsageIslandVisible();
+  const trayUsage = useTrayUsageConfigured();
+  const trayHasAccounts = useUsageIslandStore((state) =>
+    state.sources.some((source) => source.startsWith('account:'))
+  );
   const accountPage =
     activePage === 'accounts' || (activePage === 'apps' && appsTab === 'usageIsland');
-  // The floating island needs saved accounts on every page, but tool pages keep their own target.
-  const accountDataNeeded = accountPage || usageIslandOpen;
+  // Both usage surfaces need saved accounts across pages, including when the main window is hidden.
+  const accountDataNeeded = accountPage || usageIslandOpen || (trayUsage && trayHasAccounts);
   const accountsEnabled =
     isActive && detectedTools.some((tool) => tool.id === selectedTool && tool.installed);
   // Native client-backed groups stay passive until their client is installed.

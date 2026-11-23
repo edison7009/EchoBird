@@ -7,6 +7,7 @@ import {
   USAGE_ISLAND_STATE_EVENT,
   USAGE_ISLAND_TICK_EVENT,
   USAGE_ISLAND_WINDOW,
+  updateTrayUsage,
 } from '../../api/usageIsland';
 import { ACCOUNT_NAME_MASK, useAccountPrivacyStore } from '../../stores/accountPrivacyStore';
 import { useBackgroundStore } from '../../stores/backgroundStore';
@@ -21,7 +22,13 @@ import {
 } from './useUsageIslandData';
 
 /** Keeps the floating window in step; only the main window owns accounts and models. */
-export default function UsageIslandBridge() {
+export default function UsageIslandBridge({
+  floating,
+  tray,
+}: {
+  floating: boolean;
+  tray: boolean;
+}) {
   const style = useUsageIslandStore((state) => state.style);
   const reversed = useUsageIslandStore((state) => state.reversed);
   const theme = useUsageIslandStore((state) => state.theme);
@@ -33,10 +40,15 @@ export default function UsageIslandBridge() {
   const showSmartAccess = useUsageIslandStore((state) => state.showSmartAccess);
   const background = useBackgroundStore((state) => state.mode);
   const hidden = useAccountPrivacyStore((privacy) => privacy.hidden);
-  const items = useUsageIslandItems(useUsageSources(true));
-  const smartActiveKeys = useUsageIslandSmartActivity(showSmartAccess, items);
-  // The browser slows timers in a window hidden to the tray, so the island keeps time.
-  const { refresh, actions, run } = useUsageIslandRefresh(items, true, true, true);
+  const hasSources = useUsageIslandStore((state) => state.sources.length > 0);
+  const items = useUsageIslandItems(useUsageSources(hasSources));
+  const smartActiveKeys = useUsageIslandSmartActivity(showSmartAccess && items.length > 0, items);
+  const hosted = floating || tray;
+  // A visible floating window keeps time even when the main window is hidden.
+  const { refresh, actions, run } = useUsageIslandRefresh(
+    items,
+    floating ? 'floating' : tray ? 'tray' : null
+  );
   const latestRefresh = useRef(refresh);
   const latestRun = useRef(run);
   useEffect(() => {
@@ -65,9 +77,36 @@ export default function UsageIslandBridge() {
   const latest = useRef(serialized);
   useEffect(() => {
     latest.current = serialized;
-    void emitTo(USAGE_ISLAND_WINDOW, USAGE_ISLAND_STATE_EVENT, serialized).catch(() => {});
-  }, [serialized]);
+    if (floating)
+      void emitTo(USAGE_ISLAND_WINDOW, USAGE_ISLAND_STATE_EVENT, serialized).catch(() => {});
+  }, [floating, serialized]);
+
+  // No usage requests on hover. The tray receives only what is already visible in the island.
+  const trayPreview = tray
+    ? JSON.stringify({
+        theme,
+        background,
+        opacity,
+        scale,
+        refreshSeconds: floating ? 0 : refreshSeconds,
+        items: payload.items,
+      })
+    : null;
   useEffect(() => {
+    if (trayPreview) void updateTrayUsage(JSON.parse(trayPreview)).catch(() => {});
+  }, [trayPreview]);
+  useEffect(() => {
+    if (tray) return () => void updateTrayUsage(null).catch(() => {});
+  }, [tray]);
+  useEffect(() => {
+    if (!hosted) return;
+    const stop = listen(USAGE_ISLAND_TICK_EVENT, () => {
+      if (useUsageIslandStore.getState().refreshSeconds) void latestRefresh.current(false);
+    });
+    return () => void stop.then((unlisten) => unlisten()).catch(() => {});
+  }, [hosted]);
+  useEffect(() => {
+    if (!floating) return;
     const stops = [
       listen(USAGE_ISLAND_REQUEST_EVENT, () => {
         void emitTo(USAGE_ISLAND_WINDOW, USAGE_ISLAND_STATE_EVENT, latest.current).catch(() => {});
@@ -83,9 +122,8 @@ export default function UsageIslandBridge() {
           return;
         void latestRun.current(action);
       }),
-      listen(USAGE_ISLAND_TICK_EVENT, () => void latestRefresh.current(false)),
     ];
     return () => stops.forEach((stop) => void stop.then((unlisten) => unlisten()).catch(() => {}));
-  }, []);
+  }, [floating]);
   return null;
 }

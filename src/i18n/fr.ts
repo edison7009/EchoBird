@@ -15,6 +15,8 @@ const fr = {
   'usageIsland.count': '{n} sur {max} sélectionnés',
   'usageIsland.direction.right': 'Élargissez droit',
   'usageIsland.direction.left': 'Extension de la gauche',
+  'usageIsland.trayEmpty':
+    'Choisissez dans l’îlot d’utilisation les comptes ou modèles à afficher.',
   'usageIsland.direction.down': 'Élargissez en bas',
   'usageIsland.direction.up': 'Expandez-vous',
   'usageIsland.direction.clockwise': 'Horaires',

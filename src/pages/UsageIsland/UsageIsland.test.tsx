@@ -1,6 +1,7 @@
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import type { ModelConfig } from '../../api/types';
+import { getSmartRouterActivity } from '../../api/smartRouter';
 import {
   ACCOUNT_NAME_MASK,
   useAccountPrivacyStore as privacy,
@@ -20,12 +21,18 @@ import {
   USAGE_ISLAND_TICK_EVENT,
   resizeUsageIsland,
   setUsageIslandHitArea,
+  updateTrayUsage,
+  getTrayUsage,
+  readyTrayUsage,
+  TRAY_USAGE_STATE_EVENT,
+  type TrayUsageSnapshot,
 } from '../../api/usageIsland';
 import { UsageIslandMain, UsageIslandPanel } from './UsageIsland';
 import UsageIslandBridge from './UsageIslandBridge';
 import { useUsageIslandBatchStore } from './useUsageIslandData';
 import { UsageIslandView, type IslandLayout } from './UsageIslandView';
 import { UsageIslandWindow } from './UsageIslandWindow';
+import { TrayUsageWindow } from './TrayUsageWindow';
 import {
   accountSources,
   accountSourceKey,
@@ -37,6 +44,7 @@ import {
 
 const refreshAccount = vi.hoisted(() => vi.fn(async () => {}));
 const refreshModel = vi.hoisted(() => vi.fn(async () => {}));
+const platform = vi.hoisted(() => ({ linux: false }));
 const showToast = vi.hoisted(() => vi.fn());
 const testProviders = vi.hoisted(() => ({ current: [] as unknown[] }));
 const systemDark = vi.hoisted(() => ({ current: true }));
@@ -46,10 +54,23 @@ const events = vi.hoisted(() => ({
 }));
 const setZoom = vi.hoisted(() => vi.fn(async () => {}));
 
+vi.mock('../../utils/platform', async (original) => ({
+  ...(await original<typeof import('../../utils/platform')>()),
+  get IS_LINUX() {
+    return platform.linux;
+  },
+}));
+vi.mock('../../api/smartRouter', async (original) => ({
+  ...(await original<typeof import('../../api/smartRouter')>()),
+  getSmartRouterActivity: vi.fn(async () => ({ active: true, activeCandidateIds: ['model-1'] })),
+}));
 vi.mock('../../api/usageIsland', async (original) => ({
   ...(await original<typeof import('../../api/usageIsland')>()),
   resizeUsageIsland: vi.fn(async () => {}),
   setUsageIslandHitArea: vi.fn(async () => {}),
+  updateTrayUsage: vi.fn(async () => {}),
+  getTrayUsage: vi.fn(async () => null),
+  readyTrayUsage: vi.fn(async () => {}),
 }));
 
 vi.mock('@tauri-apps/api/webview', () => ({ getCurrentWebview: () => ({ setZoom }) }));
@@ -174,6 +195,7 @@ beforeEach(() => {
   vi.stubGlobal('localStorage', { getItem: () => null, setItem: vi.fn() });
   vi.stubGlobal('document', { addEventListener: vi.fn(), removeEventListener: vi.fn() });
   vi.clearAllMocks();
+  platform.linux = false;
   testProviders.current = [provider()];
   systemDark.current = true;
   navigation.setState(navigation.getInitialState(), true);
@@ -188,6 +210,8 @@ beforeEach(() => {
     expandMode: 'hover',
     refreshSeconds: 0,
     scale: 100,
+    opacity: 100,
+    showSmartAccess: false,
     sources: [],
   });
   navigation.setState({
@@ -300,6 +324,7 @@ it('refreshes selected sources once on request and reports failures', async () =
 });
 
 it('refreshes on the chosen interval only while the page is open and stays quiet on failure', async () => {
+  platform.linux = true;
   refreshAccount.mockRejectedValue(new Error('offline'));
   island.setState({ sources: [accountSourceKey('claude', 'a')], refreshSeconds: 300 });
   await render();
@@ -700,6 +725,7 @@ it('keeps the scale of token balances', () => {
 });
 
 it('rests a failing source between timed refreshes but not on request', async () => {
+  platform.linux = true;
   refreshAccount.mockImplementation(async () => {});
   refreshAccount.mockRejectedValueOnce(new Error('rate limited'));
   island.setState({ sources: [accountSourceKey('claude', 'a')], refreshSeconds: 300 });
@@ -720,6 +746,7 @@ it('rests a failing source between timed refreshes but not on request', async ()
 });
 
 it('lets timed refreshes give way to the reward lock without holding it', async () => {
+  platform.linux = true;
   island.setState({ sources: [accountSourceKey('claude', 'a')], refreshSeconds: 300 });
   let locked = false;
   refreshAccount.mockImplementationOnce(async () => {
@@ -858,7 +885,135 @@ it('hands the timer to the floating window while it is open', async () => {
   expect(refreshAccount).not.toHaveBeenCalled();
 });
 
-it('refreshes on ticks from the floating window instead of its own timer', async () => {
+it('publishes masked rows and appearance, and uses the chosen refresh interval for the tray', async () => {
+  privacy.setState({ hidden: true });
+  navigation.setState({ activePage: 'apps', appsTab: 'desktop' });
+  island.setState({
+    enabled: false,
+    sources: [accountSourceKey('claude', 'a')],
+    refreshSeconds: 300,
+    theme: 'light',
+    opacity: 70,
+    scale: 120,
+  });
+  await act(async () => {
+    view = create(<UsageIslandBridge floating={false} tray />);
+  });
+  expect(updateTrayUsage).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      theme: 'light',
+      opacity: 70,
+      scale: 120,
+      refreshSeconds: 300,
+      items: [
+        expect.objectContaining({
+          key: accountSourceKey('claude', 'a'),
+          detail: ACCOUNT_NAME_MASK,
+        }),
+      ],
+    })
+  );
+  expect(events.emitTo).not.toHaveBeenCalled();
+  expect(refreshAccount).not.toHaveBeenCalled();
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(300_000);
+  });
+  expect(refreshAccount).not.toHaveBeenCalled();
+  const tick = events.listeners.get(USAGE_ISLAND_TICK_EVENT)!;
+  await act(async () => tick({ payload: null }));
+  expect(refreshAccount).toHaveBeenCalledTimes(1);
+  await act(async () =>
+    island.getState().update({ theme: 'dark', opacity: 40, refreshSeconds: 0 })
+  );
+  expect(updateTrayUsage).toHaveBeenLastCalledWith(
+    expect.objectContaining({ theme: 'dark', opacity: 40, scale: 120, refreshSeconds: 0 })
+  );
+  await act(async () => tick({ payload: null }));
+  expect(refreshAccount).toHaveBeenCalledTimes(1);
+  await act(async () => island.getState().setSources([]));
+  expect(updateTrayUsage).toHaveBeenLastCalledWith(expect.objectContaining({ items: [] }));
+  await act(async () => view!.unmount());
+  view = undefined;
+  expect(updateTrayUsage).toHaveBeenLastCalledWith(null);
+});
+
+it('follows the Smart Access switch in the tray when the floating island is off', async () => {
+  island.setState({ sources: [modelSourceKey('model-1')] });
+  await act(async () => {
+    view = create(<UsageIslandBridge floating={false} tray />);
+  });
+  expect(getSmartRouterActivity).not.toHaveBeenCalled();
+  await act(async () => island.getState().update({ showSmartAccess: true }));
+  expect(getSmartRouterActivity).toHaveBeenCalledTimes(1);
+  expect(updateTrayUsage).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      items: [expect.objectContaining({ smartActive: true })],
+    })
+  );
+  await act(async () => island.getState().update({ showSmartAccess: false }));
+  expect(updateTrayUsage).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      items: [expect.objectContaining({ smartActive: false })],
+    })
+  );
+});
+
+it('renders state in a headerless tray list and ignores a late snapshot after hiding', async () => {
+  let finish!: (state: TrayUsageSnapshot) => void;
+  vi.mocked(getTrayUsage).mockImplementationOnce(
+    () =>
+      new Promise<TrayUsageSnapshot>((resolve) => {
+        finish = resolve;
+      })
+  );
+  await act(async () => {
+    view = create(<TrayUsageWindow />);
+  });
+  const emit = events.listeners.get(TRAY_USAGE_STATE_EVENT)!;
+  const earlier: TrayUsageSnapshot = {
+    revision: 1,
+    preview: { theme: 'dark', scale: 100, opacity: 100, refreshSeconds: 0, items: accountItems() },
+  };
+  const latest: TrayUsageSnapshot = {
+    revision: 2,
+    preview: {
+      theme: 'light',
+      scale: 120,
+      opacity: 70,
+      refreshSeconds: 0,
+      items: accountItems().map((item) => ({ ...item, smartActive: true })),
+    },
+  };
+  await act(async () => emit({ payload: latest }));
+  expect(view!.root.findAllByProps({ role: 'listitem' })).toHaveLength(
+    latest.preview!.items.length
+  );
+  expect(view!.root.findAllByType('button')).toHaveLength(0);
+  expect(view!.root.findByProps({ role: 'list' }).props.style).toEqual({
+    '--usage-island-surface-opacity': '70%',
+  });
+  expect(view!.root.findByProps({ role: 'listitem' }).props['data-smart-active']).toBe(true);
+  expect(JSON.stringify(view!.toJSON())).not.toContain('/brand/bird.png');
+  expect(readyTrayUsage).toHaveBeenCalledExactlyOnceWith(2);
+
+  await act(async () => {
+    emit({ payload: { revision: 3, preview: null } });
+    finish(earlier);
+  });
+  expect(view!.toJSON()).toBeNull();
+  expect(readyTrayUsage).toHaveBeenCalledTimes(1);
+  await act(async () =>
+    emit({
+      payload: { revision: 4, preview: { ...latest.preview!, items: [] } },
+    })
+  );
+  expect(view!.root.findByProps({ className: 'tray-usage-empty' }).children).toEqual([
+    'usageIsland.trayEmpty',
+  ]);
+  expect(readyTrayUsage).toHaveBeenLastCalledWith(4);
+});
+
+it('leaves scheduling to the floating window when both surfaces are enabled', async () => {
   island.setState({
     enabled: true,
     sources: [accountSourceKey('claude', 'a')],
@@ -866,8 +1021,9 @@ it('refreshes on ticks from the floating window instead of its own timer', async
   });
   navigation.setState({ activePage: 'apps' });
   await act(async () => {
-    view = create(<UsageIslandBridge />);
+    view = create(<UsageIslandBridge floating tray />);
   });
+  expect(updateTrayUsage).toHaveBeenLastCalledWith(expect.objectContaining({ refreshSeconds: 0 }));
   const advance = async (ms: number) => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(ms);
@@ -923,7 +1079,7 @@ it('sends the island scale to the floating window, which zooms by it alone', asy
   island.setState({ enabled: true, sources: [accountSourceKey('claude', 'a')], scale: 120 });
   navigation.setState({ activePage: 'apps' });
   await act(async () => {
-    view = create(<UsageIslandBridge />);
+    view = create(<UsageIslandBridge floating tray={false} />);
   });
   const states = events.emitTo.mock.calls.filter((call) => call[1] === 'usage-island-state');
   const payload = states[states.length - 1][2] as string;
@@ -1216,7 +1372,7 @@ it('bridges explicit list actions and serializes capabilities without account ca
     scale: 120,
   });
   await act(async () => {
-    view = create(<UsageIslandBridge />);
+    view = create(<UsageIslandBridge floating tray={false} />);
   });
   const states = () => events.emitTo.mock.calls.filter((call) => call[1] === 'usage-island-state');
   const calls = states();
@@ -1470,7 +1626,7 @@ it('keeps the page refresh and the island timed refresh from overlapping', async
   refreshAccount.mockImplementationOnce(() => new Promise<void>((resolve) => (finish = resolve)));
   let bridge: ReactTestRenderer | undefined;
   await act(async () => {
-    bridge = create(<UsageIslandBridge />);
+    bridge = create(<UsageIslandBridge floating tray={false} />);
   });
   await render();
   await act(async () => events.listeners.get('usage-island-tick')!({ payload: undefined }));

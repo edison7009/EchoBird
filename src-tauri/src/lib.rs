@@ -672,6 +672,23 @@ pub fn run() {
                     _ => {}
                 })
                 .on_tray_icon_event(|tray, event| {
+                    match &event {
+                        tauri::tray::TrayIconEvent::Enter { rect, .. } => {
+                            services::tray_usage::enter(tray.app_handle(), *rect);
+                        }
+                        #[cfg(windows)]
+                        tauri::tray::TrayIconEvent::Move { rect, .. } => {
+                            services::tray_usage::pointer_moved(tray.app_handle(), *rect);
+                        }
+                        tauri::tray::TrayIconEvent::Leave { .. } => {
+                            services::tray_usage::leave(tray.app_handle());
+                        }
+                        tauri::tray::TrayIconEvent::Click { .. }
+                        | tauri::tray::TrayIconEvent::DoubleClick { .. } => {
+                            services::tray_usage::dismiss(tray.app_handle());
+                        }
+                        _ => {}
+                    }
                     // Left click: toggle window visibility (only on button release)
                     if let tauri::tray::TrayIconEvent::Click {
                         button: tauri::tray::MouseButton::Left,
@@ -1185,6 +1202,9 @@ pub fn run() {
                 commands::usage_island_commands::usage_island_tooltip,
                 commands::usage_island_commands::usage_island_tooltip_state,
                 commands::usage_island_commands::usage_island_tooltip_ready,
+                commands::usage_island_commands::tray_usage_update,
+                commands::usage_island_commands::tray_usage_state,
+                commands::usage_island_commands::tray_usage_ready,
                 commands::voice_input_commands::voice_input_save,
                 commands::voice_input_commands::voice_input_start,
                 commands::voice_input_commands::voice_input_record,

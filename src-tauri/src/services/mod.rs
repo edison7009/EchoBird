@@ -94,6 +94,7 @@ pub mod devin_accounts;
 pub(crate) mod devin_protocol;
 pub mod kimi_accounts;
 pub mod opendesign_accounts;
+pub mod tray_usage;
 pub mod usage_island;
 pub mod usage_island_tooltip;
 pub mod voice_input;

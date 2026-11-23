@@ -15,6 +15,7 @@ const vi = {
   'usageIsland.count': '{n} trong số {max} được chọn',
   'usageIsland.direction.right': 'mở rộng đúng',
   'usageIsland.direction.left': 'mở rộng left',
+  'usageIsland.trayEmpty': 'Chọn tài khoản hoặc mô hình trong Đảo theo dõi mức sử dụng.',
   'usageIsland.direction.down': 'mở rộng xuống',
   'usageIsland.direction.up': 'mở rộng lên',
   'usageIsland.direction.clockwise': 'Đồng hồ',

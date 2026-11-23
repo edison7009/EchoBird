@@ -15,6 +15,7 @@ const pt = {
   'usageIsland.count': '{n} de {max} selecionados',
   'usageIsland.direction.right': 'Expandindo Direito',
   'usageIsland.direction.left': 'Expansão LEVA',
+  'usageIsland.trayEmpty': 'Escolha na Ilha de utilização as contas ou modelos a mostrar.',
   'usageIsland.direction.down': 'Expandindo para baixo',
   'usageIsland.direction.up': 'Expandindo',
   'usageIsland.direction.clockwise': 'Relógio',

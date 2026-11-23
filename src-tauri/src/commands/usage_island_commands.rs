@@ -1,3 +1,4 @@
+use crate::services::tray_usage;
 use crate::services::usage_island;
 use crate::services::usage_island_tooltip;
 use tauri::{AppHandle, WebviewWindow};
@@ -104,4 +105,32 @@ pub async fn usage_island_set_hit_area(
         },
     );
     Ok(())
+}
+
+#[tauri::command]
+pub async fn tray_usage_update(
+    app: AppHandle,
+    window: WebviewWindow,
+    preview: Option<tray_usage::Preview>,
+) -> Result<(), String> {
+    if window.label() != "main" {
+        return Err("Only the main window can publish tray usage".into());
+    }
+    tray_usage::update(&app, preview)
+}
+
+#[tauri::command]
+pub fn tray_usage_state(window: WebviewWindow) -> Result<Option<tray_usage::Snapshot>, String> {
+    if window.label() != tray_usage::WINDOW_LABEL {
+        return Err("Only the tray usage window can read its snapshot".into());
+    }
+    Ok(tray_usage::snapshot())
+}
+
+#[tauri::command]
+pub async fn tray_usage_ready(window: WebviewWindow, revision: u64) -> Result<(), String> {
+    if window.label() != tray_usage::WINDOW_LABEL {
+        return Err("Only the tray usage window can confirm its snapshot".into());
+    }
+    tray_usage::ready(window, revision)
 }

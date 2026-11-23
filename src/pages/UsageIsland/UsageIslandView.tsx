@@ -5,7 +5,11 @@ import { useSystemDark } from '../../hooks/useSystemDark';
 import { useThemeStore } from '../../stores/themeStore';
 import { useBackgroundStore, type BackgroundMode } from '../../stores/backgroundStore';
 import { ACCOUNT_NAME_MASK, useAccountPrivacyStore } from '../../stores/accountPrivacyStore';
-import type { UsageIslandConfig, UsageIslandStyle } from '../../stores/usageIslandStore';
+import type {
+  UsageIslandConfig,
+  UsageIslandStyle,
+  UsageIslandTheme,
+} from '../../stores/usageIslandStore';
 import { quotaTone } from '../../utils/quotaColors';
 import { QuotaCountdown } from '../AppManager/QuotaCountdown';
 import {
@@ -196,6 +200,62 @@ function UsageLines({
   );
 }
 
+export function UsageIslandListRow({ item }: { item: UsageIslandItem }) {
+  return (
+    <>
+      <SourceIcon icon={item.icon} />
+      <UsageLines
+        item={item}
+        name={item.kind === 'account' ? item.detail || item.name : item.name}
+        icon={false}
+      />
+    </>
+  );
+}
+
+export function useUsageIslandAppearance(theme: UsageIslandTheme) {
+  const resolved = useThemeStore((state) => state.resolved);
+  const systemDark = useSystemDark();
+  const effectiveTheme = (theme as string) === 'translucent' ? 'dark' : theme;
+  const surface =
+    effectiveTheme === 'auto'
+      ? resolved
+      : effectiveTheme === 'system'
+        ? systemDark
+          ? 'dark'
+          : 'light'
+        : effectiveTheme;
+  return {
+    surface,
+    className: `usage-island usage-island-theme-${surface}${
+      theme === 'auto' ? ' usage-island-theme-auto' : ''
+    }`,
+  };
+}
+
+export function UsageIslandTexture({
+  theme,
+  background,
+}: {
+  theme: UsageIslandTheme;
+  background?: BackgroundMode;
+}) {
+  // Use the app's static textures. Character Flow stays in the main window.
+  if (theme !== 'auto' || !background || background === 'none' || background === 'characters')
+    return null;
+  return (
+    <span
+      aria-hidden="true"
+      data-island-texture={background}
+      className={`usage-island-texture ${
+        background === 'basalt'
+          ? 'app-background-basalt'
+          : `app-background-material app-background-${background}`
+      }`}
+    />
+  );
+}
+
 function Dial({
   items,
   displays,
@@ -323,36 +383,19 @@ export function UsageIslandView({
   tooltipResetKey?: number;
 }) {
   const { t } = useI18n();
-  const resolved = useThemeStore((theme) => theme.resolved);
   const hidden = useAccountPrivacyStore((privacy) => privacy.hidden);
   const [hovered, setHovered] = useState(false);
   const [pinned, setPinned] = useState(false);
   const appBackground = useBackgroundStore((state) => state.mode);
   const { style, theme, expandMode } = settings;
   const background = settings.background ?? appBackground;
-  // The theme surface carries the app's static texture; Character Flow is an
-  // animated scene that does not suit the island, so it stays solid.
-  const texture =
-    theme === 'auto' &&
-    (background === 'carbon' || background === 'basalt' || background === 'monogram')
-      ? background
-      : null;
-  const effectiveTheme = (theme as string) === 'translucent' ? 'dark' : theme;
+  const { surface, className } = useUsageIslandAppearance(theme);
   const reversed = settings.reversed.includes(style);
   const layout = islandLayout(style);
   const toolsInset = style === 'line' ? LINE_TOOLS_INSET : TOOLS_INSET;
   const { root, tools, fit } = useIslandFit(layout);
   const width = available ?? fit.available;
   const picked = items.find((item) => item.key === pick);
-  const systemDark = useSystemDark();
-  const surface =
-    effectiveTheme === 'auto'
-      ? resolved
-      : effectiveTheme === 'system' && !systemDark
-        ? 'light'
-        : effectiveTheme === 'system'
-          ? 'dark'
-          : effectiveTheme;
   const expanded =
     items.length > 0 &&
     (expandMode === 'always' ||
@@ -423,9 +466,7 @@ export function UsageIslandView({
         data-reversed={reversed}
       >
         <div
-          className={`usage-island usage-island-theme-${surface}${
-            theme === 'auto' ? ' usage-island-theme-auto' : ''
-          }`}
+          className={className}
           data-layout={layout}
           data-reversed={reversed}
           data-expanded={expanded}
@@ -438,17 +479,7 @@ export function UsageIslandView({
             if (event.pointerType === 'mouse') setHovered(false);
           }}
         >
-          {texture && (
-            <span
-              aria-hidden="true"
-              data-island-texture={texture}
-              className={`usage-island-texture ${
-                texture === 'basalt'
-                  ? 'app-background-basalt'
-                  : `app-background-material app-background-${texture}`
-              }`}
-            />
-          )}
+          <UsageIslandTexture theme={theme} background={background} />
           {layout === 'list' && expanded && <ListActions actions={actions} onAction={onAction} />}
           {layout === 'dial' ? (
             <div className="usage-island-dial" role="list" aria-hidden={!expanded}>
@@ -465,11 +496,10 @@ export function UsageIslandView({
               {items.map((item, index) => {
                 const display = displays[index];
                 const content =
-                  style === 'line' || style === 'list' ? (
-                    <>
-                      {style === 'list' && <SourceIcon icon={item.icon} />}
-                      <UsageLines item={item} name={display.name} icon={style !== 'list'} />
-                    </>
+                  style === 'list' ? (
+                    <UsageIslandListRow item={{ ...item, detail: display.label }} />
+                  ) : style === 'line' ? (
+                    <UsageLines item={item} name={display.name} />
                   ) : (
                     <>
                       <Gauge

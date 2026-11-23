@@ -15,6 +15,7 @@ const de = {
   'usageIsland.count': '{n} von {max} ausgewählt',
   'usageIsland.direction.right': 'Ausdehnung Recht',
   'usageIsland.direction.left': 'Erweiterung left',
+  'usageIsland.trayEmpty': 'Wähle die Konten oder Modelle in der Nutzungsinsel aus.',
   'usageIsland.direction.down': 'Ausdehnung nach unten',
   'usageIsland.direction.up': 'Erweiterung Up',
   'usageIsland.direction.clockwise': 'Uhren',

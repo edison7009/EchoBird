@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect } from 'react';
 import { setUsageIslandVisible } from '../../api/usageIsland';
-import { useUsageIslandVisible } from '../../stores/usageIslandStore';
+import { useTrayUsageConfigured, useUsageIslandVisible } from '../../stores/usageIslandStore';
 
 const UsageIslandBridge = lazy(() => import('./UsageIslandBridge'));
 
@@ -9,6 +9,7 @@ let windowChange = Promise.resolve();
 
 export function UsageIslandHost() {
   const visible = useUsageIslandVisible();
+  const tray = useTrayUsageConfigured();
   useEffect(() => {
     windowChange = windowChange
       .then(() => setUsageIslandVisible(visible))
@@ -16,9 +17,9 @@ export function UsageIslandHost() {
         console.error('[UsageIsland] Could not change the island window:', error);
       });
   }, [visible]);
-  return visible ? (
+  return visible || tray ? (
     <Suspense fallback={null}>
-      <UsageIslandBridge />
+      <UsageIslandBridge floating={visible} tray={tray} />
     </Suspense>
   ) : null;
 }

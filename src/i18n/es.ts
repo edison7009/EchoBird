@@ -15,6 +15,7 @@ const es = {
   'usageIsland.count': '{n} de {max} seleccionados',
   'usageIsland.direction.right': 'Extensión derecha',
   'usageIsland.direction.left': 'Expansiones en la izquierda',
+  'usageIsland.trayEmpty': 'Elige en la isla de uso qué cuentas o modelos quieres mostrar.',
   'usageIsland.direction.down': 'Expandir hacia abajo',
   'usageIsland.direction.up': 'Expandido',
   'usageIsland.direction.clockwise': 'El reloj',

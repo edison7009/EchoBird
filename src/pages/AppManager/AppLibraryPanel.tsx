@@ -405,7 +405,7 @@ export function AppLibraryPanel({
           <Search
             size={13}
             aria-hidden="true"
-            className="pointer-events-none absolute left-2 top-2 text-cyber-text-secondary"
+            className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-cyber-text-secondary"
           />
           <input
             type="search"
@@ -413,7 +413,7 @@ export function AppLibraryPanel({
             onChange={(event) => setQuery(event.target.value)}
             placeholder={t('appLibrary.searchSkills')}
             aria-label={t('appLibrary.searchSkills')}
-            className={`${inputClass} pl-7`}
+            className={`${inputClass} block pl-7`}
           />
         </div>
       )}

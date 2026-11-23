@@ -27,6 +27,7 @@ import {
   usageIslandScales,
   usageIslandStyles,
   usageIslandThemes,
+  useTrayUsageConfigured,
   useUsageIslandStore,
   useUsageIslandVisible,
   type UsageIslandOpacity,
@@ -79,7 +80,11 @@ export function UsageIslandMain() {
   const sources = useUsageSources(active);
   const items = useUsageIslandItems(sources);
   const visible = useUsageIslandVisible();
-  const { refreshing, refresh, actions, run } = useUsageIslandRefresh(items, active && !visible);
+  const tray = useTrayUsageConfigured();
+  const { refreshing, refresh, actions, run } = useUsageIslandRefresh(
+    items,
+    active && !visible && !tray ? 'page' : null
+  );
   const [demoNow] = useState(() => Date.now() / 1000);
   const demoItems = useMemo(
     () =>

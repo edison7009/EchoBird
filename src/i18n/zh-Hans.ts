@@ -16,6 +16,7 @@ const zhHans: Partial<Translations> = {
   'usageIsland.count': '已选 {n} 个，最多 {max} 个',
   'usageIsland.direction.right': '向右',
   'usageIsland.direction.left': '向左',
+  'usageIsland.trayEmpty': '在用量岛选择要显示账号/模型',
   'usageIsland.direction.down': '向下',
   'usageIsland.direction.up': '向上',
   'usageIsland.direction.clockwise': '顺时针',

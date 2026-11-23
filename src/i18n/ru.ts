@@ -15,6 +15,7 @@ const ru = {
   'usageIsland.count': '{n} из {max} выбранных',
   'usageIsland.direction.right': 'Расширяйте право',
   'usageIsland.direction.left': 'Расширение left',
+  'usageIsland.trayEmpty': 'Выберите в островке использования аккаунты или модели для отображения.',
   'usageIsland.direction.down': 'Расширяется ниже',
   'usageIsland.direction.up': 'Расширяется',
   'usageIsland.direction.clockwise': 'Часы',
