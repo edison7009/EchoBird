@@ -124,6 +124,87 @@ async fn picker_routes_chat_responses_and_messages_to_only_the_selected_upstream
 }
 
 #[tokio::test]
+async fn gemini_picker_keeps_each_key_and_preserves_streamed_tool_calls() {
+    let calls = Arc::new(Mutex::new(Vec::new()));
+    let recorded = calls.clone();
+    let tool_call = json!({
+        "index": 0, "id": "call_fixture", "type": "function",
+        "function": {"name": "lookup", "arguments": "{}"},
+        "extra_content": {"google": {"thought_signature": "fixture-signature"}}
+    });
+    let streamed_tool_call = tool_call.clone();
+    let app = Router::new().route(
+        "/v1beta/openai/chat/completions",
+        post(move |headers: HeaderMap, Json(body): Json<Value>| {
+            let authorization = headers[header::AUTHORIZATION].to_str().unwrap().to_owned();
+            recorded.lock().unwrap().push((authorization, body));
+            let tool_call = streamed_tool_call.clone();
+            async move {
+                let delta = json!({
+                    "id": "chatcmpl-gemini-fixture", "object": "chat.completion.chunk",
+                    "model": "gemini-fixture",
+                    "choices": [{"index": 0, "delta": {"role": "assistant", "tool_calls": [tool_call]},
+                        "finish_reason": "tool_calls"}]
+                });
+                ([(header::CONTENT_TYPE, "text/event-stream")], format!("data: {delta}\n\ndata: [DONE]\n\n"))
+            }
+        }),
+    );
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let base_url = format!("http://{}/v1beta/openai", listener.local_addr().unwrap());
+    let task = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+
+    let ids = ["first-key", "second-key"];
+    let models = ids.map(|key| {
+        serde_json::from_value(json!({
+            "internalId": key, "name": key, "baseUrl": base_url,
+            "modelId": "gemini-fixture", "apiKey": key
+        }))
+        .unwrap()
+    });
+    let candidates = || {
+        resolve_candidates_from(
+            ids.map(str::to_owned).to_vec(),
+            &models,
+            &crate::services::local_llm::LocalServerInfo::default(),
+        )
+    };
+    let mut state = AppState::for_tests().unwrap();
+    for key in ids {
+        let selector = super::super::catalog::selector(key);
+        let selected = select_candidates(&mut state, &selector, candidates(), false).unwrap();
+        let response = route_chat_with_candidates(
+            &state,
+            &HeaderMap::new(),
+            json!({
+                "model": selector, "stream": true,
+                "messages": [
+                    {"role": "user", "content": "look up the value"},
+                    {"role": "assistant", "tool_calls": [tool_call.clone()]},
+                    {"role": "tool", "tool_call_id": "call_fixture", "content": "value"}
+                ],
+                "tools": [{"type": "function", "function": {"name": "lookup", "parameters": {"type":"object"}}}]
+            }),
+            selected,
+        ).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = response.into_body().collect().await.unwrap().to_bytes();
+        let stream = String::from_utf8_lossy(&bytes);
+        assert!(stream.contains("fixture-signature"));
+        assert!(stream.contains("data: [DONE]"));
+    }
+    let recorded = calls.lock().unwrap();
+    assert_eq!(recorded.len(), 2);
+    for ((authorization, body), key) in recorded.iter().zip(ids) {
+        assert_eq!(authorization, &format!("Bearer {key}"));
+        assert_eq!(body["model"], "gemini-fixture");
+        assert_eq!(body["messages"][1]["tool_calls"][0], tool_call);
+        assert_eq!(body["messages"][2]["tool_call_id"], "call_fixture");
+    }
+    task.abort();
+}
+
+#[tokio::test]
 async fn selected_model_failure_never_uses_another_candidate() {
     let calls = Arc::new(AtomicUsize::new(0));
     let recorded = calls.clone();

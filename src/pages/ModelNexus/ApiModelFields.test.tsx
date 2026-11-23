@@ -402,6 +402,33 @@ it('clears source-specific options and labels after a key or URL changes in Edit
   expect(current.modelId).toBe('manual-fixture');
 });
 
+it('uses only the new key catalog when switching keys on the same Gemini endpoint', async () => {
+  const baseUrl = 'https://generativelanguage.googleapis.com/v1beta/openai';
+  vi.mocked(api.getCachedUpstreamModelCatalog).mockResolvedValueOnce(directory);
+  await open(
+    { baseUrl, apiKey: 'first-key', modelIdOptions: ['first-only'], freeModelIds: ['first-only'] },
+    { editing: true }
+  );
+  await patchForm({ apiKey: 'second-key' });
+  expect(field().props.options).toEqual([]);
+  expect(field().props.freeModelIds).toBeUndefined();
+  expect(api.fetchUpstreamModelCatalog).not.toHaveBeenCalled();
+
+  vi.mocked(api.fetchUpstreamModelCatalog).mockResolvedValueOnce({
+    models: [{ id: 'second-only' }],
+    requiresApiKey: true,
+  });
+  await refresh();
+  expect(api.fetchUpstreamModelCatalog).toHaveBeenCalledExactlyOnceWith({
+    baseUrl,
+    anthropicUrl: '',
+    apiKey: 'second-key',
+  });
+  expect(field().props.options).toEqual(['second-only']);
+  expect(current.modelId).toBe('manual-fixture');
+  expect(api.updateModel).not.toHaveBeenCalled();
+});
+
 it('preserves the cached directory and selected ID when a manual refresh fails', async () => {
   vi.mocked(api.getCachedUpstreamModelCatalog).mockResolvedValue(directory);
   vi.mocked(api.fetchUpstreamModelCatalog).mockRejectedValue('UPSTREAM_MODELS_UNSUPPORTED');

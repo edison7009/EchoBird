@@ -79,6 +79,74 @@ fn imports_distinct_models_and_endpoints_with_a_shared_key() {
 }
 
 #[test]
+fn gemini_text_urls_share_the_compatible_endpoint_but_keys_and_voice_stay_separate() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("models.json");
+    let native = "https://generativelanguage.googleapis.com/v1beta";
+    let compatible = "https://generativelanguage.googleapis.com/v1beta/openai";
+    let mut input = AddModelInput {
+        base_url: Some(native.into()),
+        model_id: Some("models/gemini-fixture".into()),
+        api_key: Some("key-a".into()),
+        ..Default::default()
+    };
+    let protect = |key: &str| Ok(key.to_owned());
+    assert!(import_model_at_with(&path, input.clone(), protect).unwrap());
+    input.base_url = Some(format!("{compatible}/chat/completions"));
+    input.model_id = Some("gemini-fixture".into());
+    assert!(!import_model_at_with(&path, input.clone(), protect).unwrap());
+    input.api_key = Some("key-b".into());
+    assert!(import_model_at_with(&path, input.clone(), protect).unwrap());
+
+    let mut saved: Vec<ModelConfig> = super::super::json_store::read(&path).unwrap();
+    assert_eq!(saved.len(), 2);
+    assert_ne!(saved[0].internal_id, saved[1].internal_id);
+    assert_eq!(saved[0].api_key, "key-a");
+    assert_eq!(saved[1].api_key, "key-b");
+    assert!(saved
+        .iter()
+        .all(|model| model.base_url == compatible
+            && model.model_id.as_deref() == Some("gemini-fixture")));
+
+    saved[0].base_url = native.into();
+    saved[0].model_id = Some("models/gemini-fixture".into());
+    let legacy = normalize_text_models(saved);
+    assert_eq!(legacy[0].base_url, compatible);
+    assert_eq!(legacy[0].model_id.as_deref(), Some("gemini-fixture"));
+    let updated = update_model_at(
+        &path,
+        &legacy[0].internal_id,
+        UpdateModelInput {
+            base_url: Some(format!("{native}/models")),
+            model_id: Some("models/gemini-next".into()),
+            ..Default::default()
+        },
+    )
+    .unwrap()
+    .unwrap();
+    assert_eq!(updated.base_url, compatible);
+    assert_eq!(updated.model_id.as_deref(), Some("gemini-next"));
+    assert_eq!(updated.openai_responses, Some(false));
+
+    let relay = update_model_at(
+        &path,
+        &legacy[0].internal_id,
+        UpdateModelInput {
+            base_url: Some("https://relay.example/v1".into()),
+            ..Default::default()
+        },
+    )
+    .unwrap()
+    .unwrap();
+    assert_eq!(relay.openai_responses, None);
+
+    input.scope = ModelScope::VoiceInput;
+    input.base_url = Some(native.into());
+    let voice = new_model_from(input, "voice".into());
+    assert_eq!(normalize_text_models(vec![voice])[0].base_url, native);
+}
+
+#[test]
 fn model_crud_is_durable_and_rejects_corrupt_or_unwritable_storage() {
     let root = std::env::temp_dir().join(format!("echobird-model-crud-{}", uuid::Uuid::new_v4()));
     let path = root.join("models.json");

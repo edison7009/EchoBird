@@ -170,6 +170,57 @@ describe('ModelListSection', () => {
     }
   );
 
+  it.each([
+    ['claudecode', 'anthropic'],
+    ['claudedesktop', 'anthropic'],
+    ['codex', 'openai'],
+    ['chatgptdesktop', 'openai'],
+  ])(
+    'shows the Gemini route for %s when the client needs a different protocol',
+    async (id, protocol) => {
+      vi.stubGlobal('__APP_EDITION__', 'full');
+      const { ModelListSection } = await import('./AppManagerComponents');
+      const gemini: ModelConfig = {
+        ...models[0],
+        name: 'Google Gemini API',
+        modelId: 'gemini-fixture',
+        baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
+        openaiResponses: false,
+      };
+      const markup = renderToStaticMarkup(
+        <ModelListSection
+          selectedToolData={{ ...tool, id, apiProtocol: [protocol] }}
+          userModels={[
+            gemini,
+            {
+              ...gemini,
+              internalId: 'relay-gemini',
+              name: 'Gemini Relay API',
+              baseUrl: 'https://relay.example/v1',
+              anthropicUrl: 'https://relay.example/anthropic',
+              openaiResponses: true,
+            },
+            {
+              ...gemini,
+              internalId: 'smart-router-gemini',
+              name: 'Gemini Route',
+              baseUrl: 'http://127.0.0.1:53683/v1',
+              anthropicUrl: 'http://127.0.0.1:53683',
+              openaiResponses: undefined,
+            },
+          ]}
+          toolModelConfig={{}}
+          selectedTool={id}
+          handleSelectModel={vi.fn()}
+          t={(key) => key}
+        />
+      );
+      expect(markup).not.toContain('Google Gemini API');
+      expect(markup).toContain('Gemini Relay API');
+      expect(markup).toContain('Gemini Route');
+    }
+  );
+
   it.each(['opencode', 'vscode', 'claudescience'])(
     'keeps both model families available to unrelated client %s',
     async (toolId) => {

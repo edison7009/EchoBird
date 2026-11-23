@@ -80,6 +80,7 @@ export interface ModelConfig {
   apiKey: string;
   accountSource?: AccountSource;
   anthropicUrl?: string;
+  /** True selects Responses, false means the endpoint only supports Chat Completions. */
   openaiResponses?: boolean;
   modelType?: 'CLOUD' | 'LOCAL' | 'TUNNEL' | 'DEMO';
   openaiTested?: boolean;

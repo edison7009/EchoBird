@@ -29,7 +29,11 @@ export function directModelProtocol(
   toolProtocols: readonly string[]
 ): 'openai' | 'openai-responses' | 'anthropic' | undefined {
   if (!isDirectModelAllowedForTool(model, toolId)) return undefined;
-  if (model.internalId === 'local-server' && (toolId === 'codex' || toolId === 'chatgptdesktop')) {
+  const requiresResponses = toolId === 'codex' || toolId === 'chatgptdesktop';
+  if (
+    requiresResponses &&
+    (model.internalId === 'local-server' || model.openaiResponses === false)
+  ) {
     return undefined;
   }
   for (const protocol of toolProtocols) {

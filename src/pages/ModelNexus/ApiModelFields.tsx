@@ -51,8 +51,7 @@ export function ApiModelFields({
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [initial] = useState(() => ({
     source,
-    baseUrl: input.baseUrl,
-    anthropicUrl: input.anthropicUrl,
+    input,
     options: form.modelIdOptions,
     freeModelIds: form.freeModelIds,
   }));
@@ -62,11 +61,13 @@ export function ApiModelFields({
     catalog: api.UpstreamModelCatalog;
   } | null>(null);
   const catalog = loaded?.source === source ? loaded.catalog : undefined;
-  const initialFreeIds =
-    sameEndpoint(initial.baseUrl, input.baseUrl) &&
-    sameEndpoint(initial.anthropicUrl, input.anthropicUrl)
-      ? initial.freeModelIds
-      : undefined;
+  const matchesInitialPreset =
+    sameEndpoint(initial.input.baseUrl, input.baseUrl) &&
+    sameEndpoint(initial.input.anthropicUrl, input.anthropicUrl) &&
+    (!initial.input.apiKey ||
+      initial.input.apiKey === 'not-needed' ||
+      initial.input.apiKey === input.apiKey);
+  const initialFreeIds = matchesInitialPreset ? initial.freeModelIds : undefined;
   const validEndpoint = (() => {
     try {
       const url = new URL(input.baseUrl || input.anthropicUrl);
@@ -117,11 +118,7 @@ export function ApiModelFields({
           return;
         const code = String(error);
         if (code === 'UPSTREAM_MODELS_UNSUPPORTED' && !editing) {
-          const preset =
-            sameEndpoint(initial.baseUrl, input.baseUrl) &&
-            sameEndpoint(initial.anthropicUrl, input.anthropicUrl)
-              ? initial.options?.[0]
-              : undefined;
+          const preset = matchesInitialPreset ? initial.options?.[0] : undefined;
           if (preset)
             setForm((current) =>
               JSON.stringify(catalogInput(current)) === source && !current.modelId
@@ -148,7 +145,17 @@ export function ApiModelFields({
         }
       }
     },
-    [active, validEndpoint, source, input, applyCatalog, initial, editing, setForm]
+    [
+      active,
+      validEndpoint,
+      source,
+      input,
+      applyCatalog,
+      initial,
+      matchesInitialPreset,
+      editing,
+      setForm,
+    ]
   );
 
   useEffect(() => {
@@ -187,11 +194,7 @@ export function ApiModelFields({
       sameEndpoint(entry.baseUrl, input.baseUrl) &&
       sameEndpoint(entry.anthropicUrl, input.anthropicUrl)
   );
-  const initialOptions =
-    sameEndpoint(initial.baseUrl, input.baseUrl) &&
-    sameEndpoint(initial.anthropicUrl, input.anthropicUrl)
-      ? initial.options
-      : undefined;
+  const initialOptions = matchesInitialPreset ? initial.options : undefined;
   const needsKey =
     (!input.apiKey || input.apiKey === 'not-needed') &&
     (catalog?.requiresApiKey ?? (validEndpoint && !input.apiKey));

@@ -51,6 +51,7 @@ pub mod developer_preview;
 pub mod dumate_accounts;
 pub(crate) mod electron_storage;
 pub mod free_model_directory;
+mod gemini_api;
 pub mod grok_accounts;
 pub mod grok_bot_accounts;
 pub(crate) mod http_transport;

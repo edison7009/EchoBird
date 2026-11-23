@@ -95,16 +95,7 @@ async fn request(
             client.post(url).json(&body)
         }
         "gemini" => {
-            if !url.path().ends_with(":generateContent") {
-                url.path_segments_mut()
-                    .map_err(|_| "voice.error.speechApi")?
-                    .pop_if_empty()
-                    .push("models")
-                    .push(&format!(
-                        "{}:generateContent",
-                        id.trim_start_matches("models/")
-                    ));
-            }
+            set_gemini_transcription_path(&mut url, id)?;
             client.post(url).json(&json!({
                 "contents":[{"role":"user","parts":[{"text":PROMPT},{"inlineData":{"mimeType":"audio/wav","data":STANDARD.encode(audio)}}]}],
                 "generationConfig":{"temperature":0}
@@ -183,6 +174,28 @@ async fn request(
             }),
     };
     text.ok_or_else(|| "voice.error.transcribe".into())
+}
+
+pub(super) fn set_gemini_transcription_path(url: &mut url::Url, id: &str) -> Result<(), String> {
+    if url.path().ends_with(":generateContent") {
+        return Ok(());
+    }
+    let developer_api = crate::services::gemini_api::openai_base(url).is_some();
+    if developer_api {
+        // A legacy voice channel can still reference a text model in Model Center.
+        url.set_path(crate::services::gemini_api::MODELS_PATH);
+    }
+    let mut path = url
+        .path_segments_mut()
+        .map_err(|_| "voice.error.speechApi")?;
+    if !developer_api {
+        path.pop_if_empty().push("models");
+    }
+    path.push(&format!(
+        "{}:generateContent",
+        id.trim_start_matches("models/")
+    ));
+    Ok(())
 }
 
 fn endpoint(base: &str) -> Result<url::Url, String> {

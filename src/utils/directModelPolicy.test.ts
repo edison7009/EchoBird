@@ -18,6 +18,25 @@ describe('direct model protocol selection', () => {
     expect(directModelProtocol(model, 'opencode', ['openai', 'anthropic'])).toBeUndefined();
   });
 
+  it('keeps a Chat Completions endpoint out of Responses-only apps', () => {
+    const gemini = { ...model, modelId: 'gemini-fixture', openaiResponses: false };
+    for (const tool of ['codex', 'chatgptdesktop']) {
+      expect(directModelProtocol(gemini, tool, ['openai'])).toBeUndefined();
+      expect(directModelProtocol({ ...gemini, openaiResponses: true }, tool, ['openai'])).toBe(
+        'openai-responses'
+      );
+    }
+    expect(directModelProtocol(gemini, 'opencode', ['openai'])).toBe('openai');
+    for (const tool of ['claudecode', 'claudedesktop']) {
+      expect(directModelProtocol(gemini, tool, ['anthropic'])).toBeUndefined();
+      expect(
+        directModelProtocol({ ...gemini, anthropicUrl: 'https://relay.example/anthropic' }, tool, [
+          'anthropic',
+        ])
+      ).toBe('anthropic');
+    }
+  });
+
   it('follows the available endpoints and tool protocol order', () => {
     const both = { ...model, anthropicUrl: 'https://test.example/anthropic' };
     expect(directModelProtocol(both, 'opencode', ['openai', 'anthropic'])).toBe('anthropic');

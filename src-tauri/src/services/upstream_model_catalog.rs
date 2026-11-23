@@ -8,7 +8,7 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use url::Url;
 
-use super::model_manager;
+use super::{gemini_api, model_manager};
 
 const INVALID_URL: &str = "UPSTREAM_MODELS_INVALID_URL";
 const INVALID_KEY: &str = "UPSTREAM_MODELS_KEY_INVALID";
@@ -117,7 +117,8 @@ struct Source {
 }
 
 fn source(input: &CatalogInput) -> Result<Source, String> {
-    let base = normalized_url(&input.base_url)?;
+    let base =
+        normalized_url(&input.base_url)?.map(|url| gemini_api::openai_base(&url).unwrap_or(url));
     let anthropic = normalized_url(&input.anthropic_url)?;
     if base.is_none() && anthropic.is_none() {
         return Err(INVALID_URL.into());
@@ -152,7 +153,7 @@ pub fn get_cached(input: CatalogInput) -> Result<Option<ModelCatalog>, String> {
 fn needs_key(url: &Url) -> bool {
     matches!(
         url.host_str(),
-        Some("api.openai.com" | "api.anthropic.com" | "generativelanguage.googleapis.com")
+        Some("api.openai.com" | "api.anthropic.com" | gemini_api::HOST)
     )
 }
 
@@ -170,14 +171,26 @@ fn endpoints(base: &Url, anthropic: bool) -> Vec<Endpoint> {
         Protocol::OpenAi
     };
     let mut result = Vec::new();
-    if base.host_str() == Some("generativelanguage.googleapis.com")
-        || path.ends_with("/v1beta/openai")
+    let gemini_path = path.strip_suffix("/chat/completions").unwrap_or(path);
+    if gemini_api::openai_base(base).is_some() {
+        return vec![Endpoint {
+            url: with_path(base, gemini_api::MODELS_PATH),
+            protocol: Protocol::Google,
+        }];
+    }
+    let native = gemini_path
+        .strip_suffix("/openai")
+        .filter(|path| path.ends_with("/v1beta"));
+    if let Some(native) =
+        native.or_else(|| (base.host_str() == Some(gemini_api::HOST)).then_some(path))
     {
-        let native =
-            path.strip_suffix("/openai")
-                .unwrap_or(if path.is_empty() { "/v1beta" } else { path });
+        let models_path = if native.ends_with("/models") {
+            native.to_owned()
+        } else {
+            format!("{native}/models")
+        };
         result.push(Endpoint {
-            url: with_path(base, &format!("{native}/models")),
+            url: with_path(base, &models_path),
             protocol: Protocol::Google,
         });
     }
@@ -725,6 +738,38 @@ mod tests {
         }
     }
 
+    #[test]
+    fn gemini_full_urls_discover_the_same_catalog_without_sharing_keys() {
+        let root = "https://generativelanguage.googleapis.com";
+        let inputs = [
+            "",
+            "/v1beta",
+            "/v1beta/models",
+            "/v1beta/openai/",
+            "/v1beta/openai/chat/completions",
+        ];
+        let expected = source(&input(root, "key-a")).unwrap().fingerprint;
+        for path in inputs {
+            let found = source(&input(&format!("{root}{path}"), "key-a")).unwrap();
+            assert_eq!(found.fingerprint, expected);
+            let base = found.base.unwrap();
+            assert_eq!(base.path(), gemini_api::OPENAI_PATH);
+            let discovered = endpoints(&base, false);
+            assert_eq!(discovered.len(), 1);
+            assert_eq!(discovered[0].url.path(), gemini_api::MODELS_PATH);
+            assert_eq!(discovered[0].url.origin(), base.origin());
+        }
+        assert_ne!(source(&input(root, "key-b")).unwrap().fingerprint, expected);
+        for url in [
+            "https://example.com/v1beta",
+            "https://generativelanguage.googleapis.com.example.com/v1beta",
+            "https://generativelanguage.googleapis.com:8443/v1beta",
+        ] {
+            let parsed = Url::parse(url).unwrap();
+            assert!(gemini_api::openai_base(&parsed).is_none());
+        }
+    }
+
     #[tokio::test]
     async fn google_pages_use_native_same_host_endpoint_and_filter_non_chat_models() {
         let server = fixture(vec![
@@ -742,7 +787,7 @@ mod tests {
         ])
         .await;
         let catalog = fetch(input(
-            &format!("{}/v1beta/openai", server.url),
+            &format!("{}/v1beta/openai/chat/completions", server.url),
             "google-key",
         ))
         .await

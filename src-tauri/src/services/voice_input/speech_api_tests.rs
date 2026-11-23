@@ -37,6 +37,14 @@ fn voice_api_options_are_optional_for_old_settings_and_round_trip_without_creden
     assert_ne!(scope, crate::models::model::ModelScope::ModelCenter);
 }
 
+#[test]
+fn legacy_gemini_voice_source_uses_the_native_path_from_a_text_model() {
+    let mut url =
+        url::Url::parse("https://generativelanguage.googleapis.com/v1beta/openai").unwrap();
+    speech_api::set_gemini_transcription_path(&mut url, "models/gemini-fixture").unwrap();
+    assert_eq!(url.path(), "/v1beta/models/gemini-fixture:generateContent");
+}
+
 #[tokio::test]
 async fn speech_protocols_send_their_own_address_auth_audio_and_parse_transcripts() {
     let captured = Arc::new(Mutex::new(Vec::new()));

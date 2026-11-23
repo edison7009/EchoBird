@@ -266,7 +266,31 @@ fn get_raw_user_models() -> Vec<ModelConfig> {
 
 /// Get user models
 pub fn get_user_models() -> Vec<ModelConfig> {
-    get_raw_user_models()
+    normalize_text_models(get_raw_user_models())
+}
+
+fn normalize_text_models(mut models: Vec<ModelConfig>) -> Vec<ModelConfig> {
+    models.iter_mut().for_each(normalize_gemini_text_model);
+    models
+}
+
+fn normalize_gemini_text_model(model: &mut ModelConfig) {
+    if model.scope == ModelScope::VoiceInput {
+        return;
+    }
+    if let Some(base) = url::Url::parse(model.base_url.trim())
+        .ok()
+        .and_then(|url| super::gemini_api::openai_base(&url))
+    {
+        model.base_url = base.into();
+        // Gemini's OpenAI compatibility endpoint implements Chat Completions.
+        model.openai_responses = Some(false);
+        if let Some(model_id) = &mut model.model_id {
+            if let Some(id) = model_id.trim().strip_prefix("models/") {
+                *model_id = id.to_owned();
+            }
+        }
+    }
 }
 
 /// Get built-in demo models from bundled config
@@ -307,9 +331,8 @@ pub fn get_models() -> Vec<ModelConfig> {
 }
 
 pub fn get_models_checked() -> Result<Vec<ModelConfig>, String> {
-    Ok(models_from_user(super::json_store::read(
-        &models_config_path(),
-    )?))
+    let models = super::json_store::read(&models_config_path())?;
+    Ok(models_from_user(normalize_text_models(models)))
 }
 
 fn models_from_user(models: Vec<ModelConfig>) -> Vec<ModelConfig> {
@@ -426,23 +449,24 @@ fn import_model_at_with(
         fn normalize(endpoint: &str) -> &str {
             endpoint.trim().trim_end_matches('/')
         }
-        let base = normalize(input.base_url.as_deref().unwrap_or_default());
-        let anthropic = normalize(input.anthropic_url.as_deref().unwrap_or_default());
-        let model_id = input.model_id.as_deref().unwrap_or_default().trim();
-        for model in models.iter().filter(|model| model.account_source.is_none()) {
-            if model.scope == input.scope
-                && model.model_id.as_deref().unwrap_or_default().trim() == model_id
-                && normalize(&model.base_url) == base
-                && normalize(model.anthropic_url.as_deref().unwrap_or_default()) == anthropic
-                && model.openai_responses.unwrap_or(false)
-                    == input.openai_responses.unwrap_or(false)
-                && super::secret_store::decrypt(&model.api_key)?.trim() == key
+        let id = format!("m-{}", uuid::Uuid::new_v4().simple());
+        let mut model = new_model_from(input.clone(), id);
+        for saved in models.iter().filter(|model| model.account_source.is_none()) {
+            let mut saved = saved.clone();
+            normalize_gemini_text_model(&mut saved);
+            if saved.scope == model.scope
+                && saved.model_id.as_deref().unwrap_or_default().trim()
+                    == model.model_id.as_deref().unwrap_or_default().trim()
+                && normalize(&saved.base_url) == normalize(&model.base_url)
+                && normalize(saved.anthropic_url.as_deref().unwrap_or_default())
+                    == normalize(model.anthropic_url.as_deref().unwrap_or_default())
+                && saved.openai_responses.unwrap_or(false)
+                    == model.openai_responses.unwrap_or(false)
+                && super::secret_store::decrypt(&saved.api_key)?.trim() == key
             {
                 return Ok((false, false));
             }
         }
-        let id = format!("m-{}", uuid::Uuid::new_v4().simple());
-        let mut model = new_model_from(input.clone(), id);
         model.api_key = protect(key)?;
         models.push(model);
         Ok((true, true))
@@ -465,7 +489,7 @@ fn new_model_from(input: AddModelInput, internal_id: String) -> ModelConfig {
     };
     let auto_type = detect_model_type(&base_url)
         .or_else(|| detect_model_type(input.anthropic_url.as_deref().unwrap_or_default()));
-    ModelConfig {
+    let mut model = ModelConfig {
         internal_id,
         router_icon: None,
         name: input.name.unwrap_or_default(),
@@ -493,7 +517,9 @@ fn new_model_from(input: AddModelInput, internal_id: String) -> ModelConfig {
         } else {
             input.scope
         },
-    }
+    };
+    normalize_gemini_text_model(&mut model);
+    model
 }
 
 /// Delete a user model by internal ID
@@ -567,6 +593,7 @@ fn update_model_at(
             return Ok((None, false));
         };
         apply_model_updates(model, updates);
+        normalize_gemini_text_model(model);
         Ok((Some(model.clone()), true))
     })
 }
