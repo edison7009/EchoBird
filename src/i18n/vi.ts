@@ -737,6 +737,7 @@ const vi = {
   'mother.selectionContent': 'Bài viết được chọn:',
   'mother.enterMessage': 'Nhập tin nhắn...',
   'mother.messageNavigation': 'Thông điệp của bạn',
+  'mother.scrollToLatest': 'Đến tin nhắn mới nhất',
   'mother.servers': 'Dịch vụ',
   'mother.sshGuide': 'Hướng dẫn',
   'mother.conversations': 'Lịch sử',

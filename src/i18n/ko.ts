@@ -719,6 +719,7 @@ const ko = {
   'mother.selectionContent': '선택된 텍스트 :',
   'mother.enterMessage': '메시지를 입력하십시오...',
   'mother.messageNavigation': '당신의 메시지',
+  'mother.scrollToLatest': '최신 메시지로 이동',
   'mother.servers': '서버',
   'mother.sshGuide': '가이드',
   'mother.conversations': '역사',

@@ -751,6 +751,7 @@ const ru = {
   'mother.selectionContent': 'Выбранный текст:',
   'mother.enterMessage': 'Введите сообщение...',
   'mother.messageNavigation': 'Ваши сообщения',
+  'mother.scrollToLatest': 'Перейти к последнему сообщению',
   'mother.servers': 'Серверы',
   'mother.sshGuide': 'Руководство',
   'mother.conversations': 'История',

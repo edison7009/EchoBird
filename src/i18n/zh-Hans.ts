@@ -692,6 +692,7 @@ const zhHans: Partial<Translations> = {
   'mother.selectionContent': '划词内容：',
   'mother.enterMessage': '输入消息...',
   'mother.messageNavigation': '我发送的消息',
+  'mother.scrollToLatest': '回到最新消息',
   'mother.servers': '服务器',
   'mother.sshGuide': '添加指南',
   'mother.conversations': '对话记录',

@@ -772,6 +772,7 @@ const de = {
   'mother.selectionContent': 'ausgewähltes Text:',
   'mother.enterMessage': 'Geben Sie eine Nachricht...',
   'mother.messageNavigation': 'Deine Nachrichten',
+  'mother.scrollToLatest': 'Zur neuesten Nachricht springen',
   'mother.servers': 'Servier',
   'mother.sshGuide': 'Leitfaden',
   'mother.conversations': 'Geschichte',

@@ -132,7 +132,6 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
   const [agentState, setAgentState] = useState('idle');
   const [chatInputFocused, setChatInputFocused] = useState(false);
   const [chatCursorPos, setChatCursorPos] = useState(0);
-  const chatEndRef = useRef<HTMLDivElement>(null!);
   const chatInputRef = useRef<HTMLTextAreaElement>(null!);
   const chatPrefillRef = useRef<{ text: string; cursor: number } | null>(null);
   // Holds the prefill-focus timer so it survives the re-render that
@@ -863,7 +862,6 @@ export function MotherAgentProvider({ children }: { children: React.ReactNode })
         setChatCursorPos,
         chatInputRef,
         chatPrefillRef,
-        chatEndRef,
         handleChatSend,
         sendMessage: handleChatSendInternal,
 

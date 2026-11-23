@@ -729,6 +729,7 @@ const zhHant: Partial<Translations> = {
   'mother.selectionContent': '劃詞內容：',
   'mother.enterMessage': '輸入訊息...',
   'mother.messageNavigation': '我傳送的訊息',
+  'mother.scrollToLatest': '回到最新訊息',
   'mother.servers': '伺服器',
   'mother.sshGuide': '新增指南',
   'mother.conversations': '對話記錄',

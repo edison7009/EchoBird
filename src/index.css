@@ -1345,37 +1345,35 @@ img[src$='/icons/tools/opendesign.png'] {
   }
 }
 
-/* Sweep a translucent band across the wait label, then pause outside the text. */
+/* Ease the translucent band across the label, with a short rest off the text. */
 @keyframes spinnerShimmer {
-  0% {
-    background-position: 130% center;
+  0%,
+  15% {
+    background-position: 86% center;
+    animation-timing-function: cubic-bezier(0.714, 0.121, 0.211, 0.888);
   }
-  56.5%,
+  85%,
   100% {
-    background-position: -30% center;
+    background-position: 14% center;
   }
 }
 
 .spinner-shimmer {
-  --spinner-sweep-alpha: 0.6;
+  --spinner-text: rgb(var(--accent-rgb) / 0.88);
   background-image: linear-gradient(
-    70deg,
-    rgb(var(--accent-rgb) / 0.88) 0%,
-    rgb(var(--accent-rgb) / 0.88) 38%,
-    rgb(var(--accent-rgb) / var(--spinner-sweep-alpha)) 50%,
-    rgb(var(--accent-rgb) / 0.88) 62%,
-    rgb(var(--accent-rgb) / 0.88) 100%
+    120deg,
+    var(--spinner-text) 37.5%,
+    color-mix(in srgb, var(--spinner-text) 30%, white) 50%,
+    var(--spinner-text) 62.5%
   );
-  background-size: 200% 100%;
+  background-position: 86% center;
+  background-repeat: no-repeat;
+  background-size: 400% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
-  animation: spinnerShimmer 4.6s linear infinite;
-}
-
-[data-theme='dark'] .spinner-shimmer {
-  --spinner-sweep-alpha: 0.48;
+  animation: spinnerShimmer 3s linear infinite;
 }
 
 /* Three-dot working mark: a 110-frame sheet stepped inside a fixed box, so the
@@ -1405,14 +1403,16 @@ img[src$='/icons/tools/opendesign.png'] {
   animation: spinnerMark 3.666663s steps(110, jump-none) infinite;
 }
 
-@media (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce), (forced-colors: active) {
   .spinner-shimmer {
     background-image: none;
     color: rgb(var(--accent-rgb));
     -webkit-text-fill-color: currentColor;
     animation: none;
   }
+}
 
+@media (prefers-reduced-motion: reduce) {
   .spinner-mark img {
     animation: none;
   }
@@ -1442,6 +1442,73 @@ img[src$='/icons/tools/opendesign.png'] {
 .mother-transcript > *,
 .mother-transcript > [data-prompt-anchor] > * {
   margin-block: 0;
+}
+
+.mother-scroll-latest {
+  position: absolute;
+  z-index: 3;
+  inset-block-end: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgb(var(--border-rgb));
+  border-radius: 50%;
+  background: rgb(var(--bg-surface-rgb));
+  color: rgb(var(--text-secondary-rgb));
+  box-shadow: 0 3px 10px rgb(0 0 0 / 0.14);
+}
+
+.mother-scroll-latest:is(:hover, :focus-visible) {
+  background: rgb(var(--bg-elevated-rgb));
+  color: rgb(var(--text-primary-rgb));
+}
+
+.mother-scroll-latest:focus-visible {
+  outline: 1px solid rgb(var(--accent-rgb));
+  outline-offset: 2px;
+}
+
+.mother-scroll-latest-bird {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.mother-scroll-latest-bird img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.mother-scroll-latest[data-working='true'] .mother-scroll-latest-arrow,
+.mother-scroll-latest:focus-visible .mother-scroll-latest-bird {
+  display: none;
+}
+
+.mother-scroll-latest[data-working='true']:focus-visible .mother-scroll-latest-arrow {
+  display: block;
+}
+
+@media (hover: hover) {
+  .mother-scroll-latest:hover .mother-scroll-latest-bird {
+    display: none;
+  }
+
+  .mother-scroll-latest[data-working='true']:hover .mother-scroll-latest-arrow {
+    display: block;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mother-scroll-latest-bird img {
+    width: 18px;
+    height: 18px;
+  }
 }
 
 .mother-message-nav {

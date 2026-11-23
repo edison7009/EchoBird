@@ -777,6 +777,7 @@ const en = {
   'mother.selectionContent': 'Selected text: ',
   'mother.enterMessage': 'Enter message...',
   'mother.messageNavigation': 'Your messages',
+  'mother.scrollToLatest': 'Jump to latest message',
   'mother.servers': 'Servers',
   'mother.sshGuide': 'Guide',
   'mother.conversations': 'History',

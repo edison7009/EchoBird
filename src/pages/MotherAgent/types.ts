@@ -67,7 +67,6 @@ export interface MotherAgentCtx {
   setChatCursorPos: (v: number) => void;
   chatInputRef: React.RefObject<HTMLTextAreaElement>;
   chatPrefillRef: React.MutableRefObject<{ text: string; cursor: number } | null>;
-  chatEndRef: React.RefObject<HTMLDivElement>;
   handleChatSend: () => void;
   sendMessage: (msg: string, displayText?: string, chips?: BubbleChip[]) => void;
 

@@ -94,7 +94,6 @@ beforeEach(() => {
     models: [],
     chatInput: '',
     chatOutput: [],
-    chatEndRef: { current: null },
     chatInputRef: { current: null },
     parasiteAgent: 'claudecode',
     parasiteAvailable: [],
@@ -440,6 +439,59 @@ it('navigates only between user messages and expands an earlier turn before scro
   act(() => renderer!.update(<MotherAgentMain />));
   expect(renderer!.root.findAllByType('nav')).toHaveLength(0);
   expect(state.loadOlderChat).not.toHaveBeenCalled();
+});
+
+it('shows the flying logo while working and resumes following the latest reply on click', () => {
+  state = { ...state, chatOutput: [{ type: 'user', text: 'Earlier request' }] };
+  const container = {
+    scrollTop: 0,
+    scrollHeight: 1000,
+    clientHeight: 300,
+    children: [],
+  };
+  act(() => {
+    renderer = create(<MotherAgentMain />, {
+      createNodeMock: (element) =>
+        element.props.className === transcriptViewportClass ? container : null,
+    });
+  });
+
+  const buttons = () => renderer!.root.findAllByProps({ 'aria-label': 'Jump to latest message' });
+  const scrollArea = renderer!.root.findByProps({ className: transcriptViewportClass });
+  expect(buttons()).toHaveLength(0);
+
+  container.scrollTop = 400;
+  act(() => void scrollArea.props.onScroll());
+  expect(buttons()).toHaveLength(1);
+  expect(buttons()[0].findAllByType('picture')).toHaveLength(0);
+
+  state = { ...state, isProcessing: true };
+  act(() => renderer!.update(<MotherAgentMain />));
+  expect(container.scrollTop).toBe(400);
+  expect(buttons()[0].findByType('source').props.srcSet).toBe(
+    '/brand/animations/echobird-flight-loop.webp'
+  );
+
+  state = { ...state, isProcessing: false };
+  act(() => renderer!.update(<MotherAgentMain />));
+  expect(buttons()[0].findAllByType('picture')).toHaveLength(0);
+  state = { ...state, isProcessing: true };
+  act(() => renderer!.update(<MotherAgentMain />));
+
+  act(() => buttons()[0].props.onClick());
+  expect(container.scrollTop).toBe(1000);
+  expect(buttons()).toHaveLength(0);
+  container.scrollHeight = 1800;
+  state = {
+    ...state,
+    chatOutput: [
+      ...state.chatOutput!,
+      { type: 'assistant', messageId: 'streaming', text: 'Streaming reply' },
+    ],
+  };
+  act(() => renderer!.update(<MotherAgentMain />));
+  expect(container.scrollTop).toBe(1800);
+  expect(buttons()).toHaveLength(0);
 });
 
 describe('Mother Agent visible history pagination', () => {

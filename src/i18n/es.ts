@@ -760,6 +760,7 @@ const es = {
   'mother.selectionContent': 'El texto seleccionado:',
   'mother.enterMessage': 'Introduce el mensaje...',
   'mother.messageNavigation': 'Sus mensajes',
+  'mother.scrollToLatest': 'Ir al último mensaje',
   'mother.servers': 'Servidores',
   'mother.sshGuide': 'Guía',
   'mother.conversations': 'Historia',

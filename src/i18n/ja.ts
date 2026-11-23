@@ -771,6 +771,7 @@ const ja: Partial<Translations> = {
   'mother.selectionContent': '選択したテキスト：',
   'mother.enterMessage': 'メッセージを入力...',
   'mother.messageNavigation': '送信したメッセージ',
+  'mother.scrollToLatest': '最新のメッセージへ移動',
   'mother.servers': 'サーバー',
   'mother.sshGuide': 'ガイド',
   'mother.conversations': '会話履歴',

@@ -759,6 +759,7 @@ const fr = {
   'mother.selectionContent': 'Texte sélectionné :',
   'mother.enterMessage': 'Entrez le message...',
   'mother.messageNavigation': 'Vos messages',
+  'mother.scrollToLatest': 'Aller au dernier message',
   'mother.servers': 'Les serveurs',
   'mother.sshGuide': 'Guide',
   'mother.conversations': 'Histoire',

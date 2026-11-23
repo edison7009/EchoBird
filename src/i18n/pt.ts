@@ -748,6 +748,7 @@ const pt = {
   'mother.selectionContent': 'Texto selecionado:',
   'mother.enterMessage': 'Entre a mensagem...',
   'mother.messageNavigation': 'As suas mensagens',
+  'mother.scrollToLatest': 'Ir para a última mensagem',
   'mother.servers': 'Servidores',
   'mother.sshGuide': 'Guia',
   'mother.conversations': 'História',

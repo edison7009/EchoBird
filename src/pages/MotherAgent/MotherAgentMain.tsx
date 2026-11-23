@@ -1,6 +1,6 @@
 import { isSmartRouterId } from '../../utils/smartRouter';
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
-import { ArrowUp, ChevronDown, Square } from 'lucide-react';
+import { ArrowDown, ArrowUp, Square } from 'lucide-react';
 import { RemoteModelSelector, type ModelOption } from '../../components/RemoteModelSelector';
 import { getModelIcon } from '../../components/cards/ModelCard';
 import { ChatBubble, ToolCallCard } from '../../components/chat';
@@ -37,7 +37,6 @@ export function MotherAgentMain() {
     reasoningEffort,
     setReasoningEffort,
     agentState: _agentState,
-    chatEndRef,
     chatInputRef,
     chatPrefillRef,
     handleChatSend,
@@ -314,12 +313,15 @@ export function MotherAgentMain() {
     }
   };
 
-  const scrollToBottom = useCallback(() => {
+  const scrollToBottom = () => {
+    paginationGenerationRef.current += 1;
+    pendingPromptRef.current = null;
+    setShowSkeleton(false);
     stickToBottomRef.current = true;
-    setShowScrollBtn(false);
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatEndRef]);
+    snapToBottom();
+  };
 
+  const showWorkingMark = isProcessing && !isResetting;
   const showWelcome = visibleChatOutput.length === 0 && !isProcessing;
   const lastVisibleOutput = visibleChatOutput[visibleChatOutput.length - 1];
 
@@ -417,7 +419,6 @@ export function MotherAgentMain() {
               )}
             </div>
           )}
-          {!showWelcome && <div ref={chatEndRef} />}
         </div>
         {prompts.length > 0 && (
           <MessageNavigation
@@ -428,13 +429,24 @@ export function MotherAgentMain() {
             onJump={jumpToPrompt}
           />
         )}
-        {/* Scroll to bottom button */}
-        {showScrollBtn && (
+        {showScrollBtn && isMotherActive && (
           <button
+            type="button"
             onClick={scrollToBottom}
-            className="absolute bottom-3 right-3 w-7 h-7 flex items-center justify-center bg-cyber-bg/90 border border-cyber-border/50 rounded text-cyber-text-secondary hover:text-cyber-text hover:border-cyber-border/50 transition-colors z-10"
+            aria-label={t('mother.scrollToLatest')}
+            className="mother-scroll-latest"
+            data-working={showWorkingMark ? 'true' : undefined}
           >
-            <ChevronDown className="w-4 h-4" />
+            {showWorkingMark && (
+              <picture className="mother-scroll-latest-bird" aria-hidden="true">
+                <source
+                  media="(prefers-reduced-motion: no-preference)"
+                  srcSet="/brand/animations/echobird-flight-loop.webp"
+                />
+                <img src="/brand/bird.png" alt="" draggable={false} />
+              </picture>
+            )}
+            <ArrowDown className="mother-scroll-latest-arrow" size={16} aria-hidden="true" />
           </button>
         )}
       </div>
