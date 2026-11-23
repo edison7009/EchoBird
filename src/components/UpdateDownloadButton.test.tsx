@@ -1,9 +1,13 @@
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PackageOpen } from 'lucide-react';
 import type { SelfUpdateProgress } from '../api/tauri';
 import { RoutingHint } from './RoutingToggle';
 import { UpdateDownloadButton } from './UpdateDownloadButton';
+
+const platform = vi.hoisted(() => ({ IS_LINUX: false, IS_MACOS: false }));
+vi.mock('../utils/platform', () => platform);
+beforeEach(() => Object.assign(platform, { IS_LINUX: false, IS_MACOS: false }));
 
 let renderer: ReactTestRenderer;
 afterEach(() => act(() => renderer?.unmount()));
@@ -47,6 +51,19 @@ describe('UpdateDownloadButton', () => {
     expect(button.props['aria-label']).toBe('updates.install v4.2.0');
     expect(button.props.children).toBe('updates.install');
     expect(button.props.disabled).toBe(false);
+    act(() => renderer.unmount());
+
+    render(null, true, true);
+    expect(renderer.root.findAllByType(PackageOpen)).toHaveLength(1);
+  });
+
+  it.each(['IS_MACOS', 'IS_LINUX'] as const)('opens the folder for %s packages', (os) => {
+    platform[os] = true;
+    const expanded = render(null, false, true);
+    expect(expanded.button.props['aria-label']).toBe('aiDesktop.openLocation v4.2.0');
+    expect(expanded.button.props.children).toBe('aiDesktop.openLocation');
+    act(() => expanded.button.props.onClick());
+    expect(expanded.onClick).toHaveBeenCalledOnce();
     act(() => renderer.unmount());
 
     render(null, true, true);

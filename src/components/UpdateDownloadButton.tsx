@@ -1,6 +1,7 @@
 import { Download, PackageOpen } from 'lucide-react';
 import type { SelfUpdateProgress } from '../api/tauri';
 import { useI18n } from '../hooks/useI18n';
+import { IS_LINUX, IS_MACOS } from '../utils/platform';
 import { RoutingHint } from './RoutingToggle';
 
 export function UpdateDownloadButton({
@@ -19,13 +20,17 @@ export function UpdateDownloadButton({
   const { t } = useI18n();
   const percent = Math.max(0, Math.min(100, progress?.percent ?? 0));
   const launching = progress?.status === 'launching';
-  const installing = ready || launching;
+  const packageReady = ready || launching;
+  const opensFolder = IS_MACOS || IS_LINUX;
+  const readyLabel = t(opensFolder ? 'aiDesktop.openLocation' : 'updates.install');
   const label = !progress
-    ? `${t(ready ? 'updates.install' : 'updates.download')} v${version}`
+    ? `${ready ? readyLabel : t('updates.download')} v${version}`
     : progress.status === 'speed_test'
       ? t('updates.connecting')
       : launching
-        ? t('updates.openingInstaller')
+        ? opensFolder
+          ? readyLabel
+          : t('updates.openingInstaller')
         : `${t('updates.downloading')} ${percent}%`;
   return (
     <RoutingHint hint={label} placement={collapsed ? 'right' : 'top'} navigation>
@@ -35,7 +40,7 @@ export function UpdateDownloadButton({
         aria-busy={!!progress}
         disabled={!!progress}
         onClick={onClick}
-        className={`relative mx-auto flex h-10 shrink-0 items-center justify-center rounded-lg text-red-400 transition-colors hover:bg-cyber-elevated/50 ${installing && !collapsed ? 'min-w-10 px-2 text-xs font-medium' : 'w-10'}`}
+        className={`relative mx-auto flex h-10 shrink-0 items-center justify-center rounded-lg text-red-400 transition-colors hover:bg-cyber-elevated/50 ${packageReady && !collapsed ? 'min-w-10 px-2 text-xs font-medium' : 'w-10'}`}
       >
         {progress && !launching ? (
           <svg
@@ -75,11 +80,11 @@ export function UpdateDownloadButton({
               }
             />
           </svg>
-        ) : installing ? (
+        ) : packageReady ? (
           collapsed ? (
             <PackageOpen size={20} aria-hidden="true" />
           ) : (
-            t('updates.install')
+            readyLabel
           )
         ) : (
           <Download size={20} aria-hidden="true" />

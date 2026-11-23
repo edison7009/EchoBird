@@ -7,7 +7,7 @@ use std::{
 use tokio::io::AsyncReadExt;
 
 pub(super) struct VerifiedInstaller {
-    path: PathBuf,
+    pub(super) path: PathBuf,
     pub fingerprint: MirrorFile,
     // On Windows this also prevents modification or replacement before launch.
     _file: tokio::fs::File,
@@ -69,13 +69,13 @@ fn matches_asset(name: &str, asset: &str) -> bool {
         return true;
     }
     // Older downloads used a UUID suffix when the ordinary name was occupied.
-    let Some(stem) = asset.strip_suffix(".exe") else {
+    let Some((stem, extension)) = asset.rsplit_once('.') else {
         return false;
     };
     name.strip_prefix(stem)
         .and_then(|suffix| suffix.strip_prefix('-'))
-        .and_then(|suffix| suffix.strip_suffix(".exe"))
-        .is_some_and(|suffix| uuid::Uuid::parse_str(suffix).is_ok())
+        .and_then(|suffix| suffix.rsplit_once('.'))
+        .is_some_and(|(suffix, ext)| ext == extension && uuid::Uuid::parse_str(suffix).is_ok())
 }
 
 async fn candidates(dir: &Path, asset: &str) -> Vec<PathBuf> {
@@ -150,14 +150,12 @@ async fn open_verified(
         .then_some(file))
 }
 
-#[cfg(windows)]
 fn receipt(asset: &str) -> PathBuf {
     crate::utils::platform::echobird_dir()
         .join("self-update")
         .join(format!("{asset}.json"))
 }
 
-#[cfg(windows)]
 pub(super) fn remember(asset: &str, fingerprint: &MirrorFile) {
     let result = serde_json::to_vec(fingerprint)
         .map_err(|error| error.to_string())
@@ -167,7 +165,6 @@ pub(super) fn remember(asset: &str, fingerprint: &MirrorFile) {
     }
 }
 
-#[cfg(windows)]
 pub(super) async fn find(
     dir: &Path,
     asset: &str,
@@ -208,7 +205,6 @@ pub(super) async fn find(
     verify_local(paths, expected).await.map_err(report_error)
 }
 
-#[cfg(windows)]
 async fn github_fingerprint(
     client: &reqwest::Client,
     version: &str,
@@ -250,6 +246,28 @@ async fn github_fingerprint(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn recognizes_only_exact_package_names_or_the_download_uuid_suffix() {
+        let download_id = uuid::Uuid::new_v4();
+        for extension in ["exe", "dmg", "deb", "rpm"] {
+            let stem = "EchoBird_6.4.3";
+            let asset = format!("{stem}.{extension}");
+            assert!(matches_asset(&asset, &asset));
+            assert!(matches_asset(
+                &format!("{stem}-{download_id}.{extension}"),
+                &asset
+            ));
+            for name in [
+                format!("{stem}-invalid.{extension}"),
+                format!("EchoBird_6.4.2-{download_id}.{extension}"),
+                format!("{asset}.part"),
+                format!("{stem}-{download_id}.tmp"),
+            ] {
+                assert!(!matches_asset(&name, &asset), "{name}");
+            }
+        }
+    }
 
     #[tokio::test]
     async fn reuses_only_matching_version_and_verified_bytes() {

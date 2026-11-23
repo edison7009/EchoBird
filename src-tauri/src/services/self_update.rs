@@ -1,9 +1,8 @@
 //! Explicit self-update downloads: version-matched mirrors and website fallback.
-//! Save a verified installer in Downloads. Windows keeps it ready for an
-//! explicit installation. macOS and Linux reveal the folder.
+//! Save a verified installer in Downloads. The next explicit click opens
+//! the installer on Windows or its containing folder on macOS and Linux.
 
-#[cfg(any(windows, test))]
-mod windows;
+mod installer;
 
 use futures_util::{future::join_all, StreamExt};
 use sha2::{Digest, Sha256};
@@ -312,30 +311,22 @@ fn update_location(version: &str) -> Result<(PathBuf, String, &'static str), Str
 }
 
 pub async fn is_downloaded(version: String) -> Result<bool, String> {
-    #[cfg(windows)]
-    {
-        let (dir, asset, id) = update_location(&version)?;
-        Ok(windows::find(&dir, &asset, &version, id).await?.is_some())
-    }
-    #[cfg(not(windows))]
-    {
-        let _ = version;
-        Ok(false)
-    }
+    let (dir, asset, id) = update_location(&version)?;
+    Ok(installer::find(&dir, &asset, &version, id).await?.is_some())
 }
 
 pub async fn install(app: AppHandle, version: String) -> Result<bool, String> {
+    let _guard = DOWNLOAD_LOCK
+        .try_lock()
+        .map_err(|_| "An update is already running")?;
+    let (dir, asset, id) = update_location(&version)?;
+    let Some(package) = installer::find(&dir, &asset, &version, id).await? else {
+        return Ok(false);
+    };
+    installer::remember(&asset, &package.fingerprint);
+    emit(&app, "launching", 100);
     #[cfg(windows)]
     {
-        let _guard = DOWNLOAD_LOCK
-            .try_lock()
-            .map_err(|_| "An update is already running")?;
-        let (dir, asset, id) = update_location(&version)?;
-        let Some(package) = windows::find(&dir, &asset, &version, id).await? else {
-            return Ok(false);
-        };
-        windows::remember(&asset, &package.fingerprint);
-        emit(&app, "launching", 100);
         if let Err(error) = package.launch_after_exit(std::process::id()).await {
             log::warn!("[SelfUpdate] {error}");
             return Err(error);
@@ -346,16 +337,19 @@ pub async fn install(app: AppHandle, version: String) -> Result<bool, String> {
     }
     #[cfg(not(windows))]
     {
-        let _ = (app, version);
-        Ok(false)
+        let folder = package
+            .path
+            .parent()
+            .ok_or("Could not locate the installer folder")?;
+        crate::commands::tool_commands::open_folder(folder.to_string_lossy().into_owned()).await?;
+        Ok(true)
     }
 }
 
 async fn run(app: &AppHandle, version: &str) -> Result<bool, String> {
     let (dir, asset, id) = update_location(version)?;
-    #[cfg(windows)]
-    if let Some(package) = windows::find(&dir, &asset, version, id).await? {
-        windows::remember(&asset, &package.fingerprint);
+    if let Some(package) = installer::find(&dir, &asset, version, id).await? {
+        installer::remember(&asset, &package.fingerprint);
         return Ok(true);
     }
     tokio::fs::create_dir_all(&dir)
@@ -394,18 +388,8 @@ async fn run(app: &AppHandle, version: &str) -> Result<bool, String> {
         let _ = tokio::fs::remove_file(&part).await;
         return Err(format!("Could not save installer: {error}"));
     }
-    #[cfg(windows)]
-    {
-        windows::remember(&asset, &fingerprint);
-        Ok(true)
-    }
-    #[cfg(not(windows))]
-    {
-        let _ = fingerprint;
-        crate::commands::tool_commands::open_folder(dir.to_string_lossy().into_owned()).await?;
-        emit(app, "downloaded", 100);
-        Ok(false)
-    }
+    installer::remember(&asset, &fingerprint);
+    Ok(true)
 }
 
 #[cfg(test)]
