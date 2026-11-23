@@ -1333,6 +1333,8 @@ body:before {
   min-width: 180px;
   max-height: min(65vh, 400px);
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #555c4e transparent;
   padding: 8px;
   border: 1px solid #ffffff20;
   border-radius: 12px;
