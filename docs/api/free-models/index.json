@@ -1,7 +1,7 @@
 {
   "$schema-comment": "Remote-updatable free model catalog.",
   "version": 1,
-  "updatedAt": "2026-11-22",
+  "updatedAt": "2026-11-24",
   "models": [
     {
       "id": "kilo:kilo-auto/free",
@@ -2740,6 +2740,70 @@
       "phoneRequired": false,
       "commercialOk": true,
       "verifiedAt": "2026-11-22"
+    },
+    {
+      "id": "nvidia-nim:minimaxai/minimax-m3.1-flash",
+      "providerId": "nvidia-nim",
+      "provider": "NVIDIA NIM",
+      "modelId": "minimaxai/minimax-m3.1-flash",
+      "baseUrl": "https://integrate.api.nvidia.com/v1",
+      "freeType": "trial-credit",
+      "freeTier": "Trial credit, phone verification required",
+      "rateLimits": "Some models have reduced context windows on the free trial",
+      "notes": "\"Evaluation only, not production\" per NVIDIA's own Trial Terms of Service — NVIDIA may discontinue the trial at any time with no continuity obligation",
+      "docsUrl": "https://build.nvidia.com/",
+      "cardRequired": false,
+      "phoneRequired": true,
+      "commercialOk": false,
+      "verifiedAt": "2026-11-24"
+    },
+    {
+      "id": "nvidia-nim:moonshotai/kimi-k3.1-pro",
+      "providerId": "nvidia-nim",
+      "provider": "NVIDIA NIM",
+      "modelId": "moonshotai/kimi-k3.1-pro",
+      "baseUrl": "https://integrate.api.nvidia.com/v1",
+      "freeType": "trial-credit",
+      "freeTier": "Trial credit, phone verification required",
+      "rateLimits": "Some models have reduced context windows on the free trial",
+      "notes": "\"Evaluation only, not production\" per NVIDIA's own Trial Terms of Service — NVIDIA may discontinue the trial at any time with no continuity obligation",
+      "docsUrl": "https://build.nvidia.com/",
+      "cardRequired": false,
+      "phoneRequired": true,
+      "commercialOk": false,
+      "verifiedAt": "2026-11-24"
+    },
+    {
+      "id": "nvidia-nim:nvidia/nemotron-3.5-bolt-e4b",
+      "providerId": "nvidia-nim",
+      "provider": "NVIDIA NIM",
+      "modelId": "nvidia/nemotron-3.5-bolt-e4b",
+      "baseUrl": "https://integrate.api.nvidia.com/v1",
+      "freeType": "trial-credit",
+      "freeTier": "Trial credit, phone verification required",
+      "rateLimits": "Some models have reduced context windows on the free trial",
+      "notes": "\"Evaluation only, not production\" per NVIDIA's own Trial Terms of Service — NVIDIA may discontinue the trial at any time with no continuity obligation",
+      "docsUrl": "https://build.nvidia.com/",
+      "cardRequired": false,
+      "phoneRequired": true,
+      "commercialOk": false,
+      "verifiedAt": "2026-11-24"
+    },
+    {
+      "id": "openrouter:recursive/flint-v1.0:free",
+      "providerId": "openrouter",
+      "provider": "OpenRouter",
+      "modelId": "recursive/flint-v1.0:free",
+      "baseUrl": "https://openrouter.ai/api/v1",
+      "freeType": "renewing-quota",
+      "freeTier": "A rotating catalog of models whose IDs end in :free, available behind one OpenRouter API key",
+      "rateLimits": "20 req/min; 50 req/day under 10 credits purchased lifetime, 1000 req/day once 10+ credits purchased (one-time, not a subscription)",
+      "notes": "ToS (Jul 2026) prohibits reselling API access or building a competing service — platform-wide, not just the free models; per-model terms still apply",
+      "docsUrl": "https://openrouter.ai/docs/api-reference/limits",
+      "cardRequired": false,
+      "phoneRequired": false,
+      "commercialOk": true,
+      "verifiedAt": "2026-11-24"
     }
   ]
 }
