@@ -9,7 +9,7 @@ import {
   AccountSectionRewardButton,
   AccountSectionRow,
 } from './AccountSectionPrimitives';
-import { traeClaimUnavailable, useTraeClaimedToday } from './traeDailyCredits';
+import { useTraeClaimedToday } from './traeDailyCredits';
 import { QuotaCountdown } from './QuotaCountdown';
 
 export const TraeAccountSection: React.FC = () => {
@@ -80,6 +80,11 @@ export const TraeAccountSection: React.FC = () => {
               !sharedExpiry;
             const baseDate = sharedExpiry ? undefined : baseResetAt;
             const dailyClaimed = claimedToday(account.dailyClaimedAt);
+            const showClaim =
+              selectedTool === 'traecn' &&
+              account.rewardEnabled !== false &&
+              (dailyClaimed || !claimedToday(account.deviceClaimedAt));
+            const showUnclaimed = showClaim && !dailyClaimed && account.rewardEnabled === true;
             return (
               <AccountSectionRow
                 key={account.id}
@@ -101,25 +106,17 @@ export const TraeAccountSection: React.FC = () => {
                 onRefresh={() => void refresh(account)}
                 onDelete={() => void remove(account)}
                 leadingAction={
-                  selectedTool === 'traecn' ? (
+                  showClaim ? (
                     <AccountSectionRewardButton
                       email={account.name}
                       claimed={dailyClaimed}
-                      disabled={
-                        busy || refreshing.size > 0 || traeClaimUnavailable(account, accounts)
-                      }
+                      disabled={busy || refreshing.size > 0}
                       onClaim={() => void claimDaily(account)}
                     />
                   ) : undefined
                 }
                 secondary={
-                  !grouped &&
-                  account.remaining == null &&
-                  !(
-                    selectedTool === 'traecn' &&
-                    !dailyClaimed &&
-                    account.rewardEnabled === true
-                  ) ? undefined : (
+                  !grouped && account.remaining == null && !showUnclaimed ? undefined : (
                     <span
                       className={`flex h-[16px] min-w-0 items-center gap-1 text-[11px] font-semibold whitespace-nowrap ${grouped ? 'w-full' : 'overflow-hidden'}`}
                     >
@@ -197,16 +194,14 @@ export const TraeAccountSection: React.FC = () => {
                           )}
                         </span>
                       )}
-                      {selectedTool === 'traecn' &&
-                        !dailyClaimed &&
-                        account.rewardEnabled === true && (
-                          <span
-                            className="flex-shrink-0"
-                            aria-label={t('agent.dailyCreditsUnclaimed')}
-                          >
-                            {t('agent.dailyCreditsUnclaimed')}
-                          </span>
-                        )}
+                      {showUnclaimed && (
+                        <span
+                          className="flex-shrink-0"
+                          aria-label={t('agent.dailyCreditsUnclaimed')}
+                        >
+                          {t('agent.dailyCreditsUnclaimed')}
+                        </span>
+                      )}
                     </span>
                   )
                 }

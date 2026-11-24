@@ -4114,18 +4114,32 @@ it('Account Center: TRAE regions stay separate and the shared reward batch skips
   expect(api.startTraeLogin).not.toHaveBeenCalled();
 });
 
-it('Account Center: a used TRAE device leaves unclaimed gifts disabled and does not request status or rewards', async () => {
-  vi.mocked(api.listTraeAccounts).mockResolvedValue([
-    { ...traeRow, deviceClaimedAt: Date.now() / 1000 },
-    { ...traeRow, id: 'other', name: 'Other', active: false },
-  ]);
+it('Account Center: hides only device-blocked TRAE gifts until China midnight', async () => {
+  vi.setSystemTime(new Date('2026-10-13T15:59:30Z'));
+  const now = Date.now() / 1000;
+  const blocked = { ...traeRow, deviceClaimedAt: now };
+  const other = { ...traeRow, id: 'other', name: 'Other', active: false };
+  vi.mocked(api.listTraeAccounts).mockResolvedValue([blocked, other]);
+  vi.mocked(api.claimTraeDailyCredits).mockResolvedValue({ ...other, deviceClaimedAt: now });
   await showAccountCenter(['traecn']);
-  const other = renderer.root.findByProps({ 'aria-label': 'agent.claimDailyCredits Other' });
-  expect(other.props.disabled).toBe(true);
-  await act(async () => {
-    await renderer.root.findByProps({ 'aria-label': 'accountCenter.claimAll' }).props.onClick();
-  });
+  const gift = () => renderer.root.findByProps({ 'aria-label': 'agent.claimDailyCredits Other' });
+  expect(gift().props.disabled).toBe(false);
+  expect(
+    renderer.root.findAllByProps({ 'aria-label': `agent.claimDailyCredits ${blocked.name}` })
+  ).toHaveLength(0);
   expect(api.claimTraeDailyCredits).not.toHaveBeenCalled();
+  await act(async () => {
+    gift().props.onClick({ stopPropagation: vi.fn() });
+  });
+  expect(api.claimTraeDailyCredits).toHaveBeenCalledExactlyOnceWith('traecn', other.id);
+  expect(
+    renderer.root.findAllByProps({ 'aria-label': 'agent.claimDailyCredits Other' })
+  ).toHaveLength(0);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(60_000);
+  });
+  expect(gift().props.disabled).toBe(false);
+  expect(api.claimTraeDailyCredits).toHaveBeenCalledTimes(1);
   expect(api.refreshTraeAccountQuota).not.toHaveBeenCalled();
 });
 
@@ -4174,7 +4188,7 @@ it.each(['failure', 'success'] as const)(
       )
       .mockResolvedValueOnce({
         ...second,
-        dailyClaimedAt: Date.now() / 1000,
+        dailyClaimedAt: outcome === 'failure' ? Date.now() / 1000 : undefined,
         deviceClaimedAt: Date.now() / 1000,
       });
     await showAccountCenter(['traecn']);
@@ -4195,9 +4209,9 @@ it.each(['failure', 'success'] as const)(
         });
       await batch;
     });
-    expect(api.claimTraeDailyCredits).toHaveBeenCalledTimes(outcome === 'failure' ? 2 : 1);
+    expect(api.claimTraeDailyCredits).toHaveBeenCalledTimes(2);
+    expect(api.claimTraeDailyCredits).toHaveBeenLastCalledWith('traecn', second.id);
     if (outcome === 'failure') {
-      expect(api.claimTraeDailyCredits).toHaveBeenLastCalledWith('traecn', second.id);
       expect(state.applyError).toBe('Claim failed: 1 (TRAE CN · First)');
     }
     expect(state.traeAccountGroups.traecn.refreshing.size).toBe(0);

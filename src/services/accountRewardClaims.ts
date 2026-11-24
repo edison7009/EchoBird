@@ -16,7 +16,7 @@ function rewards<A>(
   toolIds: string[],
   list: () => Promise<A[]>,
   claim: (account: A) => Promise<A>,
-  canClaim: (account: A, accounts: A[]) => boolean
+  canClaim: (account: A) => boolean
 ) {
   return {
     scope,
@@ -27,7 +27,7 @@ function rewards<A>(
     run: async (active: () => boolean) => {
       const accounts = await list();
       for (let i = 0; i < accounts.length && active(); i += 1) {
-        if (!canClaim(accounts[i], accounts)) continue;
+        if (!canClaim(accounts[i])) continue;
         try {
           accounts[i] = await claim(accounts[i]);
           useRewardClaimStore.getState().updated(scope);
@@ -52,7 +52,7 @@ const providers = [
     ['traecn'],
     () => api.listTraeAccounts('traecn'),
     (account) => api.claimTraeDailyCredits('traecn', account.id),
-    (account, accounts) => !traeClaimUnavailable(account, accounts)
+    (account) => !traeClaimUnavailable(account)
   ),
   rewards(
     'minimax',

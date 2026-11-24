@@ -14,6 +14,7 @@ export type CachedAccount = Pick<
   | 'authorizationFailed'
   | 'claimDisabled'
   | 'dailyClaimedAt'
+  | 'deviceClaimedAt'
   | 'dailyClaimed'
   | 'claimStatusExpiresAt'
   | 'showUnclaimed'
@@ -44,6 +45,7 @@ function validAccount(value: CachedAccount): boolean {
     optionalBoolean(value.dailyClaimed) &&
     optionalBoolean(value.showUnclaimed) &&
     optionalNumber(value.dailyClaimedAt) &&
+    optionalNumber(value.deviceClaimedAt) &&
     optionalNumber(value.claimStatusExpiresAt) &&
     Array.isArray(value.metrics) &&
     value.metrics.every(
@@ -108,6 +110,7 @@ function summarize(account: AccountCardData): CachedAccount {
     claimable: Boolean(account.claim),
     claimDisabled: account.claimDisabled,
     dailyClaimedAt: account.dailyClaimedAt,
+    deviceClaimedAt: account.deviceClaimedAt,
     dailyClaimed: account.dailyClaimed,
     claimStatusExpiresAt: account.claimStatusExpiresAt,
     showUnclaimed: account.showUnclaimed,

@@ -311,10 +311,12 @@ describe('TRAE account rows', () => {
     }
   });
 
-  it('keeps an unclaimed gift disabled for a device-used day, without marking this account claimed', () => {
-    const html = fixture([{ ...saved, deviceClaimedAt: Date.now() / 1000 }]).html();
-    expect(html).toMatch(/aria-label="agent.claimDailyCredits Saved" disabled=""/);
-    expect(html).toContain('lucide-gift');
+  it('hides the gift and unclaimed label when the device has already claimed', () => {
+    const html = fixture([
+      { ...saved, rewardEnabled: true, deviceClaimedAt: Date.now() / 1000 },
+    ]).html();
+    expect(html).not.toContain('agent.claimDailyCredits');
+    expect(html).not.toContain('agent.dailyCreditsUnclaimed');
     expect(html).not.toContain('agent.dailyCreditsClaimed');
     expect(html).not.toContain('lucide-check');
   });
@@ -401,15 +403,17 @@ describe('TRAE account rows', () => {
     expect(html).toContain('lucide-check');
   });
 
-  it('disables every CN reward on a used device while leaving account claim identity separate', () => {
+  it('leaves each CN gift available until its own account or device status blocks it', () => {
     const html = fixture([
       { ...saved, id: 'first', name: 'First', deviceClaimedAt: Date.now() / 1000 },
       { ...saved, id: 'second', name: 'Second' },
     ]).html();
-    expect(html).toMatch(/aria-label="agent.claimDailyCredits Second" disabled=""/);
+    expect(html).not.toContain('agent.claimDailyCredits First');
+    expect(html).toContain('aria-label="agent.claimDailyCredits Second"');
+    expect(html).not.toContain('aria-label="agent.claimDailyCredits Second" disabled=""');
     expect(html).not.toContain('agent.dailyCreditsClaimed Second');
-    expect(fixture([{ ...saved, rewardEnabled: false }]).html()).toMatch(
-      /aria-label="agent.claimDailyCredits Saved" disabled=""/
+    expect(fixture([{ ...saved, rewardEnabled: false }]).html()).not.toContain(
+      'agent.claimDailyCredits Saved'
     );
   });
 

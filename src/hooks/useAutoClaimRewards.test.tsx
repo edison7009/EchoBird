@@ -274,21 +274,31 @@ it('keeps one sequential batch while a slow claim spans navigation and hourly ti
   expect(useRewardClaimStore.getState().running).toBe(false);
 });
 
-it('keeps TRAE device-level deduplication and skips the next account after a device claim', async () => {
+it('checks each eligible TRAE account after another account claims on its device', async () => {
   installed('traecn');
-  rows.trae.push({ ...rows.trae[0], id: 't2' });
+  const now = Date.now() / 1000;
+  rows.trae.push(
+    { ...rows.trae[0], id: 't2' },
+    { ...rows.trae[0], id: 'blocked', deviceClaimedAt: now },
+    { ...rows.trae[0], id: 'claimed', dailyClaimedAt: now },
+    { ...rows.trae[0], id: 'disabled', rewardEnabled: false }
+  );
   const original = mocks.invoke.getMockImplementation()!;
   mocks.invoke.mockImplementation((command, args) =>
-    command === 'claim_trae_daily_credits'
+    command === 'claim_trae_daily_credits' && args.accountId === 't1'
       ? Promise.resolve({
           ...rows.trae[0],
-          dailyClaimedAt: Date.now() / 1000,
-          deviceClaimedAt: Date.now() / 1000,
+          dailyClaimedAt: now,
+          deviceClaimedAt: now,
         })
       : original(command, args)
   );
-  await claimAllSavedRewards(() => true);
-  expect(claims()).toHaveLength(1);
+  useRewardClaimStore.setState({ enabled: true });
+  await mount();
+  expect(claims()).toEqual([
+    ['claim_trae_daily_credits', { edition: 'traecn', accountId: 't1' }],
+    ['claim_trae_daily_credits', { edition: 'traecn', accountId: 't2' }],
+  ]);
 });
 
 it('continues after one account or provider fails without opening login, quota refresh or apply dialogs', async () => {

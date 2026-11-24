@@ -28,6 +28,7 @@ import {
   useWorkBuddyClaimedToday,
   workBuddyClaimedToday,
 } from '../AppManager/workBuddyDailyCredits';
+import { traeClaimedToday } from '../AppManager/traeDailyCredits';
 import { useNavigationStore } from '../../stores/navigationStore';
 import { useToolsStore } from '../../stores/toolsStore';
 import { useRewardClaimStore } from '../../stores/rewardClaimStore';
@@ -73,6 +74,7 @@ export function AccountCard({
   const now = useUsageClock(
     account.subscriptionEndAt != null ||
       account.claimStatusExpiresAt != null ||
+      account.deviceClaimedAt != null ||
       account.metrics.some((metric) => Boolean(metric.resetLabel))
   );
   const hasSubscriptionExpiry =
@@ -80,6 +82,8 @@ export function AccountCard({
   const currentClaimStatus =
     account.claimStatusExpiresAt == null || account.claimStatusExpiresAt * 1000 > now;
   const claimed = currentClaimStatus && (account.dailyClaimed ?? dailyClaimed);
+  const deviceBlocked =
+    provider.id === 'traecn' && !claimed && traeClaimedToday(account.deviceClaimedAt, now);
   const name = [provider.name, account.detail].filter(Boolean).join(' · ');
   const missingUsage = account.metrics.every(
     (metric) => metric.value === '—' && metric.percent == null && metric.resetAt == null
@@ -127,7 +131,7 @@ export function AccountCard({
           )}
         </span>
         <span className="brand-card-actions">
-          {account.claim && (
+          {account.claim && !deviceBlocked && (
             // Unclaimed daily credits: the gift glows in the accent colour.
             <span className="flex" data-unclaimed={claimed ? undefined : ''}>
               <AccountSectionRewardButton
@@ -267,6 +271,7 @@ export function AccountCard({
                       )}
                       {(provider.id === 'workbuddy' ||
                         (provider.id === 'traecn' && account.showUnclaimed)) &&
+                        !deviceBlocked &&
                         !claimed &&
                         metric.label === t('agent.rewardCredits') && (
                           <span className="flex-shrink-0 text-[10px] font-semibold leading-[16px] text-cyber-text">
@@ -499,7 +504,6 @@ export function AccountCenterTitleActions() {
     setRunning(action);
     const authFailures = new Map<string, { name: string; identity: string }>();
     const otherFailures = new Map<string, { name: string; identity: string }>();
-    const claimedProviders = new Set<string>();
     context.setApplyError(null);
     try {
       for (const target of accounts) {
@@ -528,11 +532,7 @@ export function AccountCenterTitleActions() {
             // Same warm-up as the card's own button, for every account that has one.
             if (account.warmUp) await account.warmUp(collectError);
           } else if (action === 'claim') {
-            if (account.claim && !claimedProviders.has(provider.id)) {
-              const deviceClaimed = await account.claim(collectError);
-              if (deviceClaimed === true && batch.current === request)
-                claimedProviders.add(provider.id);
-            }
+            if (account.claim) await account.claim(collectError);
           } else {
             await account.refresh(collectError);
           }

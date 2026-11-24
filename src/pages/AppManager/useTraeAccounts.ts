@@ -25,13 +25,15 @@ export function useTraeAccounts(
     }
   );
   const claimDaily = (account: api.TraeAccount, onError?: (error: unknown) => void) => {
+    const current = managed.accounts.find((row) => row.id === account.id);
     if (
       edition !== 'traecn' ||
       account.edition !== edition ||
-      traeClaimUnavailable(account, managed.accounts)
+      !current ||
+      traeClaimUnavailable(current)
     )
       return Promise.resolve();
-    return managed.refresh(account, (row) => api.claimTraeDailyCredits(edition, row.id), onError);
+    return managed.refresh(current, (row) => api.claimTraeDailyCredits(edition, row.id), onError);
   };
   return { ...managed, claimDaily };
 }

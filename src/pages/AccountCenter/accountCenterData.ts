@@ -16,7 +16,6 @@ import {
   qoderRewardStatus,
   qoderSubscriptionExpiry,
 } from '../AppManager/qoderAccountDisplay';
-import { traeClaimedToday, traeClaimUnavailable } from '../AppManager/traeDailyCredits';
 import { clineBalanceLabel } from '../AppManager/clineAccountDisplay';
 import {
   qwenWorkIdentity,
@@ -60,6 +59,7 @@ export interface AccountCardData {
   warmUp?: (onError?: (error: unknown) => void) => Promise<unknown>;
   claimDisabled?: boolean;
   dailyClaimedAt?: number | null;
+  deviceClaimedAt?: number | null;
   dailyClaimed?: boolean;
   claimStatusExpiresAt?: number;
   showUnclaimed?: boolean;
@@ -209,6 +209,7 @@ export function accountCenterProviders(
       | 'warmUp'
       | 'claimDisabled'
       | 'dailyClaimedAt'
+      | 'deviceClaimedAt'
       | 'dailyClaimed'
       | 'claimStatusExpiresAt'
       | 'showUnclaimed'
@@ -478,16 +479,13 @@ export function accountCenterProviders(
             metrics,
             ...(edition === 'traecn'
               ? {
-                  claim: async (onError) => {
-                    const group = context.traeAccountGroups.traecn;
-                    if (traeClaimUnavailable(account, group.accounts)) return;
-                    const updated = await group.claimDaily(account, onError);
-                    return updated != null && traeClaimedToday(updated.deviceClaimedAt);
-                  },
-                  claimDisabled:
-                    context.traeAccountGroups.traecn.refreshing.size > 0 ||
-                    traeClaimUnavailable(account, context.traeAccountGroups.traecn.accounts),
+                  claim:
+                    account.rewardEnabled === false
+                      ? undefined
+                      : (onError) => context.traeAccountGroups.traecn.claimDaily(account, onError),
+                  claimDisabled: context.traeAccountGroups.traecn.refreshing.size > 0,
                   dailyClaimedAt: account.dailyClaimedAt,
+                  deviceClaimedAt: account.deviceClaimedAt,
                   showUnclaimed: account.rewardEnabled === true,
                 }
               : {}),

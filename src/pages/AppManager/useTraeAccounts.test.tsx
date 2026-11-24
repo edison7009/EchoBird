@@ -250,7 +250,7 @@ it('refreshes only explicitly and preserves selection while pending and after an
   expect(state.accounts[0].remaining).toBe(0);
 });
 
-it('claims CN daily credits explicitly, prevents repeated row claims and disables other rows after success', async () => {
+it('prevents repeated TRAE claims for the same row and checks the next row independently', async () => {
   const second = { ...cn, id: 'second', active: false };
   vi.mocked(api.listTraeAccounts).mockResolvedValueOnce([cn, second]);
   await mount();
@@ -274,9 +274,22 @@ it('claims CN daily credits explicitly, prevents repeated row claims and disable
     expect(await claiming).toMatchObject({ remaining: 120, deviceClaimedAt: Date.now() / 1000 });
   });
   await act(async () => {
-    await state.claimDaily(second);
+    await state.claimDaily(state.accounts[0]);
   });
   expect(api.claimTraeDailyCredits).toHaveBeenCalledTimes(1);
+  vi.mocked(api.claimTraeDailyCredits).mockResolvedValueOnce({
+    ...second,
+    deviceClaimedAt: Date.now() / 1000,
+  });
+  await act(async () => {
+    await state.claimDaily(second);
+  });
+  expect(api.claimTraeDailyCredits).toHaveBeenNthCalledWith(2, 'traecn', second.id);
+  expect(state.accounts[1].dailyClaimedAt).toBeUndefined();
+  await act(async () => {
+    await state.claimDaily(second);
+  });
+  expect(api.claimTraeDailyCredits).toHaveBeenCalledTimes(2);
   expect(state.accounts[0].remaining).toBe(120);
   expect(state.selectedId).toBe(cn.id);
 });

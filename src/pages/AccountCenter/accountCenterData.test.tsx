@@ -193,9 +193,11 @@ describe('Account Center display data', () => {
       row.plan = 'Pro';
       row.remaining = 40;
       row.total = 100;
+      row.dailyReward = { status: 'unavailable', scene: null, nextClaimAt: null };
       entry = providers(state).find((p) => p.id === edition)!.accounts[0];
       expect(entry.plan).toBe('Pro');
       expect(entry.metrics[0]).toMatchObject({ value: '40', percent: 40 });
+      expect(entry.claim).toBeUndefined();
       expect(state.doubaoAccountGroups[edition].refresh).not.toHaveBeenCalled();
     }
   );
@@ -1452,8 +1454,8 @@ describe('Account Center display data', () => {
     }
   });
 
-  it.each(['device claimed', 'no device claim', 'ignored response'] as const)(
-    'uses the actual TRAE claim result before a render snapshot updates (%s)',
+  it.each(['claimed', 'device blocked', 'ignored response'] as const)(
+    'continues to the next TRAE account before the first result renders (%s)',
     async (result) => {
       const state = context();
       const first = {
@@ -1473,8 +1475,8 @@ describe('Account Center display data', () => {
           ? undefined
           : {
               ...first,
-              dailyClaimedAt: Date.now() / 1000,
-              deviceClaimedAt: result === 'device claimed' ? Date.now() / 1000 : undefined,
+              dailyClaimedAt: result === 'claimed' ? Date.now() / 1000 : undefined,
+              deviceClaimedAt: Date.now() / 1000,
             }
       );
       state.traeAccountGroups.traecn.claimDaily = claim;
@@ -1496,10 +1498,9 @@ describe('Account Center display data', () => {
             .findByProps({ 'aria-label': 'accountCenter.claimAll' })
             .props.onClick();
         });
-        expect(claim).toHaveBeenCalledTimes(result === 'device claimed' ? 1 : 2);
+        expect(claim).toHaveBeenCalledTimes(2);
         expect(claim).toHaveBeenNthCalledWith(1, first, expect.any(Function));
-        if (result !== 'device claimed')
-          expect(claim).toHaveBeenNthCalledWith(2, second, expect.any(Function));
+        expect(claim).toHaveBeenNthCalledWith(2, second, expect.any(Function));
         expect(state.traeAccountGroups.traecn.accounts).toEqual([first, second]);
         expect(state.traeAccountGroups.traecn.refresh).not.toHaveBeenCalled();
       } finally {
@@ -2199,7 +2200,7 @@ describe('Account Center display data', () => {
     expect(html).not.toContain('accountCenter.reset');
   });
 
-  it('disables CN gifts on a device-used day without displaying another account as claimed', () => {
+  it('keeps another CN gift available when only the first account has a device result', () => {
     const state = context();
     state.detectedTools = [{ id: 'traecn', name: 'TRAE CN', category: 'Desktop', installed: true }];
     state.traeAccountGroups.traecn.accounts = [
@@ -2223,7 +2224,6 @@ describe('Account Center display data', () => {
       },
     ];
     const provider = providers(state).find((p) => p.id === 'traecn')!;
-    expect(provider.accounts.map((account) => account.claimDisabled)).toEqual([true, true]);
     const first = renderToStaticMarkup(
       <AccountCard provider={provider} account={provider.accounts[0]} />
     );
@@ -2232,7 +2232,8 @@ describe('Account Center display data', () => {
     );
     expect(first).toContain('agent.dailyCreditsClaimed First');
     expect(first).toContain('lucide-check');
-    expect(second).toMatch(/aria-label="agent.claimDailyCredits Second" disabled=""/);
+    expect(second).toContain('aria-label="agent.claimDailyCredits Second"');
+    expect(second).not.toContain('aria-label="agent.claimDailyCredits Second" disabled=""');
     expect(second).toContain('lucide-gift');
     expect(second).not.toContain('agent.dailyCreditsClaimed');
   });
