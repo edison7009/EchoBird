@@ -2,7 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { Check, Loader2, Sparkles, Network } from 'lucide-react';
 import { ModelIdCombobox } from '../components/ModelIdCombobox';
 import { ChatBubble, ToolCallCard } from '../components/chat';
-import { PET_KINDS, petModel } from '../pages/Pets/petConstants';
+import { PET_KINDS } from '../pages/Pets/petConstants';
+import mecha from './assets/pets/mecha.webp';
+import unicorn from './assets/pets/unicorn.webp';
+import kaiju from './assets/pets/kaiju.webp';
+import fox from './assets/pets/fox.webp';
+import alien from './assets/pets/alien.webp';
+import kangaroo from './assets/pets/kangaroo.webp';
 import { featureDemoAt } from './featureTimeline';
 import { useI18n } from '../hooks/useI18n';
 import { featureCopy } from './demoLocale';
@@ -254,40 +260,15 @@ export function AssistantDemo() {
   );
 }
 
+const petThumbnails = { mecha, unicorn, kaiju, fox, alien, kangaroo };
+
 export function PetsDemo() {
   const copy = useFeatureCopy();
-  const canvas = useRef<HTMLCanvasElement>(null);
-  const [images, setImages] = useState<string[]>([]);
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    let cancelled = false;
-    void import('../pages/Pets/petScene.js')
-      .then(({ createPetScene }) => {
-        if (cancelled || !canvas.current) return;
-        const scene = createPetScene(canvas.current);
-        try {
-          const thumbnails = PET_KINDS.map((kind, index) =>
-            scene.thumbnail(petModel({ id: index + 1, kind, level: 60, color: index }))
-          );
-          if (!cancelled) setImages(thumbnails);
-        } finally {
-          scene.dispose();
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
   return (
     <div className="pet-demo-line" data-demo-kind="pets">
-      <canvas ref={canvas} className="pet-thumbnail-source" aria-hidden="true" />
-      {images.map((src, index) => (
-        <img src={src} alt={copy.pets[index]} key={PET_KINDS[index]} width="96" height="96" />
+      {PET_KINDS.map((kind, index) => (
+        <img src={petThumbnails[kind]} alt={copy.pets[index]} key={kind} width="168" height="168" />
       ))}
-      {failed && <p className="pet-render-error">{copy.webgl}</p>}
     </div>
   );
 }

@@ -276,17 +276,6 @@ body {
   aspect-ratio: 1;
   object-fit: contain;
 }
-.pet-thumbnail-source {
-  position: absolute;
-  width: 96px;
-  height: 96px;
-  visibility: hidden;
-  pointer-events: none;
-}
-.pet-render-error {
-  color: #aaa99e;
-  font-size: 12px;
-}
 @keyframes demo-tap {
   50% {
     box-shadow: 0 0 0 3px #e48d6940;

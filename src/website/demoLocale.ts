@@ -103,7 +103,6 @@ export const featureCopy = {
     output: '下载线路已选择，运行环境安装完成，PATH 配置完成，启动检查通过。',
     complete: '准备好了，开始你的第一个项目吧。',
     pets: ['机甲', '独角兽', '怪兽', '狐狸', '外星人', '袋鼠'],
-    webgl: '宠物展示需要浏览器支持 WebGL',
   },
   en: {
     smart: 'Smart Routes',
@@ -129,6 +128,5 @@ export const featureCopy = {
     output: 'Download route selected. Runtime installed. PATH configured. Launch check passed.',
     complete: 'All set. Start your first project.',
     pets: ['Mecha', 'Unicorn', 'Kaiju', 'Fox', 'Alien', 'Kangaroo'],
-    webgl: 'Pet previews require a browser with WebGL support.',
   },
 };
