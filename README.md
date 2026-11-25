@@ -21,7 +21,7 @@
   <a href="README.zh-CN.md">中文 README</a>
 </p>
 
-This repository hosts the EchoBird website, documentation, changelogs, downloads, and issue tracker. Desktop releases are built from the separately maintained core source. Run `npm ci` and `npm run website:dev` to work on the website locally.
+This repository hosts the EchoBird website, documentation, changelogs, downloads, and issue tracker.
 
 ---
 
