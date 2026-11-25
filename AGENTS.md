@@ -5,10 +5,10 @@ Read this before modifying code.
 
 ## Project shape
 
-EchoBird targets Windows, macOS, and Linux desktop. React + TypeScript + Vite
-frontend lives in `src/`, and the Rust backend lives in `src-tauri/`. The desktop
-binary links `echobird_lib` as an `rlib`; verify native desktop build and packaging
-when changing library output types.
+This checkout holds the public website in `website/` and `docs/`, the
+changelog and download manifests, and the release workflows. Desktop source
+lives in `edison7009/EchoBird-secret-`. Apply the desktop integration and
+native verification instructions below in that private repository.
 
 Two-tier tool/feature registries often ship in **both** a bundled copy and a remote copy (e.g. `src/data/<x>.json` vs
 `docs/api/<...>/index.json`) — when adding or editing an entry, update **both**
@@ -113,7 +113,11 @@ in the ignored `internal-docs/` directory. `docs/` is the public website.
 
 ## CI gates (must pass locally before pushing)
 
-CI runs two jobs in parallel, each with this order — **format runs first and
+For the public checkout, run `npm test` and `npm run website:build`. These
+checks work with the public files alone. Desktop releases use the read-only
+`ECHOBIRD_CORE_DEPLOY_KEY` Actions secret to fetch the private source.
+
+Private desktop CI runs two jobs in parallel, each with this order — **format runs first and
 fails the whole job before clippy/test even start**, so a format slip hides
 whether the code is actually sound. Match the order locally:
 
@@ -207,9 +211,11 @@ clippy/test, not optional.
   For each fix, record its commit on main, including the resulting commit if
   cherry-picked or rebased. Surface any intended fix that cannot be included
   before publishing.
-- Check that every recorded commit is an ancestor of the exact release tag
-  with `git merge-base --is-ancestor <commit> <tag>`. Confirm the packaging
-  run builds that tag's commit and include the verified scope in the handoff.
+- Check in the private repository that every desktop change is an ancestor
+  of the exact source tag with `git merge-base --is-ancestor <commit> <tag>`.
+  Push that tag before creating the matching public release tag. Confirm
+  that all packaging jobs build the resolved private commit and include
+  the verified scope in the handoff.
 
 ## Commit policy
 
