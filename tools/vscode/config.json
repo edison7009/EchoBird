@@ -1,6 +1,0 @@
-{
-    "docs": "https://code.visualstudio.com/docs/agent-customization/language-models",
-    "configFile": "~/.config/Code/User/settings.json",
-    "format": "json",
-    "custom": false
-}

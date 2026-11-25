@@ -29,12 +29,27 @@ jobs:
   # jobs each failed to "find" the draft and CREATED their own — producing
   # duplicate drafts with the 8 assets split across them (hit on v5.3.3).
   create-release:
+    if: github.repository == 'edison7009/EchoBird' && (github.event_name == 'push' || github.ref == 'refs/heads/main')
     permissions:
       contents: write
     runs-on: ubuntu-24.04
     outputs:
       release_id: ${{ steps.create.outputs.release_id }}
+      source_commit: ${{ steps.source.outputs.commit }}
     steps:
+      - name: Checkout public workflow
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+
+      - name: Checkout desktop source
+        id: source
+        uses: ./.github/actions/checkout-release-source
+        with:
+          tag: ${{ inputs.tag || github.ref_name }}
+          deploy-key: ${{ secrets.ECHOBIRD_CORE_DEPLOY_KEY }}
+
       - name: Create (or reuse) the draft release
         id: create
         env:
@@ -97,11 +112,23 @@ jobs:
             args: '--bundles deb,rpm'
 
     runs-on: ${{ matrix.platform }}
+    defaults:
+      run:
+        working-directory: release-source
     steps:
-      - name: Checkout repository
+      - name: Checkout public workflow
         uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.tag || github.ref_name }}
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+
+      - name: Checkout desktop source
+        id: source
+        uses: ./.github/actions/checkout-release-source
+        with:
+          tag: ${{ inputs.tag || github.ref_name }}
+          deploy-key: ${{ secrets.ECHOBIRD_CORE_DEPLOY_KEY }}
+          commit: ${{ needs.create-release.outputs.source_commit }}
 
       # AppKit chooses traffic-light metrics from the linked SDK. SDK 15
       # produces smaller buttons centered at y=24 with our inset; SDK 26+
@@ -126,7 +153,7 @@ jobs:
           # 26334424977 — 2026-05-23). ci.yml never hit it because it always
           # used a numeric pin.
           node-version: 22
-          cache: 'npm'
+          package-manager-cache: false
 
       # Pinned to 1.93 — see comment in ci.yml. Keep both files in
       # lockstep so a deliberate bump touches both.
@@ -135,11 +162,6 @@ jobs:
         with:
           targets: ${{ matrix.rust-target }}
 
-      - name: Rust cache
-        uses: swatinem/rust-cache@v2
-        with:
-          workspaces: './src-tauri -> target'
-
       - name: Install Linux system dependencies
         if: runner.os == 'Linux'
         run: |
@@ -147,7 +169,12 @@ jobs:
           sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf libssl-dev libgtk-3-dev libasound2-dev libxkbcommon-dev
 
       - name: Install frontend dependencies
-        run: npm ci
+        shell: bash
+        run: |
+          if ! npm ci > "$RUNNER_TEMP/echobird-npm.log" 2>&1; then
+            echo "::error::Desktop dependency installation failed. Check the source in the private repository."
+            exit 1
+          fi
 
       - name: Verify Antigravity OAuth build credentials
         shell: bash
@@ -162,7 +189,11 @@ jobs:
         env:
           ANTIGRAVITY_OAUTH_CLIENT_ID: ${{ secrets.ANTIGRAVITY_OAUTH_CLIENT_ID }}
           ANTIGRAVITY_OAUTH_CLIENT_SECRET: ${{ secrets.ANTIGRAVITY_OAUTH_CLIENT_SECRET }}
-        run: npm run tauri -- build ${{ matrix.args }}
+        run: |
+          if ! npm run tauri -- build ${{ matrix.args }} > "$RUNNER_TEMP/echobird-build.log" 2>&1; then
+            echo "::error::Desktop build failed. Check the exact source commit in the private repository."
+            exit 1
+          fi
 
       - name: Verify packaged macOS SDK
         if: runner.os == 'macOS' && (inputs.platforms != 'macos-arm' || matrix.rust-target == 'aarch64-apple-darwin')

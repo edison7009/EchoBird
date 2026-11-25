@@ -21,9 +21,7 @@
   <a href="README.zh-CN.md">中文 README</a>
 </p>
 
-> **Note** — This repository is just one of several download channels
-> and an issue tracker. For product information, announcements, and
-> commercial inquiries, visit [echobird.ai](https://echobird.ai).
+This repository hosts the EchoBird website, documentation, changelogs, downloads, and issue tracker. Desktop releases are built from the separately maintained core source. Run `npm ci` and `npm run website:dev` to work on the website locally.
 
 ---
 

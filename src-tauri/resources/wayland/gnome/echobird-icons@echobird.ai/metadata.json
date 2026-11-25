@@ -1,8 +1,0 @@
-{
-  "uuid": "echobird-icons@echobird.ai",
-  "name": "EchoBird Application Icons",
-  "description": "Expose the focused application ID to EchoBird's voice island. Does not read window titles or control windows.",
-  "shell-version": ["45", "46", "47", "48", "49", "50", "51"],
-  "url": "https://echobird.ai/",
-  "version": 1
-}

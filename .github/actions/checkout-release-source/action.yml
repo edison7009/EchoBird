@@ -1,0 +1,82 @@
+name: Checkout EchoBird release source
+description: Fetch and verify the desktop source for a public release
+inputs:
+  tag:
+    description: Public release tag
+    required: true
+  deploy-key:
+    description: Read-only private repository SSH key
+    required: true
+  commit:
+    description: Source commit already resolved by the release job
+    required: false
+outputs:
+  commit:
+    description: Exact desktop source commit
+    value: ${{ steps.verify.outputs.commit }}
+runs:
+  using: composite
+  steps:
+    - name: Validate release tag
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      env:
+        RELEASE_TAG: ${{ inputs.tag }}
+        CORE_COMMIT: ${{ inputs.commit }}
+      run: |
+        set -euo pipefail
+        if ! [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ && ( -z "$CORE_COMMIT" || "$CORE_COMMIT" =~ ^[a-f0-9]{40}$ ) ]]; then
+          echo "::error::Invalid release tag or source commit"
+          exit 1
+        fi
+
+    - name: Checkout the public release tag
+      uses: actions/checkout@v6
+      with:
+        ref: refs/tags/${{ inputs.tag }}
+        path: release-source
+        persist-credentials: false
+
+    - name: Identify historical public source tags
+      id: historical
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      run: |
+        if [[ -f release-source/src-tauri/Cargo.toml ]]; then
+          echo 'public=true' >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Checkout private desktop source
+      if: steps.historical.outputs.public != 'true'
+      uses: actions/checkout@v6
+      with:
+        repository: edison7009/EchoBird-secret-
+        ref: ${{ inputs.commit || format('refs/tags/{0}', inputs.tag) }}
+        path: release-source
+        ssh-key: ${{ inputs.deploy-key }}
+        persist-credentials: false
+
+    - name: Verify source version and commit
+      id: verify
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      env:
+        RELEASE_TAG: ${{ inputs.tag }}
+        CORE_COMMIT: ${{ inputs.commit }}
+      run: |
+        set -euo pipefail
+        commit="$(git -C release-source rev-parse HEAD)"
+        if [[ -n "$CORE_COMMIT" && "$commit" != "$CORE_COMMIT" ]]; then
+          echo "::error::Desktop source commit differs from the resolved commit"
+          exit 1
+        fi
+        node <<'JS'
+        const fs = require('node:fs');
+        const expected = process.env.RELEASE_TAG.slice(1);
+        for (const file of ['package.json', 'src-tauri/tauri.conf.json']) {
+          const config = JSON.parse(fs.readFileSync('release-source/' + file));
+          if (config.version !== expected) throw new Error('Desktop source version differs from the release tag');
+        }
+        JS
+        echo "commit=$commit" >> "$GITHUB_OUTPUT"
+        echo "Verified desktop source commit $commit"

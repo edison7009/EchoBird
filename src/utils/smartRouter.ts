@@ -1,37 +1,3 @@
 export function isSmartRouterId(id: string | null | undefined): boolean {
   return id === 'smart-router' || id?.startsWith('smart-router-') === true;
 }
-
-export const SMART_ROUTER_SWITCH_TOOLS = new Set([
-  'claudecode',
-  'claudedesktop',
-  'claudescience',
-  'codex',
-  'chatgptdesktop',
-  'grok',
-  'opencode',
-  'opencodedesktop',
-  'mimocode',
-  'mimodesktop',
-  'kilo',
-  'kilodesktop',
-  'minimaxcode',
-  'minimaxdesktop',
-  'workbuddy',
-  'workbuddyai',
-  'qoder',
-  'qodercn',
-  'kimicode',
-  'kimidesktop',
-  'pi',
-  'omp',
-  'hermes',
-  'qwencode',
-  'dsh',
-  'zcode',
-  'openscience',
-  'musecode',
-  'vscode',
-  'copilot',
-  'copilotdesktop',
-]);

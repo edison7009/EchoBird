@@ -1,9 +1,0 @@
-{
-  "write": {
-    "model": "model",
-    "openai.baseUrl": "baseUrl",
-    "openai.apiKey": "apiKey",
-    "anthropic.baseUrl": "baseUrl",
-    "anthropic.apiKey": "apiKey"
-  }
-}

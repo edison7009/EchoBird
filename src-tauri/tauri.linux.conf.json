@@ -1,5 +1,0 @@
-{
-  "bundle": {
-    "resources": ["../tools/", "resources/wayland/gnome/"]
-  }
-}

@@ -1,6 +1,0 @@
-{
-    "docs": "https://claude.com/product/claude-science",
-    "configFile": "~/.claude-science/preferences.json",
-    "format": "json",
-    "custom": false
-}

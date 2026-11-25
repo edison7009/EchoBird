@@ -18,8 +18,25 @@ permissions:
 
 jobs:
   build:
+    if: github.repository == 'edison7009/EchoBird' && github.ref == 'refs/heads/main'
     runs-on: macos-26-intel
+    defaults:
+      run:
+        working-directory: release-source
     steps:
+      - name: Checkout public workflow
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+
+      - name: Checkout desktop source
+        id: source
+        uses: ./.github/actions/checkout-release-source
+        with:
+          tag: ${{ inputs.tag }}
+          deploy-key: ${{ secrets.ECHOBIRD_CORE_DEPLOY_KEY }}
+
       - name: Validate tag and resolve existing draft
         id: draft
         env:
@@ -33,11 +50,6 @@ jobs:
             --jq ".[] | select(.tag_name == \"${TAG}\" and .draft == true) | .id")
           test -n "$ID"
           echo "release_id=$ID" >> "$GITHUB_OUTPUT"
-
-      - name: Checkout release tag
-        uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.tag }}
 
       # AppKit chooses traffic-light metrics from the linked SDK. SDK 15
       # produces smaller buttons centered at y=24 with our inset; SDK 26+
@@ -56,21 +68,20 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
-          cache: npm
+          package-manager-cache: false
 
       - name: Install Rust 1.93
         uses: dtolnay/rust-toolchain@1.93
         with:
           targets: aarch64-apple-darwin
 
-      - name: Rust cache
-        uses: swatinem/rust-cache@v2
-        with:
-          workspaces: './src-tauri -> target'
-          key: macos-arm-fallback
-
       - name: Install frontend dependencies
-        run: npm ci
+        shell: bash
+        run: |
+          if ! npm ci > "$RUNNER_TEMP/echobird-npm.log" 2>&1; then
+            echo "::error::Desktop dependency installation failed. Check the source in the private repository."
+            exit 1
+          fi
 
       - name: Verify Antigravity OAuth build credentials
         env:
@@ -78,20 +89,23 @@ jobs:
           ANTIGRAVITY_OAUTH_CLIENT_SECRET: ${{ secrets.ANTIGRAVITY_OAUTH_CLIENT_SECRET }}
         run: test -n "$ANTIGRAVITY_OAUTH_CLIENT_ID" && test -n "$ANTIGRAVITY_OAUTH_CLIENT_SECRET"
 
-      - name: Read the pinned Tauri CLI
-        id: tauri-cli
-        run: echo "script=$(node -p "require('./package.json').scripts.tauri")" >> "$GITHUB_OUTPUT"
-
       - name: Build ARM app and upload to existing draft
-        uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ inputs.tag }}
           ANTIGRAVITY_OAUTH_CLIENT_ID: ${{ secrets.ANTIGRAVITY_OAUTH_CLIENT_ID }}
           ANTIGRAVITY_OAUTH_CLIENT_SECRET: ${{ secrets.ANTIGRAVITY_OAUTH_CLIENT_SECRET }}
-        with:
-          releaseId: ${{ steps.draft.outputs.release_id }}
-          tauriScript: ${{ steps.tauri-cli.outputs.script }}
-          args: '--target aarch64-apple-darwin --bundles dmg'
+        run: |
+          if ! npm run tauri -- build --target aarch64-apple-darwin --bundles dmg > "$RUNNER_TEMP/echobird-build.log" 2>&1; then
+            echo "::error::Desktop build failed. Check the exact source commit in the private repository."
+            exit 1
+          fi
+          set -euo pipefail
+          test "$(gh release view "$TAG" --repo "$REPO" --json isDraft -q .isDraft)" = true
+          dmg="src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/EchoBird_${TAG#v}_aarch64.dmg"
+          test -s "$dmg"
+          gh release upload "$TAG" "$dmg" --repo "$REPO" --clobber
 
       - name: Verify ARM package upload
         env:

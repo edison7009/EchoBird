@@ -1,7 +1,0 @@
-{
-  "$schema": "../gen/schemas/desktop-schema.json",
-  "identifier": "tray-usage",
-  "description": "Read-only usage list shown beside the system tray",
-  "windows": ["tray-usage"],
-  "permissions": ["core:default"]
-}

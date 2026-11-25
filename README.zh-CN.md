@@ -21,8 +21,7 @@
   <a href="README.md">English README</a>
 </p>
 
-> **说明** —— 本仓库仅为下载渠道与 issue 反馈渠道之一,产品信息、
-> 公告、商业询价请访问 [echobird.ai](https://echobird.ai)。
+本仓库维护 EchoBird 官网、文档、更新日志、下载和问题反馈。桌面端从单独维护的核心源码构建。开发网站时可运行 `npm ci` 和 `npm run website:dev`。
 
 ---
 

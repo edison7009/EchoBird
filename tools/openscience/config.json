@@ -1,6 +1,0 @@
-{
-    "docs": "https://www.openscience.sh/docs",
-    "configFile": "~/.config/openscience/openscience.json",
-    "format": "json",
-    "custom": false
-}

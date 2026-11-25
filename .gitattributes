@@ -35,15 +35,4 @@
 *.woff2 binary
 *.eot   binary
 
-# ── Linguist: this repo is the public thin shell ──
-# Core application logic lives in the private `echobird_core` crate
-# (github.com/edison7009/EchoBird-secret-). Everything in this repo
-# that is not `.rs` is bundled UI / configuration / installer / docs
-# tooling around that core. The language bar should reflect the
-# project's architectural identity (Rust) rather than the byte count
-# of bundled assets, so we mark everything vendored and exempt only
-# `.rs` files.
-
-* linguist-vendored
-*.rs -linguist-vendored
 docs/** linguist-documentation

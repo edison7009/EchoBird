@@ -1,5 +1,0 @@
-{
-    "configFile": "~/.vibe-trading/.env",
-    "format": "env",
-    "custom": true
-}

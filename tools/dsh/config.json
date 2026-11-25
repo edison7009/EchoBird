@@ -1,6 +1,0 @@
-{
-    "docs": "https://deepseek-harness.github.io/deepseek-harness/",
-    "configFile": "~/.dsh/profiles/desktop/cordis.patch.yml",
-    "format": "yaml",
-    "custom": true
-}
