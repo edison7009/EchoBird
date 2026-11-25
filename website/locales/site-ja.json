@@ -13,7 +13,6 @@
   "hero.download": "EchoBird をダウンロード",
   "hero.star": "スターを付ける",
   "hero.history": "2026.01 開始 &nbsp; · &nbsp; 2026.03 Rust で再構築 &nbsp; · &nbsp; 2026.08 スマートルーティング",
-  "hero.source": "うちのアイデアとコードを盗んでみよう（合法的に）",
   "relay.sidrune": "Claude・GPT モデルに接続。登録時に 3 ドルのお試しクレジットを付与。CC Max は公式価格の約 15%、GPT は 1.5% から。",
   "relay.ccvibe": "Claude、GPT などのコーディングモデル向け API",
   "relay.88api": "Claude Opus 5.5、GPT-6.1 Sol など",
