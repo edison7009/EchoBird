@@ -11,7 +11,7 @@
 > students, or open-source contributors — those uses are explicitly
 > welcomed.** It is aimed specifically at well-funded corporate
 > competitors that reproduce EchoBird's documented product format at
-> scale. Forks are welcome — honest attribution is enough.
+> scale. See §11 for fork guidance for previously published source.
 > The hard line is copying multiple UI surfaces side-by-side without
 > documented independent prior work.
 > The later Voice Input workflow, shared account/model access, and
@@ -25,8 +25,8 @@
 > 描述性标签,不主张为商标,只作为 trade dress 的一部分受保护。**本政策
 > 不针对普通用户、个人创作者、独立开发者、学生或开源贡献者 —— 这些用法
 > 明确受欢迎**。本政策针对的是**有资金实力的企业级竞争者**,即在规模化
-> 商业产品中复制 EchoBird 已记录的产品形态。Fork 欢迎 —— 诚实标注上游
-> 即可。硬底线只有一条:**在没有独立留存先创证据的情况下,在同一个产品
+> 商业产品中复制 EchoBird 已记录的产品形态。历史源码的 fork 指引见 §11。
+> 硬底线只有一条:**在没有独立留存先创证据的情况下,在同一个产品
 > 里并列采用多个 EchoBird UI 界面**。
 > 语音输入打通账号与模型接入,以及划词翻译 / 提问的后续扩展,见 §3 的
 > 提交时间、Commit 与功能记录。
@@ -63,21 +63,16 @@ relationships — not in the wordmarks. A theoretical competitor who
 copied our product format under a completely different brand name
 would still infringe Layer A.
 
-### 2. License posture (so the picture is clear)
+### 2. Source licensing and release distribution
 
-EchoBird's public GitHub repository serves as the project's source
-archive — not its distribution or promotion channel. Production
-builds, support, and the product experience are offered through
-[echobird.ai](https://echobird.ai). The public repository's source
-is licensed as follows:
+EchoBird v6.4.9 was the last version with complete public desktop source.
+Desktop development for later versions is private. The public GitHub
+repository is used to build and publish releases.
 
-- **EchoBird v4.x and earlier**: AGPL-3.0-or-later. All v4.x binaries
-  and their corresponding source remain under AGPL-3.0-or-later in
-  perpetuity; this is not retroactively revocable.
-- **EchoBird v5.0.0 and later**: [MIT License](LICENSE). The full
-  source — including the Rust core (`echobird_core`), now merged into
-  this repository — is open. Fork it, study it, ship it. No commercial
-  license is required for any use the MIT License permits.
+- **EchoBird v4.x and earlier** retain the AGPL-3.0-or-later terms
+  under which their binaries and corresponding source were released.
+- **EchoBird v5.0.0 through v6.4.9** retain the [MIT License](LICENSE)
+  for their published desktop source.
 
 The "trade dress" and "brand" protections discussed in this document
 are **not** waived by either license — they govern brand identity
@@ -561,8 +556,8 @@ art with concrete first-use evidence, before any dispute arises.
 
 ### 11. Forks — how to handle naming and UI
 
-If you fork EchoBird and intend to distribute the fork, choose **one
-of two paths**.
+If you distribute a fork of previously published EchoBird desktop
+source, choose **one of two paths**.
 
 **Option A — Keep our identity visible (preferred)**
 
@@ -598,9 +593,9 @@ Trademark questions, permission requests, and infringement reports:
 open an issue at <https://github.com/edison7009/EchoBird/issues>.
 Suggested labels: `trademark`, `trade-dress`.
 
-Commercial licensing inquiries for v5.x (production redistribution,
-hosted-service operation, or substantially overlapping derivative
-product): email `hi@echobird.ai`.
+Commercial licensing inquiries for previously published MIT versions
+(production redistribution, hosted-service operation, or substantially
+overlapping derivative product): email `hi@echobird.ai`.
 
 AGPL §6 source requests for v4.x `echobird_core` (legacy): open an
 issue with the `source-request` label.
@@ -630,17 +625,13 @@ EchoBird 在两个法律层面主张保护,按战略重要性排序:
 **产品形态**,不在文字商标。假设有人完全改名换 Logo 但 1:1 复制我们
 的产品形态,他依然侵犯 A 层。
 
-### 2. 协议态(把图说清楚)
+### 2. 源码许可与版本发布
 
-EchoBird 的公开 GitHub 仓库**只是项目的源码归档** —— 不是分发渠道,
-也不是宣传渠道。生产构建、技术支持、完整产品体验由
-[echobird.ai](https://echobird.ai) 提供。公开仓库源码协议如下:
+EchoBird v6.4.9 是最后一个公开完整桌面端源码的版本。
+后续桌面端采用非公开开发，公开 GitHub 仓库用于构建和发布版本。
 
-- **EchoBird v4.x 及以前版本**:AGPL-3.0-or-later。所有 v4.x 二进制及
-  对应源码**永久**保留在 AGPL-3.0-or-later 协议下;不可溯及撤销。
-- **EchoBird v5.0.0 及以后版本**:[MIT](LICENSE)。完整源码(含 Rust 核心
-  `echobird_core`,现已并入本仓库)全部开放。随便 fork、研读、二次发布。
-  MIT 许可范围内的任何使用都**无需商业许可**。
+- **EchoBird v4.x 及更早版本**的已发布二进制和对应源码沿用 AGPL-3.0-or-later 许可。
+- **EchoBird v5.0.0 至 v6.4.9** 已公开的桌面端源码继续适用 [MIT 许可](LICENSE)。
 
 本文档讨论的「商业外观」与「品牌」保护**不**因任何代码协议而放弃 ——
 它们管理品牌身份与产品形态,超出任何代码协议的范畴。
@@ -1019,7 +1010,7 @@ store」这个产品形态成为行业标准的过程的一部分。**执行精�
 
 ### 11. Fork 时如何处理命名与 UI
 
-若你 fork 本项目并打算分发,**两条路任选其一**。
+若你分发基于 EchoBird 已公开桌面端源码的 fork，**可选择以下任一方案**。
 
 **方案 A —— 保留我们的身份可见(推荐)**
 
@@ -1050,14 +1041,11 @@ store」这个产品形态成为行业标准的过程的一部分。**执行精�
 <https://github.com/edison7009/EchoBird/issues> 提交 issue。
 建议标签:`trademark` / `trade-dress`。
 
-**v5.x** 现以 MIT 开源,任何 MIT 许可范围内的使用均无需商业许可。
-
 **v4.x 历史版本** `echobird_core` 的 AGPL §6 源码请求:提交带
 `source-request` 标签的 issue。
 
 ---
 
-*Last updated / 最后更新: 2026-10-27*
-*This policy is non-binding promotional language; the MIT LICENSE
-file governs current (v5.x) code use, and the NOTICE file is the formal trade-dress
-declaration. This document tells the story behind both.*
+*Last updated / 最后更新: 2026-11-25*
+*This policy is informational. See each published version for its license
+terms and [NOTICE](NOTICE) for the trade dress declaration.*

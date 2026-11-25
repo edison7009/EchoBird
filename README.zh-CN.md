@@ -12,7 +12,7 @@
   </a>
   <img src="https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Windows%20%7C%20macOS%20%7C%20Linux-blue?style=flat-square" alt="平台" />
   <img src="https://img.shields.io/badge/%E6%8A%80%E6%9C%AF-Tauri%20%2B%20Rust-orange?style=flat-square" alt="Tauri + Rust" />
-  <img src="https://img.shields.io/github/license/edison7009/EchoBird?style=flat-square" alt="MIT 许可" />
+  <img src="https://img.shields.io/badge/v5.0.0%E2%80%93v6.4.9-MIT-blue?style=flat-square" alt="v5.0.0 至 v6.4.9 的 MIT 许可" />
 </p>
 
 <p align="center">
@@ -228,23 +228,11 @@ curl -fsSL https://echobird.ai/install.sh | sh
 
 ## 协议与商标
 
-**代码** —— EchoBird **v5.0.0 及以后版本**采用
-[MIT](LICENSE) 协议。完整源码全部开放:随便 fork、研读、二次发布。
-EchoBird **v4.x 及以前版本**永久保留在
-AGPL-3.0-or-later 协议下(已发布的 v4.x 二进制不溯及改约)。署名要求见
-[NOTICE](NOTICE)。
+EchoBird v6.4.9 是最后一个公开完整桌面端源码的版本。v5.0.0 至 v6.4.9
+已公开的源码继续适用 [MIT 许可](LICENSE)，更早版本沿用各自发布时的许可。
+后续桌面端采用非公开开发，本仓库用于构建和发布版本。
 
-**商业外观 + 品牌** —— EchoBird 的主防线是 **UI / UX 商业外观(trade dress)**:
-四个用户面向界面共享同一个中央模型枢纽的具体组合,以及内置两个完整可运行的
-参考应用(黑白棋 + AI 翻译)作为用户教程模板。**EchoBird** 是 edison7009 的
-单一普通法文字商标;_Model Nexus / 模型中心_ 等功能名是描述性标签,**不单独
-主张为商标**,只作为 trade dress 的一部分受保护。**Fork 欢迎 —— 无需抹掉我们
-的名字和 Logo**。如果你的 fork 在 README / About 页面 / 产品页诚实标注 EchoBird
-为上游,可以保留我们的身份可见(例:"EchoBird 社区版 by X");完全重新品牌化
-也可以,改名 + 替换 Logo,但 NOTICE 中保留致谢。硬底线有三条:**未授权的商业
-SaaS / 应用商店产品字面挂 EchoBird**;**把代码当作你从零写的原创发布**;以及
-**在没有独立先创证据的情况下,在一个竞争性产品中并列采用我们四个 UI 界面中的
-三个或以上**(详见 [NOTICE](NOTICE) 阈值)。完整政策见 [TRADEMARKS.md](TRADEMARKS.md)。
+署名和第三方许可见 [NOTICE](NOTICE)，品牌和商标使用见 [商标政策](TRADEMARKS.md)。
 
 ---
 

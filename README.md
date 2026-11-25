@@ -12,7 +12,7 @@
   </a>
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue?style=flat-square" alt="Platform" />
   <img src="https://img.shields.io/badge/built%20with-Tauri%20%2B%20Rust-orange?style=flat-square" alt="Tauri + Rust" />
-  <img src="https://img.shields.io/github/license/edison7009/EchoBird?style=flat-square" alt="MIT License" />
+  <img src="https://img.shields.io/badge/v5.0.0%E2%80%93v6.4.9-MIT-blue?style=flat-square" alt="v5.0.0 to v6.4.9: MIT License" />
 </p>
 
 <p align="center">
@@ -231,29 +231,14 @@ Latest release → <https://github.com/edison7009/EchoBird/releases/latest>
 
 ## License & Trademarks
 
-**Code** — EchoBird **v5.0.0 and later** are licensed under the
-[MIT License](LICENSE). The full source is open — fork it, study it,
-ship it. EchoBird
-**v4.x and earlier** remain under AGPL-3.0-or-later in perpetuity
-(already-released v4.x binaries are not retroactively relicensed).
-See [NOTICE](NOTICE) for attribution.
+EchoBird v6.4.9 was the last version with complete public desktop source.
+Published desktop source from v5.0.0 through v6.4.9 remains under the
+[MIT License](LICENSE). Earlier releases retain their original licenses.
+Desktop development for later versions is private. This repository is used
+to build and publish releases.
 
-**Trade dress + brand** — EchoBird's primary protection is its **UI / UX trade
-dress**: the specific combination of four user-facing surfaces sharing one
-central model hub, plus the bundling of two complete reference applications
-(Reversi + AI Translator) as user tutorial templates. The wordmark **EchoBird**
-is a common-law trademark of edison7009; feature labels like _Model Nexus_ /
-_模型中心_ are descriptive and protected only as part of the trade dress.
-**Forks are welcome — no need to scrub our name and logo.** If your fork
-honestly credits EchoBird as upstream, you may keep our identity visible
-(e.g. "EchoBird Community Edition by X"). If you prefer to rebrand entirely,
-that's also fine — just keep the NOTICE attribution. The hard lines are:
-**commercial SaaS / app-store products literally branded "EchoBird"**
-without permission; **presenting the code as your own from-scratch original
-work**; and **adopting three or more of our four UI surfaces side-by-side in
-a competing product without independent prior-work documentation** (see
-[NOTICE](NOTICE) for the formal threshold). See [TRADEMARKS.md](TRADEMARKS.md)
-for the full policy.
+See [NOTICE](NOTICE) for attribution and third-party licenses and
+[TRADEMARKS.md](TRADEMARKS.md) for brand and trademark use.
 
 ---
 
