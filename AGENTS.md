@@ -211,6 +211,9 @@ clippy/test, not optional.
   For each fix, record its commit on main, including the resulting commit if
   cherry-picked or rebased. Surface any intended fix that cannot be included
   before publishing.
+- For a pre-release build check, manually run the public Release workflow
+  with `check_only=true` and the expected version of private `main`. It builds
+  and validates installers without creating tags, drafts, or public assets.
 - Check in the private repository that every desktop change is an ancestor
   of the exact source tag with `git merge-base --is-ancestor <commit> <tag>`.
   Push that tag before creating the matching public release tag. Confirm

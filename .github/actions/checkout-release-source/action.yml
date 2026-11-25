@@ -2,7 +2,7 @@ name: Checkout EchoBird release source
 description: Fetch and verify the desktop source for a public release
 inputs:
   tag:
-    description: Public release tag
+    description: Expected version tag
     required: true
   deploy-key:
     description: Read-only private repository SSH key
@@ -10,6 +10,9 @@ inputs:
   commit:
     description: Source commit already resolved by the release job
     required: false
+  check-only:
+    description: Resolve the current private main commit without a release tag
+    default: 'false'
 outputs:
   commit:
     description: Exact desktop source commit
@@ -31,6 +34,7 @@ runs:
         fi
 
     - name: Checkout the public release tag
+      if: inputs.check-only != 'true'
       uses: actions/checkout@v6
       with:
         ref: refs/tags/${{ inputs.tag }}
@@ -38,6 +42,7 @@ runs:
         persist-credentials: false
 
     - name: Identify historical public source tags
+      if: inputs.check-only != 'true'
       id: historical
       shell: bash
       working-directory: ${{ github.workspace }}
@@ -51,7 +56,7 @@ runs:
       uses: actions/checkout@v6
       with:
         repository: edison7009/EchoBird-secret-
-        ref: ${{ inputs.commit || format('refs/tags/{0}', inputs.tag) }}
+        ref: ${{ inputs.commit || (inputs.check-only == 'true' && 'refs/heads/main') || format('refs/tags/{0}', inputs.tag) }}
         path: release-source
         ssh-key: ${{ inputs.deploy-key }}
         persist-credentials: false

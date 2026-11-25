@@ -1,4 +1,5 @@
 name: Release
+run-name: ${{ inputs.check_only && format('Build check {0}', inputs.tag) || format('Release {0}', inputs.tag || github.ref_name) }}
 
 on:
   push:
@@ -7,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing unpublished release tag to build
+        description: Release tag, or the expected private main version for a build check
         required: true
         type: string
       platforms:
@@ -15,6 +16,10 @@ on:
         type: choice
         options: [all, macos-arm]
         default: all
+      check_only:
+        description: Build and validate installers without creating or uploading a release
+        type: boolean
+        default: false
 
 # Opt into Node.js 24 runner for all JavaScript-based actions before the
 # 2026-06-02 forced switch (mirrors the same opt-in in ci.yml).
@@ -49,8 +54,10 @@ jobs:
         with:
           tag: ${{ inputs.tag || github.ref_name }}
           deploy-key: ${{ secrets.ECHOBIRD_CORE_DEPLOY_KEY }}
+          check-only: ${{ inputs.check_only && 'true' || 'false' }}
 
       - name: Create (or reuse) the draft release
+        if: ${{ !inputs.check_only }}
         id: create
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -129,6 +136,7 @@ jobs:
           tag: ${{ inputs.tag || github.ref_name }}
           deploy-key: ${{ secrets.ECHOBIRD_CORE_DEPLOY_KEY }}
           commit: ${{ needs.create-release.outputs.source_commit }}
+          check-only: ${{ inputs.check_only && 'true' || 'false' }}
 
       # AppKit chooses traffic-light metrics from the linked SDK. SDK 15
       # produces smaller buttons centered at y=24 with our inset; SDK 26+
@@ -217,17 +225,26 @@ jobs:
           test -n "$SDK_VERSION"
           test "${SDK_VERSION%%.*}" -ge 26
 
-      - name: Upload verified installers to the draft
+      - name: Set up Python for installer validation
+        if: inputs.platforms != 'macos-arm' || matrix.rust-target == 'aarch64-apple-darwin'
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Validate installers and upload for a release
         if: inputs.platforms != 'macos-arm' || matrix.rust-target == 'aarch64-apple-darwin'
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CHECK_ONLY: ${{ inputs.check_only && 'true' || 'false' }}
+          GH_TOKEN: ${{ !inputs.check_only && secrets.GITHUB_TOKEN || '' }}
           REPO: ${{ github.repository }}
           TAG: ${{ inputs.tag || github.ref_name }}
           RUST_TARGET: ${{ matrix.rust-target }}
         run: |
           set -euo pipefail
-          test "$(gh release view "$TAG" --repo "$REPO" --json isDraft -q .isDraft)" = true
+          if [[ "$CHECK_ONLY" != true ]]; then
+            test "$(gh release view "$TAG" --repo "$REPO" --json isDraft -q .isDraft)" = true
+          fi
           python - <<'PYUPLOAD'
           from pathlib import Path
           import os, shutil, subprocess, time, hashlib
@@ -252,6 +269,8 @@ jobs:
               upload = out / f'EchoBird_{version}_{suffix}'
               shutil.copy2(package, upload)
               print(upload.name, upload.stat().st_size, hashlib.sha256(upload.read_bytes()).hexdigest(), flush=True)
+              if os.environ['CHECK_ONLY'] == 'true':
+                  continue
               for attempt in range(3):
                   result = subprocess.run(['gh', 'release', 'upload', os.environ['TAG'],
                       '--repo', os.environ['REPO'], str(upload), '--clobber'])
@@ -265,6 +284,7 @@ jobs:
     # release counter, version-less updater bundle). Rename every asset on the
     # release in place via the GitHub API — non-destructive, no re-upload.
     needs: release
+    if: ${{ !inputs.check_only }}
     runs-on: ubuntu-24.04
     permissions:
       contents: write
