@@ -235,11 +235,24 @@ details p {
 footer {
   display: flex;
   justify-content: space-between;
-  gap: 20px;
+  flex-wrap: wrap;
+  gap: 12px 20px;
   margin: 0 5%;
   padding: 30px 0;
   font-size: 12px;
   color: #99998f;
+}
+.footer-legal {
+  flex-basis: 100%;
+  line-height: 1.6;
+}
+.footer-legal p {
+  max-inline-size: 88ch;
+  margin: 0 0 4px;
+}
+.footer-legal a {
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
 }
 .switcher {
   position: fixed;
@@ -503,7 +516,6 @@ footer {
   }
   footer {
     padding-bottom: 80px;
-    flex-wrap: wrap;
   }
   .intro {
     font-size: 15px;

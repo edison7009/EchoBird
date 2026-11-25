@@ -36,6 +36,8 @@
   "download.baidu": "Baidu Drive",
   "download.quark": "Quark Drive",
   "download.123": "123pan",
+  "footer.licenseNotice": "v6.4.9 は、デスクトップ版の全ソースコードが公開された最後のバージョンです。v5.0.0 から v6.4.9 までの公開済みコードには引き続き MIT ライセンスが適用され、それ以前のバージョンには公開時のライセンスが適用されます。以降は非公開で開発し、GitHub の公開リポジトリはビルドとリリースに使用します。",
+  "footer.licensePolicy": "ライセンスと商標",
   "footer.privacy": "プライバシーポリシー",
   "aria.language": "言語を選択",
   "aria.sections": "ページ内ナビゲーション",

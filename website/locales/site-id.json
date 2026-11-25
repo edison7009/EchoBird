@@ -36,6 +36,8 @@
   "download.baidu": "Baidu Drive",
   "download.quark": "Quark Drive",
   "download.123": "123pan",
+  "footer.licenseNotice": "v6.4.9 adalah versi terakhir yang kode sumber lengkap aplikasi desktopnya dipublikasikan. Kode sumber yang dipublikasikan dari v5.0.0 hingga v6.4.9 tetap menggunakan lisensi MIT. Versi sebelumnya tetap mengikuti lisensi awal masing-masing. Versi berikutnya dikembangkan secara privat. Repositori publik GitHub digunakan untuk membangun dan merilis versi.",
+  "footer.licensePolicy": "Lisensi dan merek dagang",
   "footer.privacy": "Kebijakan privasi",
   "aria.language": "Pilih bahasa",
   "aria.sections": "Navigasi halaman",

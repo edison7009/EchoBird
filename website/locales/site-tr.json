@@ -36,6 +36,8 @@
   "download.baidu": "Baidu Drive",
   "download.quark": "Quark Drive",
   "download.123": "123pan",
+  "footer.licenseNotice": "v6.4.9, masaüstü uygulamasının kaynak kodunun tamamının yayımlandığı son sürümdür. v5.0.0 ile v6.4.9 arasında yayımlanan kaynak kodu MIT lisansı altında kalır. Daha eski sürümler özgün lisanslarını korur. Sonraki sürümler kapalı olarak geliştirilir. Herkese açık GitHub deposu, sürümleri derlemek ve yayımlamak için kullanılır.",
+  "footer.licensePolicy": "Lisanslar ve ticari markalar",
   "footer.privacy": "Gizlilik politikası",
   "aria.language": "Dil seç",
   "aria.sections": "Sayfa gezintisi",

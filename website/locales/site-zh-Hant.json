@@ -36,6 +36,8 @@
   "download.baidu": "百度網盤",
   "download.quark": "夸克網盤",
   "download.123": "123 雲盤",
+  "footer.licenseNotice": "v6.4.9 是最後一個公開完整桌面版原始碼的版本。v5.0.0 至 v6.4.9 已公開的原始碼繼續適用 MIT 授權，更早版本沿用原授權。後續桌面版採非公開開發，GitHub 公開儲存庫用於建置與發布版本。",
+  "footer.licensePolicy": "授權與商標",
   "footer.privacy": "隱私政策",
   "aria.language": "選擇語言",
   "aria.sections": "頁面導覽",
