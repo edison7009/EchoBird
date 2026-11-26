@@ -89,40 +89,21 @@ jobs:
           ANTIGRAVITY_OAUTH_CLIENT_SECRET: ${{ secrets.ANTIGRAVITY_OAUTH_CLIENT_SECRET }}
         run: test -n "$ANTIGRAVITY_OAUTH_CLIENT_ID" && test -n "$ANTIGRAVITY_OAUTH_CLIENT_SECRET"
 
-      - name: Build ARM app and upload to existing draft
+      - name: Package ARM release and upload to existing draft
+        uses: ./.github/actions/macos-release
+        with:
+          target: aarch64-apple-darwin
+          tag: ${{ inputs.tag }}
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-          TAG: ${{ inputs.tag }}
           ANTIGRAVITY_OAUTH_CLIENT_ID: ${{ secrets.ANTIGRAVITY_OAUTH_CLIENT_ID }}
           ANTIGRAVITY_OAUTH_CLIENT_SECRET: ${{ secrets.ANTIGRAVITY_OAUTH_CLIENT_SECRET }}
-        run: |
-          if ! npm run tauri -- build --target aarch64-apple-darwin --bundles dmg > "$RUNNER_TEMP/echobird-build.log" 2>&1; then
-            echo "::error::Desktop build failed. Check the exact source commit in the private repository."
-            exit 1
-          fi
-          set -euo pipefail
-          test "$(gh release view "$TAG" --repo "$REPO" --json isDraft -q .isDraft)" = true
-          dmg="src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/EchoBird_${TAG#v}_aarch64.dmg"
-          test -s "$dmg"
-          gh release upload "$TAG" "$dmg" --repo "$REPO" --clobber
-
-      - name: Verify ARM package upload
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-          TAG: ${{ inputs.tag }}
-        run: |
-          set -euo pipefail
-          NAME="EchoBird_$(node -p "require('./package.json').version")_aarch64.dmg"
-          URL="$(gh release view "$TAG" --repo "$REPO" --json assets --jq ".assets[] | select(.name == \"$NAME\") | .browser_download_url")"
-          test -n "$URL"
-          TMP="$(mktemp -d)"
-          curl --fail --location --output "$TMP/EchoBird.dmg" "$URL"
-          hdiutil attach -readonly -nobrowse -mountpoint "$TMP/mount" "$TMP/EchoBird.dmg"
-          trap 'hdiutil detach "$TMP/mount" >/dev/null 2>&1 || true; rm -rf "$TMP"' EXIT
-          APP="$TMP/mount/EchoBird.app"
-          test "$(/usr/bin/lipo -archs "$APP/Contents/MacOS/echobird")" = arm64
-          SDK_VERSION="$(xcrun vtool -show-build "$APP/Contents/MacOS/echobird" | awk '$1 == "sdk" { print $2; exit }')"
-          test -n "$SDK_VERSION"
-          test "${SDK_VERSION%%.*}" -ge 26
+          ECHOBIRD_MACOS_SIGNED: ${{ vars.ECHOBIRD_MACOS_SIGNED == 'true' }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+          ECHOBIRD_UPDATER_PUBLIC_KEY: ${{ vars.ECHOBIRD_UPDATER_PUBLIC_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}

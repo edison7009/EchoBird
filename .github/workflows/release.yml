@@ -102,11 +102,9 @@ jobs:
           # Intel fallback on this image too; SDK 15 changes these metrics.
           - platform: 'macos-26'
             rust-target: 'aarch64-apple-darwin'
-            args: '--target aarch64-apple-darwin --bundles dmg'
 
           - platform: 'macos-26-intel'
             rust-target: 'x86_64-apple-darwin'
-            args: '--target x86_64-apple-darwin --bundles dmg'
 
           # Linux: deb + rpm only. AppImage bundles full webkit/gtk runtime
           # (~80MB each); deb/rpm rely on system webkit2gtk (~11MB each).
@@ -192,7 +190,7 @@ jobs:
         run: test -n "$ANTIGRAVITY_OAUTH_CLIENT_ID" && test -n "$ANTIGRAVITY_OAUTH_CLIENT_SECRET"
 
       - name: Build the app
-        if: inputs.platforms != 'macos-arm' || matrix.rust-target == 'aarch64-apple-darwin'
+        if: runner.os != 'macOS' && inputs.platforms != 'macos-arm'
         shell: bash
         env:
           ANTIGRAVITY_OAUTH_CLIENT_ID: ${{ secrets.ANTIGRAVITY_OAUTH_CLIENT_ID }}
@@ -203,36 +201,37 @@ jobs:
             exit 1
           fi
 
-      - name: Verify packaged macOS SDK
+      # macOS: build, sign + notarize when ECHOBIRD_MACOS_SIGNED is true,
+      # lay out the drag-to-install DMG, verify and upload (see the action).
+      - name: Package macOS release
         if: runner.os == 'macOS' && (inputs.platforms != 'macos-arm' || matrix.rust-target == 'aarch64-apple-darwin')
+        uses: ./.github/actions/macos-release
+        with:
+          target: ${{ matrix.rust-target }}
+          tag: ${{ inputs.tag || github.ref_name }}
+          upload: ${{ inputs.check_only && 'false' || 'true' }}
         env:
-          RUST_TARGET: ${{ matrix.rust-target }}
-        run: |
-          set -euo pipefail
-          VERSION="${{ inputs.tag || github.ref_name }}"
-          VERSION="${VERSION#v}"
-          if [[ "$RUST_TARGET" = aarch64-* ]]; then DMG_ARCH=aarch64; else DMG_ARCH=x64; fi
-          DMG=$(find src-tauri/target -name "EchoBird_${VERSION}_${DMG_ARCH}.dmg" -type f | head -1)
-          test -n "$DMG"
-          MOUNT="$RUNNER_TEMP/echobird-sdk-check"
-          mkdir -p "$MOUNT"
-          hdiutil attach "$DMG" -readonly -nobrowse -mountpoint "$MOUNT"
-          trap 'hdiutil detach "$MOUNT" -quiet' EXIT
-          APP="$MOUNT/EchoBird.app"
-          ARCH=$(lipo -archs "$APP/Contents/MacOS/echobird")
-          if [[ "$RUST_TARGET" = aarch64-* ]]; then test "$ARCH" = arm64; else test "$ARCH" = x86_64; fi
-          SDK_VERSION="$(xcrun vtool -show-build "$APP/Contents/MacOS/echobird" | awk '$1 == "sdk" { print $2; exit }')"
-          test -n "$SDK_VERSION"
-          test "${SDK_VERSION%%.*}" -ge 26
+          ANTIGRAVITY_OAUTH_CLIENT_ID: ${{ secrets.ANTIGRAVITY_OAUTH_CLIENT_ID }}
+          ANTIGRAVITY_OAUTH_CLIENT_SECRET: ${{ secrets.ANTIGRAVITY_OAUTH_CLIENT_SECRET }}
+          ECHOBIRD_MACOS_SIGNED: ${{ vars.ECHOBIRD_MACOS_SIGNED == 'true' }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+          ECHOBIRD_UPDATER_PUBLIC_KEY: ${{ vars.ECHOBIRD_UPDATER_PUBLIC_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
       - name: Set up Python for installer validation
-        if: inputs.platforms != 'macos-arm' || matrix.rust-target == 'aarch64-apple-darwin'
+        if: runner.os != 'macOS' && inputs.platforms != 'macos-arm'
         uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
       - name: Validate installers and upload for a release
-        if: inputs.platforms != 'macos-arm' || matrix.rust-target == 'aarch64-apple-darwin'
+        if: runner.os != 'macOS' && inputs.platforms != 'macos-arm'
         shell: bash
         env:
           CHECK_ONLY: ${{ inputs.check_only && 'true' || 'false' }}
@@ -253,8 +252,6 @@ jobs:
           arch = 'arm64' if target.startswith('aarch64') else 'x64'
           if 'windows' in target:
               formats = {'exe': f'Windows_{arch}-setup.exe', 'msi': f'Windows_{arch}.msi'}
-          elif 'darwin' in target:
-              formats = {'dmg': f'macOS_{arch}.dmg'}
           else:
               formats = {'deb': f'Linux_{arch}.deb', 'rpm': f'Linux_{arch}.rpm'}
           bundle = Path('src-tauri/target') / target / 'release/bundle'

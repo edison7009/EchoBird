@@ -1,0 +1,46 @@
+name: Package and upload EchoBird for macOS
+description: Build and verify a Finder installer and, for signed builds, a native update
+inputs:
+  target:
+    description: Rust macOS target
+    required: true
+  tag:
+    description: Existing draft release tag
+    required: true
+  upload:
+    description: Upload to the draft (false for check-only runs)
+    default: 'true'
+runs:
+  using: composite
+  steps:
+    - name: Package and verify macOS distribution
+      shell: bash
+      working-directory: release-source
+      env:
+        RUST_TARGET: ${{ inputs.target }}
+        TAG: ${{ inputs.tag }}
+      run: |
+        set -euo pipefail
+        DEST=$(mktemp -d "$RUNNER_TEMP/echobird-macos.XXXXXX")
+        echo "ECHOBIRD_MACOS_ASSET_DIR=$DEST" >> "$GITHUB_ENV"
+        bash "$GITHUB_ACTION_PATH/build.sh" "$RUST_TARGET" "$TAG" "$DEST"
+
+    - name: Upload verified macOS assets to the draft
+      if: inputs.upload == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TAG: ${{ inputs.tag }}
+      run: |
+        set -euo pipefail
+        trap 'rm -rf "$ECHOBIRD_MACOS_ASSET_DIR"' EXIT
+        test "$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft -q .isDraft)" = true
+        for asset in "$ECHOBIRD_MACOS_ASSET_DIR"/*; do
+          for attempt in 1 2 3; do
+            if gh release upload "$TAG" "$asset" --repo "$GITHUB_REPOSITORY" --clobber; then
+              break
+            fi
+            test "$attempt" -lt 3
+            sleep 10
+          done
+        done
