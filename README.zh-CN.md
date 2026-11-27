@@ -228,7 +228,7 @@ curl -fsSL https://echobird.ai/install.sh | sh
 
 ## 产品发展
 
-随着产品战略与发展规划的调整，EchoBird 的部分非核心功能将逐步拆分，作为独立产品开发与运营。
+随着产品战略与发展规划的调整，现有产品的部分非核心功能将逐步拆分，作为独立产品开发与运营。
 
 用户反馈渠道将继续开放，欢迎通过 [GitHub Issues](https://github.com/edison7009/EchoBird/issues) 提交问题与建议。
 

@@ -231,8 +231,9 @@ Latest release → <https://github.com/edison7009/EchoBird/releases/latest>
 
 ## Product Direction
 
-As our product strategy and roadmap evolve, we will gradually spin out some of
-EchoBird's non-core features and develop and operate them as standalone products.
+As our product strategy and roadmap evolve, we will gradually spin out some
+non-core features from our existing products and develop and operate them as
+standalone products.
 
 Bug reports and suggestions are still welcome via
 [GitHub Issues](https://github.com/edison7009/EchoBird/issues).
