@@ -13,27 +13,26 @@ for (const [platform, filename] of [
   ['macos-arm', 'EchoBird_6.0.2_macOS_arm64.dmg'],
   ['linux-deb', 'EchoBird_6.0.2_Linux_x64.deb'],
 ]) {
-  test(`${platform} streams the published installer as an attachment`, async () => {
+  test(`${platform} redirects to the published GitHub installer`, async () => {
+    const github = `https://github.com/edison7009/EchoBird/releases/download/v6.0.2/${filename}`;
     const upstream = mock.method(globalThis, 'fetch', async (url, options) => {
-      assert.equal(
-        url,
-        `https://github.com/edison7009/EchoBird/releases/download/v6.0.2/${filename}`
-      );
-      assert.equal(options.method, 'GET');
-      return new Response('installer bytes', { headers: { 'Content-Length': '15' } });
+      assert.equal(url, github);
+      assert.equal(options.method, 'HEAD');
+      assert.equal(options.redirect, 'manual');
+      return new Response(null, { status: 302 });
     });
     const env = createEnv();
     const response = await worker.fetch(
       new Request(`https://echobird.ai/download/${platform}`),
       env
     );
-    assert.equal(response.status, 200);
-    assert.equal(response.headers.get('Content-Disposition'), `attachment; filename="${filename}"`);
-    assert.equal(response.headers.get('Content-Type'), 'application/octet-stream');
-    assert.equal(response.headers.get('Content-Length'), '15');
+    assert.equal(response.status, 302);
+    assert.equal(response.headers.get('Location'), github);
     assert.equal(response.headers.get('Cache-Control'), 'no-store');
-    assert.equal(response.headers.get('Location'), null);
-    assert.equal(await response.text(), 'installer bytes');
+    assert.equal(response.headers.get('X-EchoBird-Source'), 'github');
+    assert.equal(response.headers.get('X-EchoBird-Version'), '6.0.2');
+    assert.equal(response.headers.get('Content-Disposition'), null);
+    assert.equal(await response.text(), '');
     assert.equal(upstream.mock.callCount(), 1);
     const manifestRequest = env.ASSETS.fetch.mock.calls[0].arguments[0];
     assert.equal(manifestRequest.url, 'https://echobird.ai/api/version/index.json');
@@ -47,17 +46,14 @@ test('the download follows the published version manifest', async () => {
       url,
       'https://github.com/edison7009/EchoBird/releases/download/v6.1.3/EchoBird_6.1.3_Windows_x64-setup.exe'
     );
-    return new Response('new installer');
+    return new Response(null, { status: 302 });
   });
   const response = await worker.fetch(
     new Request('https://echobird.ai/download/windows'),
     createEnv(() => Response.json({ version: '6.1.3' }))
   );
-  assert.equal(response.status, 200);
-  assert.equal(
-    response.headers.get('Content-Disposition'),
-    'attachment; filename="EchoBird_6.1.3_Windows_x64-setup.exe"'
-  );
+  assert.equal(response.status, 302);
+  assert.match(response.headers.get('Location'), /EchoBird_6\.1\.3_Windows_x64-setup\.exe$/);
 });
 
 test('mainland requests redirect to the current CNB mirror asset', async () => {
@@ -132,10 +128,10 @@ test('EdgeOne visitor country routes mainland requests to the mirror', async () 
   assert.equal(response.headers.get('X-EchoBird-Source'), 'cnb');
 });
 
-test('EdgeOne visitor country outside the mainland streams from GitHub', async () => {
+test('EdgeOne visitor country outside the mainland redirects to GitHub', async () => {
   mock.method(globalThis, 'fetch', async (url) => {
     assert.match(String(url), /^https:\/\/github\.com\/edison7009\/EchoBird\/releases\/download\//);
-    return new Response('installer');
+    return new Response(null, { status: 302 });
   });
   const request = new Request('https://echobird.ai/download/windows', {
     headers: { 'EO-Client-IPCountry': 'US' },
@@ -145,8 +141,8 @@ test('EdgeOne visitor country outside the mainland streams from GitHub', async (
     request,
     createEnv(() => Response.json({ version: '6.2.0' }))
   );
-  assert.equal(response.status, 200);
-  assert.equal(await response.text(), 'installer');
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.get('X-EchoBird-Source'), 'github');
 });
 
 test('source=github bypasses domestic mirrors', async () => {
@@ -155,28 +151,28 @@ test('source=github bypasses domestic mirrors', async () => {
       String(url),
       'https://github.com/edison7009/EchoBird/releases/download/v6.2.0/EchoBird_6.2.0_Windows_x64-setup.exe'
     );
-    return new Response('installer');
+    return new Response(null, { status: 302 });
   });
   const request = new Request('https://echobird.ai/download/windows?source=github');
   const response = await worker.fetch(
     request,
     createEnv(() => Response.json({ version: '6.2.0' }))
   );
-  assert.equal(response.status, 200);
-  assert.equal(await response.text(), 'installer');
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.get('X-EchoBird-Source'), 'github');
 });
 
-test('HEAD checks the installer without transferring its body', async () => {
+test('HEAD redirects without transferring an installer body', async () => {
   mock.method(globalThis, 'fetch', async (_url, options) => {
     assert.equal(options.method, 'HEAD');
-    return new Response(null, { headers: { 'Content-Length': '20791723' } });
+    return new Response(null, { status: 302 });
   });
   const response = await worker.fetch(
     new Request('https://echobird.ai/download/windows', { method: 'HEAD' }),
     createEnv()
   );
-  assert.equal(response.status, 200);
-  assert.equal(response.headers.get('Content-Length'), '20791723');
+  assert.equal(response.status, 302);
+  assert.match(response.headers.get('Location'), /^https:\/\/github\.com\//);
   assert.equal(await response.text(), '');
 });
 

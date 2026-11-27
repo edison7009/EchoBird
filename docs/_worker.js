@@ -137,24 +137,29 @@ export default {
           });
         }
       }
-      const response = await fetch(
-        `https://github.com/edison7009/EchoBird/releases/download/v${version}/${filename}`,
-        { method: request.method, headers: { 'User-Agent': 'EchoBird-Download' } }
-      );
-      if (!response.ok) {
+      // Redirect instead of streaming so installer bytes never pass through the
+      // CDN in front of echobird.ai. Check the asset first so a missing release
+      // still returns an error rather than sending the visitor to a GitHub 404.
+      const github = `https://github.com/edison7009/EchoBird/releases/download/v${version}/${filename}`;
+      const check = await fetch(github, {
+        method: 'HEAD',
+        redirect: 'manual',
+        headers: { 'User-Agent': 'EchoBird-Download' },
+      });
+      if (check.status >= 400) {
         return new Response('Installer unavailable. Please try again later.', {
-          status: response.status,
+          status: check.status,
         });
       }
-
-      const headers = new Headers({
-        'Content-Type': 'application/octet-stream',
-        'Content-Disposition': `attachment; filename="${filename}"`,
-        'Cache-Control': 'no-store',
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location: github,
+          'Cache-Control': 'no-store',
+          'X-EchoBird-Version': version,
+          'X-EchoBird-Source': 'github',
+        },
       });
-      const length = response.headers.get('Content-Length');
-      if (length) headers.set('Content-Length', length);
-      return new Response(request.method === 'HEAD' ? null : response.body, { headers });
     } catch {
       return new Response('Download temporarily unavailable. Please try again later.', {
         status: 503,
