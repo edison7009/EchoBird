@@ -74,6 +74,15 @@ function newerVersion(left, right) {
   return left;
 }
 
+// echobird.ai is fronted by Tencent EdgeOne, so Cloudflare sees the EdgeOne node
+// rather than the visitor. EdgeOne forwards the visitor's country when the
+// client IP geolocation origin header is enabled; fall back to Cloudflare's
+// value for requests that reach Pages directly.
+function visitorCountry(request) {
+  const edgeOne = request.headers.get('EO-Client-IPCountry');
+  return (edgeOne || request.cf?.country || '').trim().toUpperCase();
+}
+
 async function latestVersion(env, includeMirrors) {
   const officialPromise = env.ASSETS.fetch(
     new Request('https://echobird.ai/api/version/index.json')
@@ -104,15 +113,13 @@ export default {
 
     try {
       const source = url.searchParams.get('source');
-      const wantsMirrors = source === 'cnb' || source === 'gitcode' || request.cf?.country === 'CN';
+      const mainland = visitorCountry(request) === 'CN';
+      const wantsMirrors = source === 'cnb' || source === 'gitcode' || mainland;
       const version = await latestVersion(env, wantsMirrors);
       if (!version) throw new Error('Version missing');
 
       const filename = `EchoBird_${version}_${installer}`;
-      if (
-        source !== 'github' &&
-        (source === 'cnb' || source === 'gitcode' || request.cf?.country === 'CN')
-      ) {
+      if (source !== 'github' && wantsMirrors) {
         const mirror = await findMirror(
           { version, name: filename },
           source === 'cnb' || source === 'gitcode' ? source : ''

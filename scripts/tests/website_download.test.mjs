@@ -109,6 +109,46 @@ test('mainland requests use a mirror version newer than the website manifest', a
   assert.match(response.headers.get('Location'), /EchoBird_6\.2\.0_Windows_x64-setup\.exe$/);
 });
 
+test('EdgeOne visitor country routes mainland requests to the mirror', async () => {
+  mock.method(globalThis, 'fetch', async (url) => {
+    if (String(url).includes('cnb.cool')) {
+      return Response.json({
+        version: '6.2.0',
+        files: { 'EchoBird_6.2.0_Windows_x64-setup.exe': { size: 12, sha256: 'x' } },
+      });
+    }
+    throw new Error(`unexpected fetch ${url}`);
+  });
+  const request = new Request('https://echobird.ai/download/windows', {
+    headers: { 'EO-Client-IPCountry': 'cn' },
+  });
+  // Cloudflare only sees the EdgeOne node, which sits outside the mainland.
+  Object.defineProperty(request, 'cf', { value: { country: 'SG' } });
+  const response = await worker.fetch(
+    request,
+    createEnv(() => Response.json({ version: '6.2.0' }))
+  );
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.get('X-EchoBird-Source'), 'cnb');
+});
+
+test('EdgeOne visitor country outside the mainland streams from GitHub', async () => {
+  mock.method(globalThis, 'fetch', async (url) => {
+    assert.match(String(url), /^https:\/\/github\.com\/edison7009\/EchoBird\/releases\/download\//);
+    return new Response('installer');
+  });
+  const request = new Request('https://echobird.ai/download/windows', {
+    headers: { 'EO-Client-IPCountry': 'US' },
+  });
+  Object.defineProperty(request, 'cf', { value: { country: 'CN' } });
+  const response = await worker.fetch(
+    request,
+    createEnv(() => Response.json({ version: '6.2.0' }))
+  );
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), 'installer');
+});
+
 test('source=github bypasses domestic mirrors', async () => {
   mock.method(globalThis, 'fetch', async (url) => {
     assert.equal(
