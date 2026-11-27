@@ -18,7 +18,8 @@
 <p align="center">
   <a href="https://echobird.ai">Website</a> ·
   <a href="https://github.com/edison7009/EchoBird/releases/latest">Download</a> ·
-  <a href="README.zh-CN.md">中文 README</a>
+  <a href="README.zh-CN.md">中文 README</a> ·
+  <a href="README.tr.md">Türkçe</a>
 </p>
 
 This repository hosts the EchoBird website, documentation, changelogs, downloads, and issue tracker.
@@ -241,5 +242,5 @@ Thank you for your continued support and understanding.
 
 <p align="center">
   Made with 💚 by EchoBird Team<br>
-  <sub>⭐ <a href="https://github.com/edison7009/EchoBird">Star on GitHub</a> · <a href="README.zh-CN.md">中文文档</a></sub>
+  <sub>⭐ <a href="https://github.com/edison7009/EchoBird">Star on GitHub</a> · <a href="README.zh-CN.md">中文文档</a> · <a href="README.tr.md">Türkçe</a></sub>
 </p>

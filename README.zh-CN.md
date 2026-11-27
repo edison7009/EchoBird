@@ -18,7 +18,8 @@
 <p align="center">
   <a href="https://echobird.ai">官网</a> ·
   <a href="https://github.com/edison7009/EchoBird/releases/latest">下载</a> ·
-  <a href="README.md">English README</a>
+  <a href="README.md">English README</a> ·
+  <a href="README.tr.md">Türkçe</a>
 </p>
 
 本仓库维护 EchoBird 官网、文档、更新日志、下载和问题反馈。
