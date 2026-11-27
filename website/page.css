@@ -242,18 +242,6 @@ footer {
   font-size: 12px;
   color: #99998f;
 }
-.footer-legal {
-  flex-basis: 100%;
-  line-height: 1.6;
-}
-.footer-legal p {
-  max-inline-size: 88ch;
-  margin: 0 0 4px;
-}
-.footer-legal a {
-  text-decoration: underline;
-  text-underline-offset: 0.16em;
-}
 .switcher {
   position: fixed;
   bottom: 18px;

@@ -36,8 +36,6 @@
   "download.baidu": "Baidu Drive",
   "download.quark": "Quark Drive",
   "download.123": "123pan",
-  "footer.licenseNotice": "La v6.4.9 est la dernière version dont le code source complet de l’application de bureau a été publié. Le code publié de la v5.0.0 à la v6.4.9 reste sous licence MIT. Les versions antérieures conservent leurs licences d’origine. Les versions suivantes sont développées en privé. Le dépôt public GitHub sert à compiler et à publier les versions.",
-  "footer.licensePolicy": "Licences et marques",
   "footer.privacy": "Politique de confidentialité",
   "aria.language": "Choisir la langue",
   "aria.sections": "Navigation de la page",

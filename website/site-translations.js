@@ -58,9 +58,6 @@ export const homeEnglish = {
   'download.baidu': 'Baidu Drive',
   'download.quark': 'Quark Drive',
   'download.123': '123pan',
-  'footer.licenseNotice':
-    'v6.4.9 was the last version with complete public desktop source. Published source from v5.0.0 through v6.4.9 remains under MIT, and earlier releases retain their original licenses. Later desktop versions are developed privately. The public GitHub repository is used to build and publish releases.',
-  'footer.licensePolicy': 'License and trademarks',
   'footer.privacy': 'Privacy policy',
   'aria.language': 'Choose language',
   'aria.sections': 'Page navigation',
