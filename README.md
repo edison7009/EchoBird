@@ -229,22 +229,15 @@ Latest release → <https://github.com/edison7009/EchoBird/releases/latest>
 | Linux x64 · Fedora/RHEL     | `EchoBird_<ver>_Linux_x64.rpm`         |
 | Linux arm64 · Fedora/RHEL   | `EchoBird_<ver>_Linux_arm64.rpm`       |
 
-## Product Direction and Source Code Availability
+## Product Direction
 
 As our product strategy and roadmap evolve, we will gradually spin out some of
 EchoBird's non-core features and develop and operate them as standalone products.
 
-To protect the innovations behind these new products and maintain their
-competitiveness, we will temporarily pause publishing the source code for future
-EchoBird desktop releases. Bug reports and suggestions are still welcome via
+Bug reports and suggestions are still welcome via
 [GitHub Issues](https://github.com/edison7009/EchoBird/issues).
 
 Thank you for your continued interest and support.
-
-The published desktop source code for EchoBird v5.0.0 through v6.4.9 remains
-under the MIT License. Earlier releases retain their original licenses. For
-licensing, attribution, and brand use, see [LICENSE](LICENSE), [NOTICE](NOTICE),
-and the [trademark policy](TRADEMARKS.md).
 
 ---
 
