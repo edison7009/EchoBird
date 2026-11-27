@@ -226,13 +226,15 @@ curl -fsSL https://echobird.ai/install.sh | sh
 | Linux x64 · Fedora/RHEL     | `EchoBird_<ver>_Linux_x64.rpm`         |
 | Linux arm64 · Fedora/RHEL   | `EchoBird_<ver>_Linux_arm64.rpm`       |
 
-## 协议与商标
+## 产品发展与源码发布
 
-EchoBird v6.4.9 是最后一个公开完整桌面端源码的版本。v5.0.0 至 v6.4.9
-已公开的源码继续适用 [MIT 许可](LICENSE)，更早版本沿用各自发布时的许可。
-后续桌面端采用非公开开发，本仓库用于构建和发布版本。
+随着产品战略与发展规划的调整，EchoBird 的部分非核心功能将逐步拆分，作为独立产品开发与运营。
 
-署名和第三方许可见 [NOTICE](NOTICE)，品牌和商标使用见 [商标政策](TRADEMARKS.md)。
+为保护新产品的创新成果并保持市场竞争力，EchoBird 将暂缓公开后续桌面端版本的源代码。用户反馈渠道将继续开放，欢迎通过 [GitHub Issues](https://github.com/edison7009/EchoBird/issues) 提交问题与建议。
+
+感谢大家一直以来的关注与支持。
+
+EchoBird v5.0.0 至 v6.4.9 已公开的桌面端源码继续适用 MIT 许可，更早版本沿用各自发布时的许可。许可、署名及品牌使用信息见 [LICENSE](LICENSE)、[NOTICE](NOTICE) 和 [商标政策](TRADEMARKS.md)。
 
 ---
 
