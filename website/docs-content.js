@@ -9,7 +9,7 @@ const note = (title, text) =>
 const table = (heads, rows) =>
   `<div class="doc-table" data-columns="${heads.length}"><table><thead><tr>${heads.map((h) => `<th scope="col">${h}</th>`).join('')}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((v) => `<td>${v}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 
-export const docsGroups = ['开始使用', '核心工作流', '桌面与扩展', '帮助与参考'];
+export const docsGroups = ['开始使用', '核心工作流', '桌面与扩展', '帮助与参考', '开放接口'];
 export const docsArticles = [
   {
     id: 'welcome',
@@ -998,6 +998,115 @@ export const docsArticles = [
         'issue-help',
         '怎样更高效地反馈',
         `<p>记录系统与架构、EchoBird 版本、页面和工具名、已经执行的步骤、错误原文，以及你期望的结果。分享截图前隐藏账号与密钥。你可以通过 <a href="https://github.com/edison7009/EchoBird/issues" target="_blank" rel="noopener noreferrer">GitHub Issues</a> 或 <a href="mailto:hi@echobird.ai">hi@echobird.ai</a> 联系我们。</p>`
+      ),
+    ].join(''),
+  },
+  {
+    id: 'open-bridge',
+    group: '开放接口',
+    title: 'OpenBridge 开放接口',
+    summary: '让本机的其他应用读取 EchoBird 的账号与模型列表，并切换到其中一项。',
+    body: [
+      `<p class="doc-lead">OpenBridge 是 EchoBird 在本机提供的开放接口。终端、编辑器插件或你自己的脚本可以通过它读取某个工具在 EchoBird 里的账号和模型，并让 EchoBird 切换到其中一项，例如额度用完时自动换一个账号继续工作。切换仍由 EchoBird 完成，接入方不需要读写任何工具的配置文件。</p>`,
+      section(
+        'bridge-scope',
+        '它能做什么，不做什么',
+        list([
+          '<strong>能做：</strong>查询 EchoBird 是否在运行、列出某个工具的账号和模型（含套餐与额度）、切换到其中一项、让 EchoBird 打开该工具的面板。',
+          '<strong>不做：</strong>任何接口都不会返回密码、API Key、Token 等凭据；也不能新增、删除或修改账号和模型，这些仍在 EchoBird 里管理。',
+          '<strong>目前支持的工具：</strong><code>claudecode</code>（Claude Code）和 <code>codex</code>（Codex）。以 <code>/bridge/status</code> 返回的 <code>tools</code> 为准。',
+        ])
+      ),
+      section(
+        'bridge-connect',
+        '找到接口并通过鉴权',
+        `<p>EchoBird 运行时会写入一个连接文件，退出时删除：</p>` +
+          `<pre><code>~/.echobird/config/open-bridge.json
+（Windows：%USERPROFILE%\\.echobird\\config\\open-bridge.json）
+
+{
+  "bridgeVersion": 1,
+  "port": 53690,
+  "token": "随机生成的 64 位十六进制字符串",
+  "pid": 12345,
+  "echobirdVersion": "6.4.9"
+}</code></pre>` +
+          steps([
+            '读取连接文件。文件不存在，说明 EchoBird 没有运行；<code>pid</code> 对应的进程已退出，说明文件是残留的。',
+            '检查 <code>bridgeVersion</code>，只接入你支持的版本。',
+            '向 <code>http://127.0.0.1:{port}</code> 发请求，每个请求都带上请求头 <code>Authorization: Bearer {token}</code>。',
+            '不要缓存 token 或端口：EchoBird 每次启动都会生成新的 token，端口被占用时也会换一个。请求失败时重新读取连接文件。',
+          ])
+      ),
+      section(
+        'bridge-endpoints',
+        '接口列表',
+        table(
+          ['方法与路径', '作用', '成功时返回'],
+          [
+            ['<code>GET /bridge/status</code>', '确认可用，查看支持的工具', '<code>{"bridgeVersion":1,"echobirdVersion":"…","tools":["claudecode","codex"]}</code>'],
+            ['<code>GET /bridge/tools/{tool}/entries</code>', '列出该工具的账号和模型，按 EchoBird 中的顺序', '<code>{"entries":[条目…]}</code>'],
+            ['<code>POST /bridge/tools/{tool}/entries/{id}/activate</code>', '切换到某个账号或模型', '<code>{"ok":true,"entry":条目}</code>'],
+            ['<code>POST /bridge/tools/{tool}/open</code>', '显示 EchoBird 窗口并打开该工具的面板，例如引导用户登录', '<code>{"ok":true}</code>'],
+          ]
+        ) +
+          `<p>EchoBird 刚启动后的第一次列表请求会刷新各账号额度，可能需要二三十秒，建议把读取超时设为 45 秒左右；之后的请求通常很快。</p>`
+      ),
+      section(
+        'bridge-entry',
+        '条目字段',
+        table(
+          ['字段', '含义'],
+          [
+            ['<code>id</code>', '条目标识，形如 <code>account:…</code> 或 <code>model:…</code>，切换时原样放进路径（需 URL 编码）'],
+            ['<code>kind</code>', '<code>account</code>（官方账号）或 <code>model</code>（模型配置）'],
+            ['<code>label</code>', '显示名称，例如账号邮箱或模型名'],
+            ['<code>plan</code>', '套餐名称，没有时为 <code>null</code>'],
+            ['<code>active</code>', '是否是该工具当前正在使用的条目'],
+            ['<code>available</code>', '是否可以切换过去'],
+            ['<code>quota</code>', '额度信息，未知时为 <code>null</code>；<code>windows</code> 中每项有 <code>label</code>（如 5h、7d）、<code>usedPercent</code>（已用百分比 0–100）和 <code>resetAt</code>（重置时间，毫秒时间戳，可能为 <code>null</code>）'],
+          ]
+        )
+      ),
+      section(
+        'bridge-example',
+        '示例',
+        `<pre><code>PORT=$(jq -r .port ~/.echobird/config/open-bridge.json)
+TOKEN=$(jq -r .token ~/.echobird/config/open-bridge.json)
+
+# 列出 Claude Code 的账号和模型
+curl -s -H "Authorization: Bearer $TOKEN" \\
+  http://127.0.0.1:$PORT/bridge/tools/claudecode/entries
+
+# 切换到某一项（id 来自上一步，需 URL 编码）
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \\
+  http://127.0.0.1:$PORT/bridge/tools/claudecode/entries/account%3A{账号ID}/activate</code></pre>`
+      ),
+      section(
+        'bridge-errors',
+        '错误处理',
+        `<p>出错时返回 <code>{"ok":false,"error":"错误码"}</code>：</p>` +
+          table(
+            ['错误码', 'HTTP 状态', '含义与建议'],
+            [
+              ['<code>unauthorized</code>', '401', 'token 缺失或已失效。重新读取连接文件。'],
+              ['<code>unsupportedTool</code>', '404', '该工具暂不支持。以 <code>/bridge/status</code> 的 <code>tools</code> 为准。'],
+              ['<code>toolNotInstalled</code>', '列表 409 / 切换 200', '这台电脑上没有安装该工具。'],
+              ['<code>entryNotFound</code>', '200', '条目已在 EchoBird 中被删除或改名。重新获取列表。'],
+              ['其他文字', '200 或 409', '来自 EchoBird 切换逻辑的说明，例如账号授权已过期，可直接展示给用户。'],
+            ]
+          ) +
+          `<p>切换接口即使失败也可能返回 200，请以响应里的 <code>ok</code> 判断结果。</p>`
+      ),
+      section(
+        'bridge-safety',
+        '安全与使用约定',
+        list([
+          '接口只监听 <code>127.0.0.1</code>，局域网和外网都无法访问；连接文件只有当前用户可读。',
+          '网页无法读取连接文件，拿不到 token，因此不能借浏览器操控 EchoBird。',
+          '切换会改变该工具全局的登录或模型，正在使用它的其他窗口也会受影响。请只在用户开启了相应功能、或明确操作时才切换，不要频繁轮询切换。',
+          '接口按 <code>bridgeVersion</code> 演进：同一版本内只会新增字段，不会改变已有字段的含义。',
+        ])
       ),
     ].join(''),
   },

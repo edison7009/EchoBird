@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en" dir="ltr" data-site-locale="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/png" href="/assets/icon-DOE4HP7g.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+    <title>OpenBridge API · EchoBird Docs</title>
+    <script type="module" crossorigin src="/assets/docs-C1vDypR2.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-B5Qt9EMX.js">
+    <link rel="modulepreload" crossorigin href="/assets/site-translations-C5VtPN2T.js">
+    <link rel="stylesheet" crossorigin href="/assets/docs-RmZEv-tL.css">
+  <!--site-seo-start--><link rel="canonical" href="https://echobird.ai/docs/open-bridge/" /><link rel="alternate" hreflang="zh-CN" href="https://echobird.ai/zh/docs/open-bridge/" /><link rel="alternate" hreflang="en" href="https://echobird.ai/docs/open-bridge/" /><link rel="alternate" hreflang="x-default" href="https://echobird.ai/docs/open-bridge/" /><meta property="og:locale" content="en_US" /><meta property="og:title" content="OpenBridge API · EchoBird Docs" /><meta property="og:description" content="Let other apps on your computer read EchoBird's account and model lists and switch to one of them." /><!--site-seo-end--><meta name="description" content="Let other apps on your computer read EchoBird's account and model lists and switch to one of them." /></head>
+  <body>
+    <a class="skip-link" href="#doc-main">Skip to content</a>
+    <header class="docs-header">
+      <div class="docs-header-inner">
+        <a class="docs-brand" href="/"
+          ><img src="/brand/bird.png" width="34" height="34" alt="" /><span>EchoBird</span
+          ><span class="docs-brand-label">Docs</span></a
+        >
+        <div class="docs-search">
+          <label class="visually-hidden" for="doc-search">Search documentation</label>
+          <input
+            id="doc-search"
+            type="search"
+            placeholder="Search pages, steps, or questions"
+            autocomplete="off"
+            aria-controls="doc-search-results"
+            aria-expanded="false"
+            aria-autocomplete="list"
+            role="combobox"
+            aria-haspopup="listbox"
+          />
+          <kbd class="search-key" aria-hidden="true">/</kbd>
+          <div class="doc-search-panel" hidden>
+            <p class="search-caption" role="status"></p>
+            <div id="doc-search-results" role="listbox" aria-label="Search results"></div>
+            <p class="search-hint">Up/Down to select · Enter to open · Esc to close</p>
+          </div>
+        </div>
+        <nav class="docs-top-links" aria-label="Website navigation">
+          <a href="/">Home</a
+          ><a
+            href="https://github.com/edison7009/EchoBird"
+            target="_blank"
+            rel="noopener noreferrer"
+            >GitHub</a
+          ><!--site-language-start--><a class="site-language" data-site-language href="/zh/docs/open-bridge/" lang="zh" hreflang="zh">中文</a><!--site-language-end--><a href="/zh/#download">Download</a>
+        </nav>
+        <button
+          class="docs-menu-button"
+          type="button"
+          aria-controls="doc-sidebar"
+          aria-expanded="false"
+        >Menu</button>
+      </div>
+    </header>
+    <div class="docs-layout">
+      <aside class="docs-sidebar" id="doc-sidebar" aria-label="Menu">
+        <div class="sidebar-heading">User guide</div>
+        <nav id="doc-chapters" aria-label="User guide">
+          <!--doc-chapters-start--><section class="doc-nav-group"><h2>Get started</h2><a href="/docs/">Meet EchoBird</a><a href="/docs/quick-start/">Quick Start</a><a href="/docs/navigation/">Interface and Navigation</a></section><section class="doc-nav-group"><h2>Core workflows</h2><a href="/docs/apps/">App Desktop and Store</a><a href="/docs/accounts/">Accounts</a><a href="/docs/models/">Models</a><a href="/docs/smart-access/">Smart Routes</a><a href="/docs/statistics/">Request Statistics</a><a href="/docs/assistant/">AI Assistant</a><a href="/docs/local-models/">Local LLM</a></section><section class="doc-nav-group"><h2>Desktop and extensions</h2><a href="/docs/voice/">Voice input and text selection</a><a href="/docs/usage-island/">Usage Island</a><a href="/docs/pets/">Pets and TokenPet</a><a href="/docs/plugins/">Plugins</a><a href="/docs/news/">AI Latest News</a><a href="/docs/career/">My AI Career</a></section><section class="doc-nav-group"><h2>Help and reference</h2><a href="/docs/settings/">Settings and Personalization</a><a href="/docs/workflows/">Workflow Guides</a><a href="/docs/support/">Feedback and Release Notes</a><a href="/docs/troubleshooting/">Troubleshooting</a></section><section class="doc-nav-group"><h2>Open API</h2><a href="/docs/open-bridge/" aria-current="page">OpenBridge API</a></section><!--doc-chapters-end-->
+        </nav>
+        <a class="docs-help" href="mailto:hi@echobird.ai">Contact EchoBird</a>
+      </aside>
+      <button class="sidebar-backdrop" type="button" aria-label="Close contents" hidden></button>
+      <main id="doc-main" tabindex="-1">
+        <article class="doc-article">
+          <div class="doc-breadcrumb" aria-label="当前位置">
+            <span>Documentation</span><span>/</span><span id="doc-group">Open API</span>
+          </div>
+          <h1 id="doc-title">OpenBridge API</h1>
+          <p class="doc-summary" id="doc-summary">Let other apps on your computer read EchoBird's account and model lists and switch to one of them.</p>
+          <div class="doc-body" id="doc-body"><!--doc-body-start--><p class="doc-lead">OpenBridge is the local API EchoBird offers on your computer. Terminals, editor extensions, or your own scripts can use it to read a tool's accounts and models in EchoBird and ask EchoBird to switch to one of them, for example moving to another account when a quota runs out. EchoBird still does the switching, so the integrating app never reads or writes any tool's configuration files.</p><section aria-labelledby="bridge-scope"><h2 id="bridge-scope">What it does and does not do</h2><ul><li><strong>Does:</strong> check that EchoBird is running, list a tool's accounts and models (with plan and quota), switch to one of them, and ask EchoBird to open that tool's panel.</li><li><strong>Does not:</strong> no endpoint ever returns passwords, API keys, tokens, or other credentials. It cannot add, delete, or edit accounts and models; those stay managed in EchoBird.</li><li><strong>Supported tools today:</strong> <code>claudecode</code> (Claude Code) and <code>codex</code> (Codex). The <code>tools</code> list from <code>/bridge/status</code> is authoritative.</li></ul></section><section aria-labelledby="bridge-connect"><h2 id="bridge-connect">Find the API and authenticate</h2><p>While EchoBird runs it writes a discovery file, and removes it on exit:</p><pre><code>~/.echobird/config/open-bridge.json
+(Windows: %USERPROFILE%\.echobird\config\open-bridge.json)
+
+{
+  "bridgeVersion": 1,
+  "port": 53690,
+  "token": "a random 64-character hex string",
+  "pid": 12345,
+  "echobirdVersion": "6.4.9"
+}</code></pre><ol class="doc-steps"><li>Read the discovery file. If it is missing, EchoBird is not running; if the process in <code>pid</code> has exited, the file is stale.</li><li>Check <code>bridgeVersion</code> and connect only to versions you support.</li><li>Send requests to <code>http://127.0.0.1:{port}</code> with the header <code>Authorization: Bearer {token}</code> on every request.</li><li>Do not cache the token or port: EchoBird creates a new token on every launch and picks another port if its usual one is taken. When a request fails, read the discovery file again.</li></ol></section><section aria-labelledby="bridge-endpoints"><h2 id="bridge-endpoints">Endpoints</h2><div class="doc-table" data-columns="3"><table><thead><tr><th scope="col">Method and path</th><th scope="col">Purpose</th><th scope="col">On success</th></tr></thead><tbody><tr><td><code>GET /bridge/status</code></td><td>Check availability and supported tools</td><td><code>{"bridgeVersion":1,"echobirdVersion":"…","tools":["claudecode","codex"]}</code></td></tr><tr><td><code>GET /bridge/tools/{tool}/entries</code></td><td>List the tool's accounts and models in EchoBird's order</td><td><code>{"entries":[entry…]}</code></td></tr><tr><td><code>POST /bridge/tools/{tool}/entries/{id}/activate</code></td><td>Switch to an account or model</td><td><code>{"ok":true,"entry":entry}</code></td></tr><tr><td><code>POST /bridge/tools/{tool}/open</code></td><td>Show EchoBird and open the tool's panel, for example so the user can sign in</td><td><code>{"ok":true}</code></td></tr></tbody></table></div><p>Right after EchoBird starts, the first list request refreshes every account's quota and can take 20–30 seconds, so allow a read timeout of about 45 seconds. Later requests are usually fast.</p></section><section aria-labelledby="bridge-entry"><h2 id="bridge-entry">Entry fields</h2><div class="doc-table" data-columns="2"><table><thead><tr><th scope="col">Field</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td><code>id</code></td><td>Entry identifier such as <code>account:…</code> or <code>model:…</code>; pass it unchanged (URL-encoded) in the activate path</td></tr><tr><td><code>kind</code></td><td><code>account</code> (an official account) or <code>model</code> (a model configuration)</td></tr><tr><td><code>label</code></td><td>Display name, such as the account email or model name</td></tr><tr><td><code>plan</code></td><td>Plan name, or <code>null</code></td></tr><tr><td><code>active</code></td><td>Whether the tool is currently using this entry</td></tr><tr><td><code>available</code></td><td>Whether it can be switched to</td></tr><tr><td><code>quota</code></td><td>Quota details, or <code>null</code> when unknown. Each item in <code>windows</code> has <code>label</code> (such as 5h or 7d), <code>usedPercent</code> (0–100) and <code>resetAt</code> (reset time in epoch milliseconds, possibly <code>null</code>)</td></tr></tbody></table></div></section><section aria-labelledby="bridge-example"><h2 id="bridge-example">Example</h2><pre><code>PORT=$(jq -r .port ~/.echobird/config/open-bridge.json)
+TOKEN=$(jq -r .token ~/.echobird/config/open-bridge.json)
+
+# List Claude Code's accounts and models
+curl -s -H "Authorization: Bearer $TOKEN" \
+  http://127.0.0.1:$PORT/bridge/tools/claudecode/entries
+
+# Switch to one of them (id from the list, URL-encoded)
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  http://127.0.0.1:$PORT/bridge/tools/claudecode/entries/account%3A{account-id}/activate</code></pre></section><section aria-labelledby="bridge-errors"><h2 id="bridge-errors">Errors</h2><p>Errors return <code>{"ok":false,"error":"code"}</code>:</p><div class="doc-table" data-columns="3"><table><thead><tr><th scope="col">Code</th><th scope="col">HTTP status</th><th scope="col">Meaning and what to do</th></tr></thead><tbody><tr><td><code>unauthorized</code></td><td>401</td><td>The token is missing or outdated. Read the discovery file again.</td></tr><tr><td><code>unsupportedTool</code></td><td>404</td><td>The tool is not supported yet. Use the <code>tools</code> list from <code>/bridge/status</code>.</td></tr><tr><td><code>toolNotInstalled</code></td><td>409 for lists / 200 for switches</td><td>The tool is not installed on this computer.</td></tr><tr><td><code>entryNotFound</code></td><td>200</td><td>The entry was deleted or renamed in EchoBird. Fetch the list again.</td></tr><tr><td>Other text</td><td>200 or 409</td><td>A message from EchoBird's switching logic, such as an expired sign-in, that you can show to the user.</td></tr></tbody></table></div><p>A failed switch can still return 200, so check the <code>ok</code> field in the response.</p></section><section aria-labelledby="bridge-safety"><h2 id="bridge-safety">Security and good practice</h2><ul><li>The API listens only on <code>127.0.0.1</code>, so other machines on your network or the internet cannot reach it. Only the current user can read the discovery file.</li><li>Web pages cannot read the discovery file, so they cannot get the token or use the browser to control EchoBird.</li><li>Switching changes the tool's sign-in or model globally, affecting every window using it. Switch only when the user has turned on such a feature or asked for it, and do not switch in a tight loop.</li><li>The API evolves by <code>bridgeVersion</code>: within a version, fields are only added and existing fields keep their meaning.</li></ul></section><!--doc-body-end--></div>
+          <nav class="doc-pagination" aria-label="Adjacent articles">
+            <!--doc-pagination-start--><a class="doc-previous" href="/docs/troubleshooting/"><small>Previous</small><strong>Troubleshooting</strong></a><!--doc-pagination-end-->
+          </nav>
+        </article>
+        <footer class="docs-footer">
+          <span>© 2026 EchoBird</span
+          ><a
+            href="https://github.com/edison7009/EchoBird/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Report a docs issue</a
+          >
+        </footer>
+      </main>
+      <aside class="doc-toc" aria-label="On this page">
+        <div>On this page</div>
+        <nav id="doc-outline"><!--doc-outline-start--><a href="/docs/open-bridge/#bridge-scope" data-heading="bridge-scope">What it does and does not do</a><a href="/docs/open-bridge/#bridge-connect" data-heading="bridge-connect">Find the API and authenticate</a><a href="/docs/open-bridge/#bridge-endpoints" data-heading="bridge-endpoints">Endpoints</a><a href="/docs/open-bridge/#bridge-entry" data-heading="bridge-entry">Entry fields</a><a href="/docs/open-bridge/#bridge-example" data-heading="bridge-example">Example</a><a href="/docs/open-bridge/#bridge-errors" data-heading="bridge-errors">Errors</a><a href="/docs/open-bridge/#bridge-safety" data-heading="bridge-safety">Security and good practice</a><!--doc-outline-end--></nav>
+      </aside>
+    </div>
+    <div class="visually-hidden" id="doc-announcement" aria-live="polite"></div>
+    <noscript
+      ><p class="no-script">
+        Enable JavaScript for documentation navigation and search, or contact hi@echobird.ai.
+      </p></noscript
+    >
+  </body>
+</html>

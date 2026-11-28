@@ -286,6 +286,33 @@ h1 {
   font-weight: 600;
   color: #e2e8d8;
 }
+.doc-body code {
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: #ffffff0d;
+  color: #e6d3c0;
+  font:
+    0.88em/1.6 'SFMono-Regular',
+    Consolas,
+    monospace;
+  overflow-wrap: anywhere;
+}
+.doc-body pre {
+  margin: 18px 0;
+  padding: 14px 16px;
+  border: 1px solid #ffffff12;
+  border-radius: 10px;
+  background: #0b0e0bcc;
+  overflow-x: auto;
+}
+.doc-body pre code {
+  padding: 0;
+  background: none;
+  font-size: 12.5px;
+  line-height: 1.75;
+  white-space: pre;
+  overflow-wrap: normal;
+}
 .doc-body .doc-lead {
   font-size: 17px;
   line-height: 1.95;

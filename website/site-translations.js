@@ -127,6 +127,7 @@ export const uiStrings = {
       核心工作流: 'Core workflows',
       桌面与扩展: 'Desktop and extensions',
       帮助与参考: 'Help and reference',
+      开放接口: 'Open API',
     },
   },
 };

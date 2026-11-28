@@ -64,7 +64,7 @@ test('obsolete pages are retired, while CC Vibe and download service resources r
   const routes = JSON.parse(await read('_routes.json'));
   assert.deepEqual(routes.include, ['/download/*']);
   const sitemap = await read('sitemap.xml');
-  assert.equal((sitemap.match(/<loc>/g) || []).length, 57);
+  assert.equal((sitemap.match(/<loc>/g) || []).length, 59);
   assert.ok(sitemap.includes('https://echobird.ai/ccvibe/'));
   assert.equal(sitemap.includes('/en/'), false);
   assert.ok((await read('_redirects')).includes('/en/* /:splat 301'));

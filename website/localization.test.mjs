@@ -12,7 +12,7 @@ import { shouldShowChineseMirrors } from './download.js';
 
 test('every English chapter has a complete translation with the same structure and anchors', () => {
   const english = getDocsArticles('en');
-  assert.equal(english.length, 20);
+  assert.equal(english.length, 21);
   for (const source of docsArticles) {
     const translated = english.find((a) => a.id === source.id);
     assert.ok(translated);

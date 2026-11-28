@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="zh-CN" dir="ltr" data-site-locale="zh">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/png" href="/assets/icon-DOE4HP7g.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+    <title>OpenBridge 开放接口 · EchoBird 文档</title>
+    <script type="module" crossorigin src="/assets/docs-C1vDypR2.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-B5Qt9EMX.js">
+    <link rel="modulepreload" crossorigin href="/assets/site-translations-C5VtPN2T.js">
+    <link rel="stylesheet" crossorigin href="/assets/docs-RmZEv-tL.css">
+  <!--site-seo-start--><link rel="canonical" href="https://echobird.ai/zh/docs/open-bridge/" /><link rel="alternate" hreflang="zh-CN" href="https://echobird.ai/zh/docs/open-bridge/" /><link rel="alternate" hreflang="en" href="https://echobird.ai/docs/open-bridge/" /><link rel="alternate" hreflang="x-default" href="https://echobird.ai/docs/open-bridge/" /><meta property="og:locale" content="zh_CN" /><meta property="og:title" content="OpenBridge 开放接口 · EchoBird 文档" /><meta property="og:description" content="让本机的其他应用读取 EchoBird 的账号与模型列表，并切换到其中一项。" /><!--site-seo-end--><meta name="description" content="让本机的其他应用读取 EchoBird 的账号与模型列表，并切换到其中一项。" /></head>
+  <body>
+    <a class="skip-link" href="#doc-main">跳到正文</a>
+    <header class="docs-header">
+      <div class="docs-header-inner">
+        <a class="docs-brand" href="/zh/"
+          ><img src="/brand/bird.png" width="34" height="34" alt="" /><span>EchoBird</span
+          ><span class="docs-brand-label">文档</span></a
+        >
+        <div class="docs-search">
+          <label class="visually-hidden" for="doc-search">搜索文档</label>
+          <input
+            id="doc-search"
+            type="search"
+            placeholder="搜索页面、操作或问题"
+            autocomplete="off"
+            aria-controls="doc-search-results"
+            aria-expanded="false"
+            aria-autocomplete="list"
+            role="combobox"
+            aria-haspopup="listbox"
+          />
+          <kbd class="search-key" aria-hidden="true">/</kbd>
+          <div class="doc-search-panel" hidden>
+            <p class="search-caption" role="status"></p>
+            <div id="doc-search-results" role="listbox" aria-label="搜索结果"></div>
+            <p class="search-hint">上下选择 · Enter 打开 · Esc 关闭</p>
+          </div>
+        </div>
+        <nav class="docs-top-links" aria-label="官网导航">
+          <a href="/zh/">首页</a
+          ><a
+            href="https://github.com/edison7009/EchoBird"
+            target="_blank"
+            rel="noopener noreferrer"
+            >GitHub</a
+          ><!--site-language-start--><a class="site-language" data-site-language href="/docs/open-bridge/" lang="en" hreflang="en">English</a><!--site-language-end--><a href="/zh/#download">更多下载</a>
+        </nav>
+        <button
+          class="docs-menu-button"
+          type="button"
+          aria-controls="doc-sidebar"
+          aria-expanded="false"
+        >目录</button>
+      </div>
+    </header>
+    <div class="docs-layout">
+      <aside class="docs-sidebar" id="doc-sidebar" aria-label="目录">
+        <div class="sidebar-heading">使用指南</div>
+        <nav id="doc-chapters" aria-label="使用指南">
+          <!--doc-chapters-start--><section class="doc-nav-group"><h2>开始使用</h2><a href="/zh/docs/">认识 EchoBird</a><a href="/zh/docs/quick-start/">第一次使用</a><a href="/zh/docs/navigation/">界面与页面导航</a></section><section class="doc-nav-group"><h2>核心工作流</h2><a href="/zh/docs/apps/">应用桌面与商店</a><a href="/zh/docs/accounts/">账号中心</a><a href="/zh/docs/models/">模型中心</a><a href="/zh/docs/smart-access/">智能接入</a><a href="/zh/docs/statistics/">请求统计</a><a href="/zh/docs/assistant/">AI 助手</a><a href="/zh/docs/local-models/">本地大模型</a></section><section class="doc-nav-group"><h2>桌面与扩展</h2><a href="/zh/docs/voice/">语音输入与划词</a><a href="/zh/docs/usage-island/">用量岛</a><a href="/zh/docs/pets/">宠物与 TokenPet</a><a href="/zh/docs/plugins/">插件</a><a href="/zh/docs/news/">AI 资讯</a><a href="/zh/docs/career/">AI 生涯</a></section><section class="doc-nav-group"><h2>帮助与参考</h2><a href="/zh/docs/settings/">设置与个性化</a><a href="/zh/docs/workflows/">组合使用教程</a><a href="/zh/docs/support/">意见反馈与更新日志</a><a href="/zh/docs/troubleshooting/">常见问题与排查</a></section><!--doc-chapters-end-->
+        </nav>
+        <a class="docs-help" href="mailto:hi@echobird.ai">联系 EchoBird</a>
+      </aside>
+      <button class="sidebar-backdrop" type="button" aria-label="关闭目录" hidden></button>
+      <main id="doc-main" tabindex="-1">
+        <article class="doc-article">
+          <div class="doc-breadcrumb" aria-label="当前位置">
+            <span>使用文档</span><span>/</span><span id="doc-group">undefined</span>
+          </div>
+          <h1 id="doc-title">OpenBridge 开放接口</h1>
+          <p class="doc-summary" id="doc-summary">让本机的其他应用读取 EchoBird 的账号与模型列表，并切换到其中一项。</p>
+          <div class="doc-body" id="doc-body"><!--doc-body-start--><p class="doc-lead">OpenBridge 是 EchoBird 在本机提供的开放接口。终端、编辑器插件或你自己的脚本可以通过它读取某个工具在 EchoBird 里的账号和模型，并让 EchoBird 切换到其中一项，例如额度用完时自动换一个账号继续工作。切换仍由 EchoBird 完成，接入方不需要读写任何工具的配置文件。</p><section aria-labelledby="bridge-scope"><h2 id="bridge-scope">它能做什么，不做什么</h2><ul><li><strong>能做：</strong>查询 EchoBird 是否在运行、列出某个工具的账号和模型（含套餐与额度）、切换到其中一项、让 EchoBird 打开该工具的面板。</li><li><strong>不做：</strong>任何接口都不会返回密码、API Key、Token 等凭据；也不能新增、删除或修改账号和模型，这些仍在 EchoBird 里管理。</li><li><strong>目前支持的工具：</strong><code>claudecode</code>（Claude Code）和 <code>codex</code>（Codex）。以 <code>/bridge/status</code> 返回的 <code>tools</code> 为准。</li></ul></section><section aria-labelledby="bridge-connect"><h2 id="bridge-connect">找到接口并通过鉴权</h2><p>EchoBird 运行时会写入一个连接文件，退出时删除：</p><pre><code>~/.echobird/config/open-bridge.json
+（Windows：%USERPROFILE%\.echobird\config\open-bridge.json）
+
+{
+  "bridgeVersion": 1,
+  "port": 53690,
+  "token": "随机生成的 64 位十六进制字符串",
+  "pid": 12345,
+  "echobirdVersion": "6.4.9"
+}</code></pre><ol class="doc-steps"><li>读取连接文件。文件不存在，说明 EchoBird 没有运行；<code>pid</code> 对应的进程已退出，说明文件是残留的。</li><li>检查 <code>bridgeVersion</code>，只接入你支持的版本。</li><li>向 <code>http://127.0.0.1:{port}</code> 发请求，每个请求都带上请求头 <code>Authorization: Bearer {token}</code>。</li><li>不要缓存 token 或端口：EchoBird 每次启动都会生成新的 token，端口被占用时也会换一个。请求失败时重新读取连接文件。</li></ol></section><section aria-labelledby="bridge-endpoints"><h2 id="bridge-endpoints">接口列表</h2><div class="doc-table" data-columns="3"><table><thead><tr><th scope="col">方法与路径</th><th scope="col">作用</th><th scope="col">成功时返回</th></tr></thead><tbody><tr><td><code>GET /bridge/status</code></td><td>确认可用，查看支持的工具</td><td><code>{"bridgeVersion":1,"echobirdVersion":"…","tools":["claudecode","codex"]}</code></td></tr><tr><td><code>GET /bridge/tools/{tool}/entries</code></td><td>列出该工具的账号和模型，按 EchoBird 中的顺序</td><td><code>{"entries":[条目…]}</code></td></tr><tr><td><code>POST /bridge/tools/{tool}/entries/{id}/activate</code></td><td>切换到某个账号或模型</td><td><code>{"ok":true,"entry":条目}</code></td></tr><tr><td><code>POST /bridge/tools/{tool}/open</code></td><td>显示 EchoBird 窗口并打开该工具的面板，例如引导用户登录</td><td><code>{"ok":true}</code></td></tr></tbody></table></div><p>EchoBird 刚启动后的第一次列表请求会刷新各账号额度，可能需要二三十秒，建议把读取超时设为 45 秒左右；之后的请求通常很快。</p></section><section aria-labelledby="bridge-entry"><h2 id="bridge-entry">条目字段</h2><div class="doc-table" data-columns="2"><table><thead><tr><th scope="col">字段</th><th scope="col">含义</th></tr></thead><tbody><tr><td><code>id</code></td><td>条目标识，形如 <code>account:…</code> 或 <code>model:…</code>，切换时原样放进路径（需 URL 编码）</td></tr><tr><td><code>kind</code></td><td><code>account</code>（官方账号）或 <code>model</code>（模型配置）</td></tr><tr><td><code>label</code></td><td>显示名称，例如账号邮箱或模型名</td></tr><tr><td><code>plan</code></td><td>套餐名称，没有时为 <code>null</code></td></tr><tr><td><code>active</code></td><td>是否是该工具当前正在使用的条目</td></tr><tr><td><code>available</code></td><td>是否可以切换过去</td></tr><tr><td><code>quota</code></td><td>额度信息，未知时为 <code>null</code>；<code>windows</code> 中每项有 <code>label</code>（如 5h、7d）、<code>usedPercent</code>（已用百分比 0–100）和 <code>resetAt</code>（重置时间，毫秒时间戳，可能为 <code>null</code>）</td></tr></tbody></table></div></section><section aria-labelledby="bridge-example"><h2 id="bridge-example">示例</h2><pre><code>PORT=$(jq -r .port ~/.echobird/config/open-bridge.json)
+TOKEN=$(jq -r .token ~/.echobird/config/open-bridge.json)
+
+# 列出 Claude Code 的账号和模型
+curl -s -H "Authorization: Bearer $TOKEN" \
+  http://127.0.0.1:$PORT/bridge/tools/claudecode/entries
+
+# 切换到某一项（id 来自上一步，需 URL 编码）
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  http://127.0.0.1:$PORT/bridge/tools/claudecode/entries/account%3A{账号ID}/activate</code></pre></section><section aria-labelledby="bridge-errors"><h2 id="bridge-errors">错误处理</h2><p>出错时返回 <code>{"ok":false,"error":"错误码"}</code>：</p><div class="doc-table" data-columns="3"><table><thead><tr><th scope="col">错误码</th><th scope="col">HTTP 状态</th><th scope="col">含义与建议</th></tr></thead><tbody><tr><td><code>unauthorized</code></td><td>401</td><td>token 缺失或已失效。重新读取连接文件。</td></tr><tr><td><code>unsupportedTool</code></td><td>404</td><td>该工具暂不支持。以 <code>/bridge/status</code> 的 <code>tools</code> 为准。</td></tr><tr><td><code>toolNotInstalled</code></td><td>列表 409 / 切换 200</td><td>这台电脑上没有安装该工具。</td></tr><tr><td><code>entryNotFound</code></td><td>200</td><td>条目已在 EchoBird 中被删除或改名。重新获取列表。</td></tr><tr><td>其他文字</td><td>200 或 409</td><td>来自 EchoBird 切换逻辑的说明，例如账号授权已过期，可直接展示给用户。</td></tr></tbody></table></div><p>切换接口即使失败也可能返回 200，请以响应里的 <code>ok</code> 判断结果。</p></section><section aria-labelledby="bridge-safety"><h2 id="bridge-safety">安全与使用约定</h2><ul><li>接口只监听 <code>127.0.0.1</code>，局域网和外网都无法访问；连接文件只有当前用户可读。</li><li>网页无法读取连接文件，拿不到 token，因此不能借浏览器操控 EchoBird。</li><li>切换会改变该工具全局的登录或模型，正在使用它的其他窗口也会受影响。请只在用户开启了相应功能、或明确操作时才切换，不要频繁轮询切换。</li><li>接口按 <code>bridgeVersion</code> 演进：同一版本内只会新增字段，不会改变已有字段的含义。</li></ul></section><!--doc-body-end--></div>
+          <nav class="doc-pagination" aria-label="相邻文档">
+            <!--doc-pagination-start--><a class="doc-previous" href="/zh/docs/troubleshooting/"><small>上一章</small><strong>常见问题与排查</strong></a><!--doc-pagination-end-->
+          </nav>
+        </article>
+        <footer class="docs-footer">
+          <span>© 2026 EchoBird</span
+          ><a
+            href="https://github.com/edison7009/EchoBird/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+            >反馈文档问题</a
+          >
+        </footer>
+      </main>
+      <aside class="doc-toc" aria-label="本页内容">
+        <div>本页内容</div>
+        <nav id="doc-outline"><!--doc-outline-start--><a href="/zh/docs/open-bridge/#bridge-scope" data-heading="bridge-scope">它能做什么，不做什么</a><a href="/zh/docs/open-bridge/#bridge-connect" data-heading="bridge-connect">找到接口并通过鉴权</a><a href="/zh/docs/open-bridge/#bridge-endpoints" data-heading="bridge-endpoints">接口列表</a><a href="/zh/docs/open-bridge/#bridge-entry" data-heading="bridge-entry">条目字段</a><a href="/zh/docs/open-bridge/#bridge-example" data-heading="bridge-example">示例</a><a href="/zh/docs/open-bridge/#bridge-errors" data-heading="bridge-errors">错误处理</a><a href="/zh/docs/open-bridge/#bridge-safety" data-heading="bridge-safety">安全与使用约定</a><!--doc-outline-end--></nav>
+      </aside>
+    </div>
+    <div class="visually-hidden" id="doc-announcement" aria-live="polite"></div>
+    <noscript
+      ><p class="no-script">
+        请启用 JavaScript 以浏览文档目录和正文。你也可以通过 hi@echobird.ai 联系我们。
+      </p></noscript
+    >
+  </body>
+</html>

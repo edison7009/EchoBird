@@ -7,11 +7,11 @@
 
 
     <title>常见问题与排查 · EchoBird 文档</title>
-    <script type="module" crossorigin src="/assets/docs-CpBIeJi1.js"></script>
+    <script type="module" crossorigin src="/assets/docs-C1vDypR2.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-B5Qt9EMX.js">
-    <link rel="modulepreload" crossorigin href="/assets/site-translations-DMWuEGTJ.js">
-    <link rel="stylesheet" crossorigin href="/assets/docs-BG93-TC5.css">
-  <meta name="description" content="先找到问题发生在哪一层，再做对应的检查。" /><!--site-seo-start--><link rel="canonical" href="https://echobird.ai/zh/docs/troubleshooting/" /><link rel="alternate" hreflang="zh-CN" href="https://echobird.ai/zh/docs/troubleshooting/" /><link rel="alternate" hreflang="en" href="https://echobird.ai/docs/troubleshooting/" /><link rel="alternate" hreflang="x-default" href="https://echobird.ai/docs/troubleshooting/" /><meta property="og:locale" content="zh_CN" /><meta property="og:title" content="常见问题与排查 · EchoBird 文档" /><meta property="og:description" content="先找到问题发生在哪一层，再做对应的检查。" /><!--site-seo-end--></head>
+    <link rel="modulepreload" crossorigin href="/assets/site-translations-C5VtPN2T.js">
+    <link rel="stylesheet" crossorigin href="/assets/docs-RmZEv-tL.css">
+  <!--site-seo-start--><link rel="canonical" href="https://echobird.ai/zh/docs/troubleshooting/" /><link rel="alternate" hreflang="zh-CN" href="https://echobird.ai/zh/docs/troubleshooting/" /><link rel="alternate" hreflang="en" href="https://echobird.ai/docs/troubleshooting/" /><link rel="alternate" hreflang="x-default" href="https://echobird.ai/docs/troubleshooting/" /><meta property="og:locale" content="zh_CN" /><meta property="og:title" content="常见问题与排查 · EchoBird 文档" /><meta property="og:description" content="先找到问题发生在哪一层，再做对应的检查。" /><!--site-seo-end--><meta name="description" content="先找到问题发生在哪一层，再做对应的检查。" /></head>
   <body>
     <a class="skip-link" href="#doc-main">跳到正文</a>
     <header class="docs-header">
@@ -75,7 +75,7 @@
           <p class="doc-summary" id="doc-summary">先找到问题发生在哪一层，再做对应的检查。</p>
           <div class="doc-body" id="doc-body"><!--doc-body-start--><section aria-labelledby="issue-account"><h2 id="issue-account">账号添加成功，客户端却没切换</h2><p>添加只负责保存。回到应用桌面选中对应客户端与账号，执行当前主操作，并检查运行中的客户端是否需要处理。不要只根据右侧高亮判断所有窗口已完成切换。</p></section><section aria-labelledby="issue-model"><h2 id="issue-model">模型保存了，工具还是旧模型</h2><p>检查是否在应用桌面应用了该模型，工具是否支持对应协议，以及配置写入选项是否允许操作。先在模型中心点击「测试速度」检查连接，再在真实工具或 AI 助手发送请求，验证回复和实际配置，比重复保存同一条目更有效。</p></section><section aria-labelledby="issue-network"><h2 id="issue-network">模型连不上或路由请求失败</h2><ol class="doc-steps"><li>直接模型：核对地址、Key、模型 ID 和服务的地区/套餐入口。</li><li>智能接入：确认 EchoBird 仍在运行，工具指向当前方案显示的地址与密钥。</li><li>检查来源授权、启用状态与模型目录，区分一个上游失败和最终请求失败。</li><li>在对应页面明确测试或刷新，再发一次实际请求；保留错误原文。</li></ol></section><section aria-labelledby="issue-quota"><h2 id="issue-quota">余额或额度为什么是空的</h2><p>服务能回答请求，不等于开放了用量查询。有些来源需要额外用量配置，有些只提供部分指标。使用明确刷新，并检查授权和服务说明；未知值不等于零。不同周期和计量单位也不能直接相加。</p></section><section aria-labelledby="issue-install"><h2 id="issue-install">安装失败或工具没被识别</h2><p>先确认厂商支持当前系统和架构，再检查网络、权限、依赖与安装输出。安装完成后回应用桌面刷新；仍未识别时核对工具路径。AI 助手说完成后，也要实际启动验证。</p></section><section aria-labelledby="issue-voice"><h2 id="issue-voice">语音有结果，却没有回填</h2><p>先复制保留的识别文字，避免重说。之后检查目标输入框焦点、系统权限与快捷键冲突。macOS 关注辅助功能权限；Linux/Wayland 按桌面实际支持的桥接能力处理。</p></section><section aria-labelledby="issue-pets"><h2 id="issue-pets">用了很多 Token，TokenPet 没变化</h2><p>宠物根据智能接入账本的新增记录入账，不覆盖所有网页或第三方客户端消费。先确认「记录统计」已开启、请求经过智能接入，且上游响应包含可识别的用量。TokenPet 也不是 API 余额。</p></section><section aria-labelledby="issue-help"><h2 id="issue-help">怎样更高效地反馈</h2><p>记录系统与架构、EchoBird 版本、页面和工具名、已经执行的步骤、错误原文，以及你期望的结果。分享截图前隐藏账号与密钥。你可以通过 <a href="https://github.com/edison7009/EchoBird/issues" target="_blank" rel="noopener noreferrer">GitHub Issues</a> 或 <a href="mailto:hi@echobird.ai">hi@echobird.ai</a> 联系我们。</p></section><!--doc-body-end--></div>
           <nav class="doc-pagination" aria-label="相邻文档">
-            <!--doc-pagination-start--><a class="doc-previous" href="/zh/docs/support/"><small>上一章</small><strong>意见反馈与更新日志</strong></a><!--doc-pagination-end-->
+            <!--doc-pagination-start--><a class="doc-previous" href="/zh/docs/support/"><small>上一章</small><strong>意见反馈与更新日志</strong></a><a class="doc-next" href="/zh/docs/open-bridge/"><small>下一章</small><strong>OpenBridge 开放接口</strong></a><!--doc-pagination-end-->
           </nav>
         </article>
         <footer class="docs-footer">
