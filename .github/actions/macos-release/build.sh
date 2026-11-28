@@ -25,6 +25,12 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Normalize the entitlement plist for codesign's stricter XML parser.
+entitlements=$(node -p "require('./src-tauri/tauri.macos.conf.json').bundle.macOS.entitlements")
+export ECHOBIRD_BUILD_ENTITLEMENTS="$scratch/entitlements.plist"
+plutil -convert xml1 -o "$ECHOBIRD_BUILD_ENTITLEMENTS" "src-tauri/$entitlements"
+plutil -lint "$ECHOBIRD_BUILD_ENTITLEMENTS"
+
 signed=${ECHOBIRD_MACOS_SIGNED:-false}
 args=(--target "$target" --bundles app)
 if [[ "$signed" = true ]]; then
@@ -42,7 +48,7 @@ if [[ "$signed" = true ]]; then
   unset APPLE_API_PRIVATE_KEY
 
   node -e 'process.stdout.write(JSON.stringify({
-    bundle: { createUpdaterArtifacts: true },
+    bundle: { createUpdaterArtifacts: true, macOS: { entitlements: process.env.ECHOBIRD_BUILD_ENTITLEMENTS } },
     plugins: { updater: {
       pubkey: process.env.ECHOBIRD_UPDATER_PUBLIC_KEY.trim(),
       requireSignedVersion: true
@@ -58,7 +64,9 @@ elif [[ "$signed" = false ]]; then
   # Tauri signs ad-hoc with hardened runtime unless told otherwise. Ad-hoc +
   # hardened runtime + no notarization makes Gatekeeper kill the GUI launch
   # silently (the icon bounces, nothing opens), so unsigned builds opt out.
-  printf '%s' '{"bundle":{"macOS":{"hardenedRuntime":false}}}' > "$scratch/adhoc.json"
+  node -e 'process.stdout.write(JSON.stringify({
+    bundle: { macOS: { hardenedRuntime: false, entitlements: process.env.ECHOBIRD_BUILD_ENTITLEMENTS } }
+  }))' > "$scratch/adhoc.json"
   args+=(--config "$scratch/adhoc.json")
 else
   echo 'ECHOBIRD_MACOS_SIGNED must be true or false' >&2
