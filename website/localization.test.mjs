@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
-import { docsArticles } from './docs-content.js';
+import { docsArticles, docsGroups } from './docs-content.js';
 import { getDocsArticles } from './docs-locales.js';
 import { resolveDocRoute, searchDocs } from './docs-model.js';
 import { renderHome, renderDocs } from './localized-pages.js';
 import { equivalentLanguageURL, preferredSiteLocale, docPath, homePath } from './site-locale.js';
 import { siteLanguages, siteLocales, docsLocales } from './site-language-config.js';
-import { homeEnglish, homeTranslations } from './site-translations.js';
+import { homeEnglish, homeTranslations, uiStrings } from './site-translations.js';
 import { shouldShowChineseMirrors } from './download.js';
 
 test('every English chapter has a complete translation with the same structure and anchors', () => {
@@ -189,5 +189,10 @@ test('translated homepage copy preserves authored markup, link targets and HTML 
       assert.deepEqual(markup(copy[key]), markup(original), `${locale}: ${key}`);
       assert.doesNotMatch(copy[key], /&(?:nbsp|amp|lt|gt|quot)(?!;)/, `${locale}: ${key}`);
     }
+  }
+});
+test('every docs group has a sidebar label in each document language', () => {
+  for (const locale of docsLocales) {
+    for (const group of docsGroups) assert.ok(uiStrings[locale].groups[group], `${locale}: ${group}`);
   }
 });

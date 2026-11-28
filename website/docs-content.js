@@ -1004,8 +1004,8 @@ export const docsArticles = [
   {
     id: 'open-bridge',
     group: '开放接口',
-    title: 'OpenBridge 开放接口',
-    summary: '让本机的其他应用读取 EchoBird 的账号与模型列表，并切换到其中一项。',
+    title: '应用读取和调用 EchoBird',
+    summary: 'OpenBridge：让本机的其他应用读取 EchoBird 的账号和模型列表，并调用 EchoBird 切换模型或账号。',
     body: [
       `<p class="doc-lead">OpenBridge 是 EchoBird 在本机提供的开放接口。终端、编辑器插件或你自己的脚本可以通过它读取某个工具在 EchoBird 里的账号和模型，并让 EchoBird 切换到其中一项，例如额度用完时自动换一个账号继续工作。切换仍由 EchoBird 完成，接入方不需要读写任何工具的配置文件。</p>`,
       section(
