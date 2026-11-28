@@ -24,7 +24,7 @@ test('uses matching canonical localized notes and extracts GitHub language block
 
 test('round-trips all supported release note languages before the canonical manifest advances', () => {
   const notes = Object.fromEntries(
-    ['zh-cn', 'en', 'zh-tw', 'ja', 'ko', 'es', 'fr', 'de', 'pt', 'ru', 'vi'].map((code) => [
+    ['zh-cn', 'en', 'zh-tw', 'ja', 'ko', 'es', 'fr', 'de', 'pt', 'ru', 'vi', 'tr'].map((code) => [
       code,
       `- Notes for ${code}`,
     ])

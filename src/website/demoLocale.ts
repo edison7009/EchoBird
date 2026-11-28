@@ -1,7 +1,21 @@
+import { translate, type TKey, type Translations } from '../i18n';
+
+const turkishDemoTranslations: Partial<Translations> = {
+  'agent.codexWebSearchHint': 'Modelin web araması yapmasına izin verin.',
+  'agent.claude1mHint': 'Destekleyen modellerde daha uzun bağlam kullanın.',
+  'model.modelId': 'Model kimliği',
+  'mother.command': 'Komut',
+  'mother.commandUnavailable': 'Komut bilgisi yok.',
+};
+
+export const demoTranslate = (key: TKey, locale: string) =>
+  (locale === 'tr' ? turkishDemoTranslations[key] : undefined) ?? translate(key, locale);
+
+export const demoCopyLocale = (locale: string | null) =>
+  locale === 'en' || locale === 'tr' ? locale : 'zh-Hans';
+
 export const demoLocale = () =>
-  new URLSearchParams(window.location.search).get('lang') === 'en'
-    ? ('en' as const)
-    : ('zh-Hans' as const);
+  demoCopyLocale(new URLSearchParams(window.location.search).get('lang'));
 export const desktopCopy = {
   'zh-Hans': {
     updates: '更新日志',
@@ -77,6 +91,43 @@ export const desktopCopy = {
     group: 'All-agent group',
     coding: 'AI coding group',
   },
+  tr: {
+    updates: 'Sürüm notları',
+    feedback: 'Geri bildirim',
+    rail: 'Demo kenar çubuğu',
+    pages: [
+      'Uygulama masaüstü',
+      'Modeller',
+      'Hesaplar',
+      'Akıllı yönlendirme',
+      'Sesli giriş',
+      'Yapay zekâ gündemi',
+      'Kariyer',
+      'Yerel modeller',
+    ],
+    title: 'Uygulama masaüstü',
+    customize: 'Özelleştir',
+    refresh: 'Yenile',
+    apps: 'Uygulamalar',
+    store: 'Mağaza',
+    panel: 'Hesaplar ve modeller',
+    smart: 'Akıllı',
+    switchable: 'Değiştirilebilir',
+    route: 'Otomatik geçiş',
+    status: 'Etkileşimli demo · Örnek veriler',
+    launch: 'Uygulamayı başlat',
+    deleteModel: 'Örnek modeli sil',
+    deleteAccount: 'Örnek hesabı sil',
+    questionModel: 'Örnek model silinsin mi?',
+    questionAccount: 'Örnek hesap silinsin mi?',
+    deleteBody: 'Yalnızca bu demodan kaldırılır. Geri yüklemek için sayfayı yenileyin.',
+    cancel: 'İptal',
+    remove: 'Sil',
+    quota: 'Kalan 5 saatlik örnek kota',
+    quotaReset: 'Kotanın sıfırlanmasına kalan süre',
+    group: 'Tüm ajanlar grubu',
+    coding: 'Yapay zekâ ile kodlama grubu',
+  },
 };
 export const featureCopy = {
   'zh-Hans': {
@@ -128,5 +179,32 @@ export const featureCopy = {
     output: 'Download route selected. Runtime installed. PATH configured. Launch check passed.',
     complete: 'All set. Start your first project.',
     pets: ['Mecha', 'Unicorn', 'Kaiju', 'Fox', 'Alien', 'Kangaroo'],
+  },
+  tr: {
+    smart: 'Akıllı yönlendirme',
+    relay: 'Özel geçiş hizmeti',
+    free: 'Ücretsiz',
+    keyless: 'Anahtarsız',
+    assistant: 'Yapay zekâ asistanı',
+    prompt: 'Claude Code’u yükle ve kullanıma hazırla.',
+    reply:
+      'En hızlı indirme kaynağını bulup çalışma ortamını kuracağım ve PATH değişkenini ayarlayacağım.',
+    tool: 'Yapay zekâ kodlama asistanı',
+    install: 'Yükle',
+    installing: 'Yükleniyor',
+    installed: 'Yüklendi',
+    statuses: [
+      '',
+      '',
+      'En hızlı indirme kaynağı aranıyor',
+      'Node.js çalışma ortamı kuruluyor',
+      'Claude Code yükleniyor',
+      'PATH değişkeni ayarlanıyor',
+      'İndirme kaynağı, çalışma ortamı ve PATH hazır',
+    ],
+    output:
+      'İndirme kaynağı seçildi. Çalışma ortamı kuruldu. PATH ayarlandı. Başlatma kontrolü başarılı.',
+    complete: 'Her şey hazır. İlk projenize başlayabilirsiniz.',
+    pets: ['Robot', 'Tek boynuzlu at', 'Canavar', 'Tilki', 'Uzaylı', 'Kanguru'],
   },
 };

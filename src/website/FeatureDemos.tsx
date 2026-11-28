@@ -11,10 +11,10 @@ import alien from './assets/pets/alien.webp';
 import kangaroo from './assets/pets/kangaroo.webp';
 import { featureDemoAt } from './featureTimeline';
 import { useI18n } from '../hooks/useI18n';
-import { featureCopy } from './demoLocale';
+import { demoCopyLocale, featureCopy } from './demoLocale';
 function useFeatureCopy() {
   const { locale } = useI18n();
-  return featureCopy[locale === 'en' ? 'en' : 'zh-Hans'];
+  return featureCopy[demoCopyLocale(locale)];
 }
 
 // Only the parent website controls playback. These demos never load accounts or install tools.
@@ -98,6 +98,7 @@ const flowPaths = [
 ];
 
 export function ModelsDemo() {
+  const { t } = useI18n();
   const copy = useFeatureCopy();
   const { playing, route, modelOpen, modelRound, modelSelected, reduced } = useFeatureClock();
   return (
@@ -181,7 +182,7 @@ export function ModelsDemo() {
                   options={item.ids}
                   freeModelIds={item.free}
                   freeLabel={copy.free}
-                  ariaLabel={`${item.name === '自定义中转站' ? copy.relay : item.name} model ID`}
+                  ariaLabel={`${item.name === '自定义中转站' ? copy.relay : item.name} ${t('model.modelId')}`}
                   open={!reduced && route === index && modelOpen}
                   onOpenChange={() => {}}
                   onChange={() => {}}

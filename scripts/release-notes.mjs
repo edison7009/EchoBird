@@ -10,6 +10,7 @@ const NOTES_LABELS = {
   pt: 'Português',
   ru: 'Русский',
   vi: 'Tiếng Việt',
+  tr: 'Türkçe',
 };
 
 const NOTES_CODES = new Map(Object.entries(NOTES_LABELS).map(([code, label]) => [label, code]));

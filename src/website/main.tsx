@@ -1,13 +1,18 @@
 import ReactDOM from 'react-dom/client';
 import { I18nContext } from '../hooks/i18nContext';
-import { loadLocale, translate } from '../i18n';
+import { loadLocale } from '../i18n';
 import { getColorTheme } from '../data/colorThemes';
 import { DemoDesktop } from './DemoDesktop';
 import { DemoUsageIsland } from './DemoUsageIsland';
 import '../index.css';
-import { demoLocale } from './demoLocale';
+import { demoLocale, demoTranslate } from './demoLocale';
 const locale = demoLocale();
-document.documentElement.lang = locale === 'en' ? 'en' : 'zh-CN';
+document.documentElement.lang = locale === 'zh-Hans' ? 'zh-CN' : locale;
+if (locale === 'tr')
+  document.title =
+    document.body.dataset.demo === 'usage-island'
+      ? 'EchoBird · Kullanım Adası'
+      : 'EchoBird · Etkileşimli masaüstü demosu';
 
 // Use the desktop's palette without initializing native settings or persistence.
 const palette = getColorTheme('oatgray').dark;
@@ -32,7 +37,7 @@ void Promise.all([
 ]).then(() => {
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <I18nContext.Provider
-      value={{ locale, setLocale: () => {}, t: (key) => translate(key, locale) }}
+      value={{ locale, setLocale: () => {}, t: (key) => demoTranslate(key, locale) }}
     >
       {document.body.dataset.demo === 'usage-island' ? <DemoUsageIsland /> : <DemoDesktop />}
     </I18nContext.Provider>

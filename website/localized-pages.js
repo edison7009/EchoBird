@@ -47,6 +47,7 @@ function setSeo(html, locale, page, id, title, description) {
     : html.replace('</head>', `${tags}</head>`);
 }
 function rootAssets(html, locale) {
+  const demoLanguage = locale === 'tr' ? 'tr' : docsLocale(locale);
   return html.replace(/\b(href|src)="([^"]+)"/g, (all, attr, url) => {
     // Vite resolves these placeholders to absolute asset URLs after this hook.
     if (url.startsWith('__VITE_')) return all;
@@ -55,7 +56,7 @@ function rootAssets(html, locale) {
     if (/^\/(zh|en)\/?$/.test(url)) return `${attr}="${homePath(locale)}"`;
     if (/^\/(demo|usage|features)\.html(?:\?|$)/.test(url)) {
       const next = new URL(url.replaceAll('&amp;', '&'), 'https://example.invalid');
-      next.searchParams.set('lang', docsLocale(locale));
+      next.searchParams.set('lang', demoLanguage);
       return `${attr}="${next.pathname + next.search.replaceAll('&', '&amp;')}"`;
     }
     if (/^(?:https?:|mailto:|data:|#|\/)/.test(url)) return all;
@@ -64,7 +65,7 @@ function rootAssets(html, locale) {
     if (raw === 'docs.html') return `${attr}="${docPath(locale)}"`;
     if (/^(demo|usage|features)\.html(?:\?|$)/.test(raw)) {
       const next = new URL(raw, 'https://example.invalid/');
-      next.searchParams.set('lang', docsLocale(locale));
+      next.searchParams.set('lang', demoLanguage);
       return `${attr}="${next.pathname + next.search.replaceAll('&', '&amp;')}"`;
     }
     return `${attr}="/${raw}"`;
@@ -121,12 +122,14 @@ export function renderHome(html, locale = 'zh') {
       ? '集中管理 AI 工具、账号与模型，使用智能接入、AI 助手、语音输入和桌面用量岛。'
       : 'Manage AI tools, accounts and models with Smart Routes, an AI assistant, voice input and desktop usage islands.';
   const translated = homeTranslations[locale];
+  const localizedTitle = translated?.['seo.title'] || title;
+  if (locale === 'tr') html = textAt(html, 'hero-eyebrow', localizedTitle, 'div');
   return setSeo(
     html,
     locale,
     'home',
     null,
-    translated?.['seo.title'] || title,
+    localizedTitle,
     translated?.['seo.description'] || description
   );
 }

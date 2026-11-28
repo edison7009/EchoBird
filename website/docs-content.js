@@ -833,7 +833,7 @@ export const docsArticles = [
       section(
         'settings-language',
         '语言',
-        `<p>客户端提供 11 种界面语言，包括 English、简体中文、繁體中文、日本語、한국어、Español、Français、Deutsch、Português、Русский 和 Tiếng Việt。</p><p>首次启动且没有保存过语言时，EchoBird 从系统提供的首选语言中选择第一个受支持的语言，没有匹配时使用英语。你在「设置 → 语言」手动选择的语言会优先用于后续启动。模型 ID、服务商错误和第三方内容可能保留原始语言。</p>`
+        `<p>客户端提供 12 种界面语言，包括 English、简体中文、繁體中文、日本語、한국어、Español、Français、Deutsch、Português、Русский、Tiếng Việt 和 Türkçe。</p><p>首次启动且没有保存过语言时，EchoBird 从系统提供的首选语言中选择第一个受支持的语言，没有匹配时使用英语。你在「设置 → 语言」手动选择的语言会优先用于后续启动。模型 ID、服务商错误和第三方内容可能保留原始语言。</p>`
       ),
       section(
         'settings-optional',

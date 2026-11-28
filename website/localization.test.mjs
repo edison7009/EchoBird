@@ -136,7 +136,9 @@ test('all website languages have complete translated homes and only two document
     assert.match(html, /class="site-language-icon"[^>]+aria-hidden="true"/, locale);
     assert.ok(html.includes(`href="${docPath(locale)}"`), locale);
     assert.ok(
-      html.includes(`/demo.html?lang=${locale === 'zh' || locale === 'zh-Hant' ? 'zh' : 'en'}`),
+      html.includes(
+        `/demo.html?lang=${locale === 'tr' ? 'tr' : ['zh', 'zh-Hant'].includes(locale) ? 'zh' : 'en'}`
+      ),
       locale
     );
     if (locale === 'zh') continue;
@@ -150,6 +152,19 @@ test('all website languages have complete translated homes and only two document
   }
   assert.equal(docPath('ja', 'models'), '/docs/models/');
   assert.equal(docPath('zh-Hant', 'models'), '/zh/docs/models/');
+});
+
+test('Turkish homepage links to Turkish interactive previews', async () => {
+  const source = await readFile(new URL('./index.html', import.meta.url), 'utf8');
+  const html = renderHome(source, 'tr');
+  assert.match(html, /id="hero-eyebrow">EchoBird · Hepsi bir arada yapay zekâ asistanı<\/div>/);
+  assert.match(html, /data-site-language="tr" href="\/tr\/"[^>]*aria-current="true">Türkçe<\/a>/);
+  assert.match(html, /\/demo\.html\?lang=tr/);
+  assert.match(html, /\/usage\.html\?lang=tr/);
+  for (const mode of ['models', 'assistant', 'pets']) {
+    assert.ok(html.includes(`/features.html?mode=${mode}&amp;lang=tr`), mode);
+  }
+  assert.equal(preferredSiteLocale({ language: 'tr-TR' }, null), 'tr');
 });
 
 test('regional and saved language preferences resolve without dropping browser priority', () => {

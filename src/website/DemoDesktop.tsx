@@ -28,7 +28,7 @@ import { ViewModeTabs } from '../components/ViewModeTabs';
 import { PageActionButton } from '../components/PageActionButton';
 import { CapabilityToggles } from '../pages/AppManager/CapabilityToggles';
 import { useI18n } from '../hooks/useI18n';
-import { desktopCopy } from './demoLocale';
+import { demoCopyLocale, desktopCopy } from './demoLocale';
 import { demoTools, demoModels, demoAccounts, demoQuotas, demoModelUsage } from './fixtures';
 import { QuotaPercent } from '../pages/AppManager/QuotaPercent';
 import { QuotaCountdown } from '../pages/AppManager/QuotaCountdown';
@@ -36,7 +36,7 @@ import { quotaColorClasses, quotaTone } from '../utils/quotaColors';
 
 function DemoQuota({ email, startedAt }: { email: string; startedAt: number }) {
   const { locale } = useI18n();
-  const copy = desktopCopy[locale === 'en' ? 'en' : 'zh-Hans'];
+  const copy = desktopCopy[demoCopyLocale(locale)];
   const quota = demoQuotas[email];
   const colors = quotaColorClasses[quotaTone(quota.percent)];
   return (
@@ -70,7 +70,7 @@ function DemoQuota({ email, startedAt }: { email: string; startedAt: number }) {
 // The website owns only transient demonstration state. Shared components own appearance.
 export function DemoDesktop() {
   const { t, locale } = useI18n();
-  const copy = desktopCopy[locale === 'en' ? 'en' : 'zh-Hans'];
+  const copy = desktopCopy[demoCopyLocale(locale)];
   const [toolId, setToolId] = useState('claudecode');
   const [view, setView] = useState<'desktop' | 'install'>('desktop');
   const [selection, setSelection] = useState('smart-router-demo');

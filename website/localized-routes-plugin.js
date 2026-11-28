@@ -129,13 +129,16 @@ export function localizedRoutesPlugin(root) {
         for (const article of docsArticles) {
           const dest = path.join(dir, 'docs', article.id === 'welcome' ? '' : article.id);
           await fs.mkdir(dest, { recursive: true });
-          await fs.writeFile(path.join(dest, 'index.html'), renderDocs(docs, locale, article.id));
+          await fs.writeFile(
+            path.join(dest, 'index.html'),
+            clean(renderDocs(docs, locale, article.id))
+          );
         }
       }
       // The root fallback is English; the browser redirects to its saved/preferred locale.
       // Generate it last so Chinese pages always derive from the Chinese source template.
       await fs.writeFile(path.join(outDir, 'index.html'), renderHome(home, 'en'));
-      await fs.writeFile(path.join(outDir, 'docs.html'), renderDocs(docs, 'en', 'welcome'));
+      await fs.writeFile(path.join(outDir, 'docs.html'), clean(renderDocs(docs, 'en', 'welcome')));
     },
   };
 }

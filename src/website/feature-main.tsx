@@ -1,13 +1,14 @@
 import ReactDOM from 'react-dom/client';
 import { I18nContext } from '../hooks/i18nContext';
-import { loadLocale, translate } from '../i18n';
+import { loadLocale } from '../i18n';
 import { getColorTheme } from '../data/colorThemes';
 import { AssistantDemo, ModelsDemo, PetsDemo } from './FeatureDemos';
 import '../index.css';
 import './feature-demos.css';
-import { demoLocale } from './demoLocale';
+import { demoLocale, demoTranslate } from './demoLocale';
 const locale = demoLocale();
-document.documentElement.lang = locale === 'en' ? 'en' : 'zh-CN';
+document.documentElement.lang = locale === 'zh-Hans' ? 'zh-CN' : locale;
+if (locale === 'tr') document.title = 'EchoBird · Özellik demosu';
 
 const palette = getColorTheme('oatgray').dark;
 for (const [key, value] of Object.entries({
@@ -30,7 +31,7 @@ const mode = new URLSearchParams(location.search).get('mode');
 void loadLocale(locale).then(() => {
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <I18nContext.Provider
-      value={{ locale, setLocale: () => {}, t: (key) => translate(key, locale) }}
+      value={{ locale, setLocale: () => {}, t: (key) => demoTranslate(key, locale) }}
     >
       {mode === 'models' ? <ModelsDemo /> : mode === 'assistant' ? <AssistantDemo /> : <PetsDemo />}
     </I18nContext.Provider>
