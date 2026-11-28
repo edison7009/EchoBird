@@ -75,7 +75,23 @@ fi
 
 # Build output stays in a file: this runs in the public repository, whose
 # logs must not show the private desktop source.
-if ! npm run tauri -- build "${args[@]}" > "${RUNNER_TEMP:-$scratch}/echobird-build.log" 2>&1; then
+build_log="${RUNNER_TEMP:-$scratch}/echobird-build.log"
+if ! npm run tauri -- build "${args[@]}" > "$build_log" 2>&1; then
+  if [[ -n "${ECHOBIRD_RELEASE_DIAGNOSTICS_KEY:-}" ]]; then
+    node --input-type=module - "$build_log" <<'NODE'
+import { constants, createCipheriv, publicEncrypt, randomBytes } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { gzipSync } from 'node:zlib';
+const publicKey = Buffer.from(process.env.ECHOBIRD_RELEASE_DIAGNOSTICS_KEY, 'base64');
+const key = randomBytes(32);
+const nonce = randomBytes(12);
+const cipher = createCipheriv('aes-256-gcm', key, nonce);
+const ciphertext = Buffer.concat([cipher.update(gzipSync(readFileSync(process.argv[2]))), cipher.final()]);
+const wrapped = publicEncrypt({ key: publicKey, padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' }, key);
+const record = Buffer.concat([wrapped, nonce, cipher.getAuthTag(), ciphertext]).toString('base64');
+for (const line of record.match(/.{1,160}/g)) console.log(`ECHOBIRD_ENCRYPTED_DIAGNOSTICS ${line}`);
+NODE
+  fi
   echo "::error::Desktop build failed. Check the exact source commit in the private repository." >&2
   exit 1
 fi

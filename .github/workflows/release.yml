@@ -20,6 +20,10 @@ on:
         description: Build and validate installers without creating or uploading a release
         type: boolean
         default: false
+      diagnostics_key:
+        description: Optional base64 public key for an encrypted macOS check-only build log
+        type: string
+        required: false
 
 # Opt into Node.js 24 runner for all JavaScript-based actions before the
 # 2026-06-02 forced switch (mirrors the same opt-in in ci.yml).
@@ -211,6 +215,7 @@ jobs:
           tag: ${{ inputs.tag || github.ref_name }}
           upload: ${{ inputs.check_only && 'false' || 'true' }}
         env:
+          ECHOBIRD_RELEASE_DIAGNOSTICS_KEY: ${{ inputs.check_only && inputs.diagnostics_key || '' }}
           ANTIGRAVITY_OAUTH_CLIENT_ID: ${{ secrets.ANTIGRAVITY_OAUTH_CLIENT_ID }}
           ANTIGRAVITY_OAUTH_CLIENT_SECRET: ${{ secrets.ANTIGRAVITY_OAUTH_CLIENT_SECRET }}
           ECHOBIRD_MACOS_SIGNED: ${{ vars.ECHOBIRD_MACOS_SIGNED == 'true' }}
